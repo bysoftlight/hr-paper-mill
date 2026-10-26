@@ -1,0 +1,5 @@
+# GitHub Pages: ไม่ต้องเผยแพร่ไฟล์เหล่านี้บนเว็บ
+exclude:
+  - apps-script/
+  - DESIGN.md
+  - README.md
