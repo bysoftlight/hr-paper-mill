@@ -34,7 +34,7 @@
     /* กันไอคอนขยายเต็มจอ ถ้า stylesheet ยังโหลดไม่เสร็จหรือเป็นเวอร์ชันเก่า (:where = ไม่ทับขนาดใน style.css) */
     :where(svg.ic) { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; }
   </style>
-  <link rel="stylesheet" href="css/style.css?v=3.2.1">
+  <link rel="stylesheet" href="css/style.css?v=3.3.0">
 </head>
 <body>
 
@@ -68,6 +68,10 @@
       <symbol id="i-map" viewBox="0 0 24 24"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/><path d="M8 2v16M16 6v16"/></symbol>
       <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="m1 1 22 22"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.58 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></symbol>
       <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></symbol>
+      <symbol id="i-maximize" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></symbol>
+      <symbol id="i-external" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14 21 3"/></symbol>
     </defs>
   </svg>
 
@@ -165,6 +169,50 @@
     </div>
     <div class="sheet-foot"><button type="button" class="btn btn-outline" data-close>ปิด</button></div>
   </dialog>
+
+  <!-- ===== Photo viewer ===== -->
+  <dialog id="photoModal" class="sheet viewer" aria-labelledby="photoTitle">
+    <div class="sheet-head">
+      <div>
+        <h2 id="photoTitle">ภาพหลักฐาน</h2>
+        <p id="photoMeta"></p>
+      </div>
+      <button type="button" class="icon-btn" data-close aria-label="ปิด"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="viewer-body">
+      <img id="photoLarge" alt="">
+      <div class="empty" id="photoLargeEmpty" hidden><svg class="ic" aria-hidden="true"><use href="#i-image"/></svg>โหลดรูปไม่สำเร็จ</div>
+    </div>
+    <div class="sheet-foot viewer-foot">
+      <a class="loc-link" id="photoLoc" target="_blank" rel="noopener" hidden></a>
+      <div class="viewer-actions">
+        <a class="btn btn-outline" id="photoMap" target="_blank" rel="noopener" hidden><svg class="ic" aria-hidden="true"><use href="#i-map"/></svg> เปิดแผนที่</a>
+        <button type="button" class="btn btn-primary" id="photoDownload"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg> ดาวน์โหลดรูป</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ===== Monthly PDF export ===== -->
+  <dialog id="exportModal" class="sheet" aria-labelledby="exportTitle">
+    <div class="sheet-head">
+      <div><h2 id="exportTitle">ส่งออกรายงานประจำเดือน</h2><p>ไฟล์ PDF ขนาด A4 พร้อมสรุปยอด รายการ และตำแหน่ง</p></div>
+      <button type="button" class="icon-btn" data-close aria-label="ปิด"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="sheet-body export-body">
+      <div class="export-pickers">
+        <label><span class="label">เดือน</span><select class="select" id="exportMonth"></select></label>
+        <label><span class="label">ปี</span><select class="select" id="exportYear"></select></label>
+      </div>
+      <label class="check"><input type="checkbox" id="exportPhotos" checked><span>แนบภาพหลักฐานท้ายรายงาน (ใช้เวลานานขึ้นตามจำนวนรูป)</span></label>
+      <p class="banner banner-info" id="exportInfo" aria-live="polite"></p>
+    </div>
+    <div class="sheet-foot">
+      <button type="button" class="btn btn-primary" id="exportGo"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg> ดาวน์โหลด PDF</button>
+    </div>
+  </dialog>
+
+  <!-- พื้นที่วาดหน้ารายงานก่อนแปลงเป็น PDF (อยู่นอกจอ) -->
+  <div id="pdfStage" class="pdf-stage" aria-hidden="true"></div>
 
   <!-- ===== Alert dialog ===== -->
   <dialog id="msgDialog" class="alert" role="alertdialog" aria-labelledby="msgTitle" aria-describedby="msgText">
@@ -356,7 +404,10 @@
           <h2 id="histTitle">ประวัติการส่งงาน</h2>
           <p id="histUpdated">&nbsp;</p>
         </div>
-        <button type="button" class="btn-text" id="histRefresh"><svg class="ic ic-16" aria-hidden="true"><use href="#i-refresh"/></svg> รีเฟรช</button>
+        <div class="head-actions">
+          <button type="button" class="btn-chip" id="exportOpen" disabled><svg class="ic ic-16" aria-hidden="true"><use href="#i-file"/></svg> ส่งออก PDF</button>
+          <button type="button" class="btn-text" id="histRefresh"><svg class="ic ic-16" aria-hidden="true"><use href="#i-refresh"/></svg> รีเฟรช</button>
+        </div>
       </div>
 
       <div class="hist-grid">
@@ -446,9 +497,10 @@
     </nav>
   </div>
 
-  <script src="js/config.js?v=3.2.1"></script>
-  <script src="js/utils.js?v=3.2.1"></script>
-  <script src="js/api.js?v=3.2.1"></script>
-  <script src="js/app.js?v=3.2.1"></script>
+  <script src="js/config.js?v=3.3.0"></script>
+  <script src="js/utils.js?v=3.3.0"></script>
+  <script src="js/api.js?v=3.3.0"></script>
+  <script src="js/app.js?v=3.3.0"></script>
+  <script src="js/report.js?v=3.3.0"></script>
 </body>
 </html>

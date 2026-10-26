@@ -170,7 +170,7 @@ function submitSalesData(formObject) {
       `https://maps.google.com/maps?q=${lat},${long}`
     ]);
 
-    return { success: true, message: 'บันทึกข้อมูลเรียบร้อยแล้ว', record: toRecord_(now, formObject.salesType, file.getDownloadUrl()) };
+    return { success: true, message: 'บันทึกข้อมูลเรียบร้อยแล้ว', record: toRecord_(now, formObject.salesType, file.getDownloadUrl(), lat, long) };
   } catch (error) {
     return { success: false, message: 'Error: ' + error.toString() };
   } finally {
@@ -178,13 +178,18 @@ function submitSalesData(formObject) {
   }
 }
 
-function toRecord_(ts, type, imageUrl) {
+function toRecord_(ts, type, imageUrl, lat, lng) {
+  lat = parseFloat(lat); lng = parseFloat(lng);
+  const hasLoc = isFinite(lat) && isFinite(lng);
   return {
     date: Utilities.formatDate(ts, TZ, 'yyyy-MM-dd'),
     time: Utilities.formatDate(ts, TZ, 'HH:mm'),
     type: String(type),
     image: toImageUrl_(imageUrl),
     fileId: toFileId_(imageUrl),
+    lat: hasLoc ? lat : null,
+    lng: hasLoc ? lng : null,
+    mapUrl: hasLoc ? `https://maps.google.com/maps?q=${lat},${lng}` : '',
     timestamp: ts.getTime()
   };
 }
@@ -196,13 +201,13 @@ function getUserHistory(userId) {
   const lastRow = sheet.getLastRow();
   if (!id || lastRow < 2) return [];
 
-  const data = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
+  const data = sheet.getRange(2, 1, lastRow - 1, 9).getValues(); // A–I: ... G: รูป, H: lat, I: long
   const history = [];
   for (let i = data.length - 1; i >= 0 && history.length < HISTORY_LIMIT; i--) {
     if (String(data[i][3]).trim().toUpperCase() !== id) continue;
     const ts = data[i][0] instanceof Date ? data[i][0] : new Date(data[i][1]);
     if (isNaN(ts)) continue;
-    history.push(toRecord_(ts, data[i][5], data[i][6]));
+    history.push(toRecord_(ts, data[i][5], data[i][6], data[i][7], data[i][8]));
   }
   return history;
 }

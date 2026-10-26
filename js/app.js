@@ -402,6 +402,7 @@ function loadHistoryData(force = false) {
             $('histUpdated').textContent = 'อัปเดตล่าสุด ' + new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
             updateTodayStatus();
             renderYearOptions();
+            $('exportOpen').disabled = false;
             renderFilteredHistory();
         } else {
             $('histUpdated').textContent = res.message || 'โหลดข้อมูลไม่สำเร็จ';
@@ -558,32 +559,132 @@ function appendItems(count) {
             const open = head.getAttribute('aria-expanded') !== 'true';
             head.setAttribute('aria-expanded', String(open));
             body.hidden = !open;
-            // โหลดรูปเมื่อเปิดครั้งแรกเท่านั้น
-            if (open && !body.childElementCount) {
-                if (item.image) {
-                    const img = document.createElement('img');
-                    img.alt = `ภาพหลักฐาน ${formatThaiDate(item.timestamp)} ${item.time}`;
-                    img.referrerPolicy = 'no-referrer';
-                    // ถ้ารูปไม่ได้แชร์สาธารณะ (นโยบายองค์กร) ให้ขอรูปผ่าน API แทน
-                    img.onerror = () => {
-                        img.onerror = null;
-                        if (!item.fileId) return;
-                        callApi('image', { userId: CURRENT_USER.id, fileId: item.fileId }).then(res => {
-                            if (res.success && res.dataUrl) img.src = res.dataUrl;
-                        });
-                    };
-                    img.src = item.image;
-                    body.appendChild(img);
-                } else {
-                    body.innerHTML = `<div class="empty">${icon('image')}ไม่มีภาพหลักฐานสำหรับรายการนี้</div>`;
-                }
-                const note = document.createElement('p');
-                note.textContent = item.type;
-                body.appendChild(note);
-            }
+            // สร้างเนื้อหาเมื่อเปิดครั้งแรกเท่านั้น
+            if (open && !body.childElementCount) renderHistoryBody(body, item);
         });
         st.list.appendChild(row);
         st.shown++;
     });
     $('loadMoreBtn').hidden = st.shown >= FILTERED.length;
 }
+
+// --- History row detail: photo (tap to enlarge) + location ---
+function renderHistoryBody(body, item) {
+    if (item.image || item.fileId) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'photo-btn';
+        btn.setAttribute('aria-label', `ขยายภาพหลักฐาน ${formatThaiDate(item.timestamp)} ${item.time} น.`);
+        btn.innerHTML = `<img alt="" referrerpolicy="no-referrer"><span class="photo-zoom">${icon('maximize', 'ic-16')} ขยายภาพ</span>`;
+        loadImageInto(btn.querySelector('img'), item);
+        btn.addEventListener('click', () => openPhotoViewer(item));
+        body.appendChild(btn);
+    } else {
+        body.innerHTML = `<div class="empty">${icon('image')}ไม่มีภาพหลักฐานสำหรับรายการนี้</div>`;
+    }
+    const meta = document.createElement('div');
+    meta.className = 'hist-meta';
+    meta.innerHTML = `<p></p>`;
+    meta.querySelector('p').textContent = item.type;
+    meta.appendChild(locationLink(item));
+    body.appendChild(meta);
+}
+
+function mapUrlOf(item) {
+    if (item.mapUrl) return item.mapUrl;
+    if (item.lat != null && item.lng != null) return `https://maps.google.com/maps?q=${item.lat},${item.lng}`;
+    return '';
+}
+
+// แถวตำแหน่ง: ไอคอน + พิกัด + URL (กดเปิด Google Maps)
+function locationLink(item) {
+    const url = mapUrlOf(item);
+    const el = document.createElement(url ? 'a' : 'span');
+    el.className = 'loc-link';
+    if (url) { el.href = url; el.target = '_blank'; el.rel = 'noopener'; }
+    el.innerHTML = `${icon('pin', 'ic-16')}<span><b class="mono"></b><small></small></span>`;
+    el.querySelector('b').textContent = item.lat != null ? `${Number(item.lat).toFixed(5)}, ${Number(item.lng).toFixed(5)}` : 'ไม่มีข้อมูลตำแหน่ง';
+    el.querySelector('small').textContent = url;
+    return el;
+}
+
+// รูปจาก API (data URL) — เก็บแคชไว้ใช้ซ้ำตอนขยาย ดาวน์โหลด และทำ PDF
+const IMAGE_CACHE = new Map();
+function fetchImageData(item) {
+    if (!item.fileId) return Promise.resolve(null);
+    if (!IMAGE_CACHE.has(item.fileId)) {
+        const req = callApi('image', { userId: CURRENT_USER.id, fileId: item.fileId })
+            .then(res => (res.success && res.dataUrl) ? res.dataUrl : null);
+        req.then(v => { if (!v) IMAGE_CACHE.delete(item.fileId); });
+        IMAGE_CACHE.set(item.fileId, req);
+    }
+    return IMAGE_CACHE.get(item.fileId);
+}
+
+// แสดงรูป: ใช้ thumbnail ก่อน ถ้าโหลดไม่ได้ (รูปไม่ได้แชร์สาธารณะ) ให้ขอผ่าน API
+function loadImageInto(img, item, onFail) {
+    const fallback = () => {
+        img.onerror = null;
+        fetchImageData(item).then(url => { if (url) img.src = url; else if (onFail) onFail(); });
+    };
+    img.onerror = fallback;
+    if (item.image) img.src = item.image; else fallback();
+}
+
+let VIEWER_ITEM = null;
+function openPhotoViewer(item) {
+    VIEWER_ITEM = item;
+    const img = $('photoLarge');
+    img.removeAttribute('src');
+    img.hidden = false;
+    $('photoLargeEmpty').hidden = true;
+    img.alt = `ภาพหลักฐาน ${formatThaiDate(item.timestamp)} ${item.time} น.`;
+    $('photoTitle').textContent = formatThaiDate(item.timestamp);
+    $('photoMeta').textContent = `${item.time} น. · ${item.type}`;
+    const url = mapUrlOf(item);
+    $('photoMap').hidden = !url;
+    $('photoLoc').hidden = !url;
+    if (url) {
+        $('photoMap').href = url;
+        $('photoLoc').replaceWith(Object.assign(locationLink(item), { id: 'photoLoc' }));
+    }
+    // ภาพใหญ่: ใช้ไฟล์จริงจาก API ถ้าได้ (คมกว่า thumbnail)
+    fetchImageData(item).then(dataUrl => {
+        if (VIEWER_ITEM !== item) return;
+        if (dataUrl) img.src = dataUrl;
+        else loadImageInto(img, item, () => { img.hidden = true; $('photoLargeEmpty').hidden = false; });
+    });
+    showModal('photoModal');
+}
+
+async function downloadPhoto() {
+    const item = VIEWER_ITEM;
+    if (!item) return;
+    const btn = $('photoDownload');
+    btn.disabled = true;
+    try {
+        const dataUrl = await fetchImageData(item);
+        const name = `${CURRENT_USER.id}_${new Date(item.timestamp).toISOString().slice(0, 10)}_${String(item.time).replace(':', '')}.jpg`;
+        if (dataUrl) {
+            const blob = await (await fetch(dataUrl)).blob();
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = name;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+        } else if (item.image) {
+            // ดึงไฟล์ผ่าน API ไม่ได้: เปิดรูปในแท็บใหม่ให้บันทึกเอง
+            window.open(item.image, '_blank', 'noopener');
+        } else {
+            showMessage({ title: 'ดาวน์โหลดไม่สำเร็จ', text: 'ไม่พบไฟล์รูปของรายการนี้', tone: 'bad' });
+        }
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    $('photoDownload').addEventListener('click', downloadPhoto);
+});
