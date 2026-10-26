@@ -34,7 +34,7 @@
     /* กันไอคอนขยายเต็มจอ ถ้า stylesheet ยังโหลดไม่เสร็จหรือเป็นเวอร์ชันเก่า (:where = ไม่ทับขนาดใน style.css) */
     :where(svg.ic) { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; }
   </style>
-  <link rel="stylesheet" href="css/style.css?v=3.3.1">
+  <link rel="stylesheet" href="css/style.css?v=3.4.0">
 </head>
 <body>
 
@@ -272,10 +272,10 @@
   </div>
 
   <!-- ===== App ===== -->
-  <div id="appContainer" class="app" hidden>
+  <div id="appContainer" class="app is-syncing" hidden>
     <header class="topbar">
       <div class="brand"><span class="logo" aria-hidden="true">H</span><span>HR Paper Mill</span></div>
-      <span class="chip" data-today>…</span>
+      <span class="chip" data-today>&nbsp;</span>
     </header>
 
     <nav class="sidenav" aria-label="เมนูหลัก">
@@ -286,10 +286,10 @@
         <button type="button" class="nav-item" data-tab="account"><svg class="ic ic-22" aria-hidden="true"><use href="#i-user"/></svg><span>บัญชี</span></button>
       </div>
       <div class="nav-user">
-        <span class="chip" data-today>…</span>
+        <span class="chip" data-today>&nbsp;</span>
         <div class="nav-user-row">
           <div class="avatar" data-user="avatar"></div>
-          <div class="nav-user-text"><b data-user="name">…</b><small class="mono" data-user="id">…</small></div>
+          <div class="nav-user-text"><b data-user="name">&nbsp;</b><small class="mono" data-user="id">&nbsp;</small></div>
         </div>
         <button type="button" class="btn-text btn-text-bad" data-action="logout"><svg class="ic ic-16" aria-hidden="true"><use href="#i-logout"/></svg> ออกจากระบบ</button>
       </div>
@@ -309,9 +309,9 @@
           <section class="card profile" aria-label="ข้อมูลของฉัน">
             <div class="avatar avatar-lg" data-user="avatar"></div>
             <div class="profile-text">
-              <b data-user="name">…</b>
-              <span class="mono" data-user="id">…</span>
-              <span class="muted-text" data-user="status">…</span>
+              <b data-user="name">&nbsp;</b>
+              <span class="mono" data-user="id">&nbsp;</span>
+              <span class="muted-text" data-user="status">&nbsp;</span>
             </div>
           </section>
           <div class="tiles">
@@ -458,10 +458,10 @@
         <div class="stack">
           <section class="card profile-card">
             <div class="avatar avatar-xl" data-user="avatar"></div>
-            <b class="profile-name" data-user="name">…</b>
+            <b class="profile-name" data-user="name">&nbsp;</b>
             <dl class="kv">
-              <div><dt>รหัสผู้ใช้สิทธิ์</dt><dd class="mono" data-user="id">…</dd></div>
-              <div><dt>การใช้สิทธิ์</dt><dd data-user="status">…</dd></div>
+              <div><dt>รหัสผู้ใช้สิทธิ์</dt><dd class="mono" data-user="id">&nbsp;</dd></div>
+              <div><dt>การใช้สิทธิ์</dt><dd data-user="status">&nbsp;</dd></div>
             </dl>
           </section>
           <div class="banner banner-warn">
@@ -497,10 +497,10 @@
     </nav>
   </div>
 
-  <script src="js/config.js?v=3.3.1"></script>
-  <script src="js/utils.js?v=3.3.1"></script>
-  <script src="js/api.js?v=3.3.1"></script>
-  <script src="js/app.js?v=3.3.1"></script>
-  <script src="js/report.js?v=3.3.1"></script>
+  <script src="js/config.js?v=3.4.0"></script>
+  <script src="js/utils.js?v=3.4.0"></script>
+  <script src="js/api.js?v=3.4.0"></script>
+  <script src="js/app.js?v=3.4.0"></script>
+  <script src="js/report.js?v=3.4.0"></script>
 </body>
 </html>
