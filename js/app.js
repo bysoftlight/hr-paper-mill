@@ -10,7 +10,7 @@ let FILTER_MONTH_IDX = new Date().getMonth();
 let FILTER_YEAR_VAL = new Date().getFullYear();
 
 const USER_KEY = 'SALES_APP_USER_ID';
-const THEME_KEY = 'HRPM_THEME';
+const SELF_TYPE = 'ทำการขายด้วยตัวเอง';
 const MONTHS = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 const MONTHS_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 const DAYS_SHORT = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
@@ -20,27 +20,25 @@ const $ = (id) => document.getElementById(id);
 window.addEventListener('DOMContentLoaded', () => {
     initDialogs();
     initRules();
-    initTheme();
     initLogin();
     initForm();
     initHistory();
     initNav();
-    $('logoutBtn').addEventListener('click', logout);
+    document.querySelectorAll('[data-action="logout"]').forEach(btn => btn.addEventListener('click', logout));
 
     const savedId = store.get(USER_KEY);
     if (savedId && savedId !== "null" && savedId !== "undefined") {
         performLogin(savedId, true);
     } else {
         showRulesModal(true);
-        $('loginId').focus();
     }
 });
 
 // Clock
 function tickClock() {
     const now = new Date();
-    $('currentTime').textContent = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-    $('currentDate').textContent = now.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    $('currentTime').textContent = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+    $('currentDate').textContent = now.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 }
 tickClock();
 setInterval(tickClock, 1000);
@@ -72,22 +70,8 @@ function showRulesModal(requireAck) {
     $('rulesAck').checked = false;
     $('rulesAccept').disabled = true;
     showModal('rulesModal');
-    dlg.querySelector('.dlg-body').scrollTop = 0;
+    dlg.querySelector('.sheet-body').scrollTop = 0;
     (requireAck ? $('rulesAck') : $('rulesClose')).focus();
-}
-
-// --- THEME ---
-function initTheme() {
-    const apply = (opt) => {
-        if (opt === 'light' || opt === 'dark') { document.documentElement.dataset.theme = opt; store.set(THEME_KEY, opt); }
-        else { delete document.documentElement.dataset.theme; store.remove(THEME_KEY); opt = 'auto'; }
-        document.querySelectorAll('[data-theme-opt]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.themeOpt === opt)));
-    };
-    apply(store.get(THEME_KEY) || 'auto');
-    $('themeGroup').addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-theme-opt]');
-        if (btn) apply(btn.dataset.themeOpt);
-    });
 }
 
 // --- AUTHENTICATION ---
@@ -106,7 +90,9 @@ function setLoginError(message) {
     const hint = $('loginHint');
     $('loginId').setAttribute('aria-invalid', message ? 'true' : 'false');
     hint.classList.toggle('is-error', !!message);
-    hint.textContent = message || 'ตัวอักษรภาษาอังกฤษหรือตัวเลข ระบบจะจำรหัสไว้ในเครื่องนี้';
+    hint.setAttribute('role', message ? 'alert' : 'note');
+    hint.innerHTML = message ? icon('alert', 'ic-16') : '';
+    hint.append(message || 'ตัวอักษรภาษาอังกฤษหรือตัวเลข ระบบจะจำรหัสไว้ในเครื่องนี้');
 }
 
 function manualLogin() {
@@ -116,7 +102,7 @@ function manualLogin() {
 }
 
 async function performLogin(userId, isAuto) {
-    showLoading(true, isAuto ? 'กำลังเข้าสู่ระบบ...' : 'กำลังตรวจสอบรหัส...');
+    showLoading(true, isAuto ? 'กำลังเข้าสู่ระบบ…' : 'กำลังตรวจสอบรหัส…');
     const res = await callApi('login', { userId: userId });
     showLoading(false);
 
@@ -127,7 +113,7 @@ async function performLogin(userId, isAuto) {
     } else if (res.networkError) {
         // เน็ตหลุด ไม่ใช่รหัสผิด: เก็บรหัสที่จำไว้ และให้ลองใหม่
         if (isAuto) {
-            const retry = await showMessage({ title: 'เชื่อมต่อไม่ได้', text: res.message, tone: 'warning', okText: 'ลองอีกครั้ง', cancelText: 'ปิด' });
+            const retry = await showMessage({ title: 'เชื่อมต่อไม่ได้', text: res.message, tone: 'warn', okText: 'ลองอีกครั้ง', cancelText: 'ปิด' });
             if (retry) return performLogin(userId, true);
             $('loginId').value = userId;
             $('loginBtn').disabled = false;
@@ -144,11 +130,11 @@ async function performLogin(userId, isAuto) {
 async function logout() {
     const ok = await showMessage({
         title: 'ออกจากระบบ?', text: 'ครั้งต่อไปต้องกรอกรหัสผู้ใช้สิทธิ์ใหม่อีกครั้ง',
-        tone: 'danger', okText: 'ออกจากระบบ', cancelText: 'ยกเลิก'
+        tone: 'bad', okText: 'ออกจากระบบ', cancelText: 'ยกเลิก'
     });
     if (ok) {
         store.remove(USER_KEY);
-        location.hash = '';
+        history.replaceState(null, '', location.pathname);
         location.reload();
     }
 }
@@ -156,7 +142,6 @@ async function logout() {
 // --- APP NAVIGATION & SETUP ---
 function setupApp() {
     $('loginView').hidden = true;
-    $('mainFooter').hidden = true;
     $('appContainer').hidden = false;
 
     document.querySelectorAll('[data-user="name"]').forEach(el => el.textContent = CURRENT_USER.name || '-');
@@ -204,6 +189,9 @@ function switchTab(tab, pushHash = true) {
 }
 
 // --- FORM HANDLING ---
+let COMPRESSED = null;     // { base64, bytes } ของรูปที่เลือกล่าสุด
+let compressToken = 0;
+
 function initForm() {
     $('salesForm').addEventListener('submit', handleFormSubmit);
     $('locRefresh').addEventListener('click', getLocation);
@@ -212,11 +200,11 @@ function initForm() {
     updateChecklist();
 }
 
-function setLocStatus(tone, icon, title, detail = '') {
+function setLocStatus(state, iconName, title, detail = '') {
     const box = $('locationStatus');
-    box.className = `loc-status is-${tone}`;
-    box.innerHTML = `<i class="bi ${icon}"></i><div class="loc-status-text"><strong></strong><small></small></div>`;
-    box.querySelector('strong').textContent = title;
+    box.className = `status-box is-${state}`;
+    box.querySelector('.icon-box').innerHTML = icon(iconName);
+    box.querySelector('b').textContent = title;
     box.querySelector('small').textContent = detail;
 }
 
@@ -224,11 +212,11 @@ function getLocation() {
     $('lat').value = ''; $('long').value = '';
     $('locMap').hidden = true;
     $('locRefresh').disabled = true;
-    setLocStatus('warning', 'bi-arrow-repeat spin', 'กำลังค้นหาพิกัด...', 'กรุณาอยู่ในที่โล่งเพื่อความแม่นยำ');
+    setLocStatus('pending', 'pin', 'กำลังค้นหาพิกัด…', 'กรุณาอยู่ในที่โล่งเพื่อความแม่นยำ');
     updateChecklist();
 
     if (!navigator.geolocation) {
-        setLocStatus('danger', 'bi-x-circle-fill', 'เบราว์เซอร์ไม่รองรับ GPS', 'กรุณาเปิดด้วย Chrome หรือ Safari');
+        setLocStatus('error', 'x-circle', 'เบราว์เซอร์นี้ไม่รองรับ GPS', 'กรุณาเปิดด้วย Chrome หรือ Safari บนมือถือ');
         $('locRefresh').disabled = false;
         return;
     }
@@ -237,8 +225,7 @@ function getLocation() {
             const { latitude, longitude, accuracy } = pos.coords;
             $('lat').value = latitude;
             $('long').value = longitude;
-            setLocStatus('success', 'bi-check-circle-fill', 'ระบุตำแหน่งสำเร็จ',
-                `${latitude.toFixed(5)}, ${longitude.toFixed(5)} · แม่นยำ ±${Math.round(accuracy)} ม.`);
+            setLocStatus('ok', 'check-circle', 'ระบุตำแหน่งแล้ว', `${latitude.toFixed(5)}, ${longitude.toFixed(5)} · ±${Math.round(accuracy)} ม.`);
             $('locMap').href = `https://www.google.com/maps?q=${latitude},${longitude}`;
             $('locMap').hidden = false;
             $('locRefresh').disabled = false;
@@ -247,8 +234,8 @@ function getLocation() {
         },
         (err) => {
             const denied = err && err.code === 1;
-            setLocStatus('danger', 'bi-x-circle-fill', denied ? 'ไม่ได้รับอนุญาตให้ใช้ตำแหน่ง' : 'ไม่สามารถระบุพิกัดได้',
-                denied ? 'เปิดสิทธิ์ตำแหน่งในการตั้งค่าเบราว์เซอร์ แล้วกดรีเฟรช' : 'ตรวจสอบว่าเปิด GPS แล้วกดรีเฟรชตำแหน่ง');
+            setLocStatus('error', 'x-circle', denied ? 'ไม่ได้รับอนุญาตให้ใช้ตำแหน่ง' : 'ยังไม่ได้รับพิกัด',
+                denied ? 'เปิดสิทธิ์ตำแหน่งในการตั้งค่าเบราว์เซอร์ แล้วกด "ลองใหม่"' : 'กรุณาเปิด GPS แล้วกด "ลองใหม่"');
             $('locRefresh').disabled = false;
             updateChecklist();
         },
@@ -257,20 +244,29 @@ function getLocation() {
 }
 
 let previewUrl = null;
-function updateFileName(input) {
-    const hasFile = input.files && input.files.length > 0;
+async function updateFileName(input) {
+    const file = input.files && input.files[0];
+    const token = ++compressToken;
+    COMPRESSED = null;
     if (previewUrl) { URL.revokeObjectURL(previewUrl); previewUrl = null; }
-    $('photoEmpty').hidden = hasFile;
-    $('photoFilled').hidden = !hasFile;
-    if (hasFile) {
-        previewUrl = URL.createObjectURL(input.files[0]);
-        $('photoPreview').src = previewUrl;
-        $('fileNameDisplay').textContent = `${input.files[0].name} · ${(input.files[0].size / 1024 / 1024).toFixed(1)} MB (ระบบจะย่อขนาดให้อัตโนมัติ)`;
-        $('stepPhoto').classList.remove('is-error');
-    } else {
-        $('photoPreview').removeAttribute('src');
-    }
+    $('photoEmpty').hidden = !!file;
+    $('photoFilled').hidden = !file;
     updateChecklist();
+    if (!file) { $('photoPreview').removeAttribute('src'); return; }
+
+    previewUrl = URL.createObjectURL(file);
+    $('photoPreview').src = previewUrl;
+    $('stepPhoto').classList.remove('is-error');
+    $('fileNameDisplay').textContent = `${file.name} · ${formatBytes(file.size)} · กำลังย่อขนาด…`;
+    try {
+        const result = await compressImage(file);
+        if (token !== compressToken) return;
+        COMPRESSED = result;
+        $('fileNameDisplay').textContent = `${file.name} · ${formatBytes(file.size)} → ${formatBytes(result.bytes)} (ย่อขนาดแล้ว)`;
+    } catch (e) {
+        if (token !== compressToken) return;
+        $('fileNameDisplay').textContent = `${file.name} · อ่านรูปไม่ได้ กรุณาเลือกรูปใหม่`;
+    }
 }
 
 function formState() {
@@ -285,12 +281,13 @@ function updateChecklist() {
     $('stepLocation').classList.toggle('is-done', s.location);
     $('stepPhoto').classList.toggle('is-done', s.photo);
     const items = [
-        [s.location, 'ตำแหน่ง GPS'],
-        [true, 'ประเภทการขาย'],
-        [s.photo, 'ภาพหลักฐาน']
+        [s.location, 'ยืนยันตำแหน่ง GPS', 'ยังไม่ได้รับพิกัด'],
+        [true, 'เลือกประเภทการขาย', ''],
+        [s.photo, 'แนบภาพหลักฐาน', 'ยังไม่ได้ถ่ายภาพ']
     ];
-    $('checklist').innerHTML = items.map(([ok, label]) =>
-        `<li class="pill ${ok ? 'is-success' : ''}"><i class="bi ${ok ? 'bi-check-circle-fill' : 'bi-circle'}"></i> ${label}</li>`).join('');
+    $('checklist').innerHTML = items.map(([ok, done, missing]) =>
+        `<li class="${ok ? 'is-ok' : ''}">${icon(ok ? 'check-circle' : 'x-circle')}<span>${ok ? done : missing}</span></li>`).join('');
+    $('submitBtn').classList.toggle('is-ready', s.location && s.photo);
 }
 
 function flagStep(id) {
@@ -305,27 +302,27 @@ async function handleFormSubmit(e) {
     const s = formState();
     if (!s.location) {
         flagStep('stepLocation');
-        await showMessage({ title: 'ยังไม่มีตำแหน่ง GPS', text: 'กรุณารอให้ระบบระบุตำแหน่งสำเร็จ หรือกด "รีเฟรชตำแหน่ง"', tone: 'warning' });
+        await showMessage({ title: 'ยังไม่ได้รับพิกัด', text: 'กรุณาเปิด GPS แล้วกด "ลองใหม่" ในขั้นตอนที่ 1', tone: 'warn' });
         if ($('locRefresh').disabled === false) getLocation();
         return;
     }
     if (!s.photo) {
         flagStep('stepPhoto');
-        await showMessage({ title: 'ยังไม่มีภาพหลักฐาน', text: 'กรุณาถ่ายภาพให้เห็นบัตรประจำร้านค้าผู้พิการ ล็อคที่ขาย และผู้ที่ขาย', tone: 'warning' });
+        await showMessage({ title: 'ยังไม่ได้ถ่ายภาพหลักฐาน', text: 'ถ่ายภาพให้เห็นบัตรประจำร้านค้าผู้พิการ ล็อคที่ขาย และผู้ที่ขาย', tone: 'warn' });
         return;
     }
     const selectedSalesType = document.querySelector('input[name="salesTypeRadio"]:checked')?.value;
 
     SUBMITTING = true;
     $('submitBtn').disabled = true;
-    showLoading(true, 'กำลังส่งหลักฐาน...');
+    showLoading(true, 'กำลังบันทึกข้อมูล…');
     try {
         const file = $('evidenceImg').files[0];
-        const compressedBase64 = await compressImage(file);
+        const image = COMPRESSED || await compressImage(file);
         const formData = {
             userName: CURRENT_USER.name, salesType: selectedSalesType,
             lat: $('lat').value, long: $('long').value,
-            imageFile: { name: file.name, mimeType: "image/jpeg", data: compressedBase64 }
+            imageFile: { name: file.name, mimeType: "image/jpeg", data: image.base64 }
         };
 
         const res = await callApi('submit', { userId: CURRENT_USER.id, formData: formData });
@@ -333,18 +330,18 @@ async function handleFormSubmit(e) {
 
         if (res.success) {
             const time = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-            await showMessage({ title: 'ส่งงานสำเร็จ', text: `${res.message || 'บันทึกข้อมูลเรียบร้อย'} (${selectedSalesType} · ${time} น.)`, tone: 'success', okText: 'ดูประวัติ' });
+            await showMessage({ title: 'บันทึกรายงานแล้ว', text: `${res.message || 'บันทึกข้อมูลเรียบร้อย'} · ${selectedSalesType} · ${time} น.`, tone: 'ok', okText: 'ดูประวัติ' });
             $('salesForm').reset();
-            updateFileName($('evidenceImg'));
+            await updateFileName($('evidenceImg'));
             getLocation();
             loadHistoryData(true);
             switchTab('history');
         } else {
-            showMessage({ title: 'บันทึกไม่สำเร็จ', text: res.message || 'กรุณาลองใหม่อีกครั้ง', tone: 'danger' });
+            showMessage({ title: 'บันทึกไม่สำเร็จ', text: res.message || 'กรุณาลองใหม่อีกครั้ง', tone: 'bad' });
         }
     } catch (error) {
         showLoading(false);
-        showMessage({ title: 'เกิดข้อผิดพลาด', text: 'Client Error: ' + error.toString(), tone: 'danger' });
+        showMessage({ title: 'เกิดข้อผิดพลาด', text: 'Client Error: ' + error.toString(), tone: 'bad' });
     } finally {
         SUBMITTING = false;
         $('submitBtn').disabled = false;
@@ -355,13 +352,21 @@ async function handleFormSubmit(e) {
 let historyReq = null;
 let historySeq = 0;
 let FILTERED = [];
-let LIST_STATE = { shown: 0, lastDate: null, list: null };
+let LIST_STATE = { shown: 0, list: null };
 
 function initHistory() {
-    $('filterGroup').addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-filter]');
-        if (btn) changeFilter(btn.dataset.filter);
+    const tabs = [...document.querySelectorAll('[data-filter]')];
+    tabs.forEach((btn, i) => {
+        btn.addEventListener('click', () => changeFilter(btn.dataset.filter));
+        // ลูกศรซ้าย/ขวาเลื่อนแท็บ (คีย์บอร์ดบนคอมพิวเตอร์)
+        btn.addEventListener('keydown', (e) => {
+            if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+            const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+            next.focus();
+            changeFilter(next.dataset.filter);
+        });
     });
+    tabs.forEach(b => { b.tabIndex = b.getAttribute('aria-selected') === 'true' ? 0 : -1; });
     $('monthSelect').innerHTML = MONTHS.map((m, i) => `<option value="${i}">${m}</option>`).join('');
     $('monthSelect').value = FILTER_MONTH_IDX;
     $('monthSelect').addEventListener('change', (e) => { FILTER_MONTH_IDX = parseInt(e.target.value); renderFilteredHistory(); });
@@ -375,7 +380,7 @@ function loadHistoryData(force = false) {
     if (historyReq && !force) return historyReq;
     const seq = ++historySeq;
     if (!HISTORY_LOADED) $('historyList').innerHTML = '<div class="stack"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>';
-    $('histUpdated').textContent = 'กำลังโหลด...';
+    $('histUpdated').textContent = 'กำลังโหลด…';
     $('histRefresh').disabled = true;
 
     historyReq = callApi('history', { userId: CURRENT_USER.id }).then(res => {
@@ -391,7 +396,7 @@ function loadHistoryData(force = false) {
             renderFilteredHistory();
         } else {
             $('histUpdated').textContent = res.message || 'โหลดข้อมูลไม่สำเร็จ';
-            if (!HISTORY_LOADED) $('historyList').innerHTML = '<div class="empty"><i class="bi bi-wifi-off"></i>โหลดประวัติไม่สำเร็จ กดรีเฟรชเพื่อลองใหม่</div>';
+            if (!HISTORY_LOADED) $('historyList').innerHTML = `<div class="card empty">${icon('wifi-off')}โหลดประวัติไม่สำเร็จ กด "รีเฟรช" เพื่อลองใหม่</div>`;
         }
     });
     return historyReq;
@@ -412,17 +417,21 @@ function sameDay(a, b) {
 function updateTodayStatus() {
     const today = new Date();
     const count = ALL_HISTORY.filter(h => sameDay(new Date(h.timestamp), today)).length;
-    const pill = $('todayPill');
-    pill.className = 'pill' + (count ? ' is-success' : ' is-warning');
-    pill.innerHTML = count
-        ? `<i class="bi bi-check-circle-fill"></i> ส่งแล้ววันนี้${count > 1 ? ' ' + count + ' ครั้ง' : ''}`
-        : '<i class="bi bi-exclamation-circle"></i> ยังไม่ส่งวันนี้';
-    $('navDot').hidden = !count;
+    document.querySelectorAll('[data-today]').forEach(chip => {
+        chip.className = 'chip ' + (count ? 'is-ok' : 'is-warn');
+        chip.innerHTML = count
+            ? `${icon('check-circle')} ส่งแล้ววันนี้${count > 1 ? ` <span class="mono">${count}</span> ครั้ง` : ''}`
+            : `${icon('alert')} ยังไม่ส่งวันนี้`;
+    });
 }
 
 function changeFilter(type) {
     CURRENT_FILTER = type;
-    document.querySelectorAll('[data-filter]').forEach(btn => btn.setAttribute('aria-pressed', String(btn.dataset.filter === type)));
+    document.querySelectorAll('[data-filter]').forEach(btn => {
+        const on = btn.dataset.filter === type;
+        btn.setAttribute('aria-selected', String(on));
+        btn.tabIndex = on ? 0 : -1;
+    });
     renderFilteredHistory();
 }
 
@@ -458,7 +467,7 @@ function updateDashboard(data, weekStart) {
         label = `สัปดาห์นี้ · ${fmt(weekStart)} – ${fmt(end)}`;
         buckets = 7; axis = DAYS_SHORT; bucketOf = (d) => d.getDay();
     } else if (CURRENT_FILTER === 'month') {
-        label = 'ยอดส่งงานรายเดือน';
+        label = 'ยอดรายเดือน';
         buckets = new Date(FILTER_YEAR_VAL, FILTER_MONTH_IDX + 1, 0).getDate();
         axis = ['1', String(Math.ceil(buckets / 2)), String(buckets)]; bucketOf = (d) => d.getDate() - 1;
     } else {
@@ -468,61 +477,71 @@ function updateDashboard(data, weekStart) {
     const counts = new Array(buckets).fill(0);
     data.forEach(item => { const i = bucketOf(new Date(item.timestamp)); if (i >= 0 && i < buckets) counts[i]++; });
     const max = Math.max(1, ...counts);
-    $('sumBars').innerHTML = counts.map(c => `<span class="${c ? 'is-on' : ''}" style="height:${c ? Math.max(12, (c / max) * 100) : 6}%"></span>`).join('');
+    $('sumBars').innerHTML = counts.map(c => `<span class="${c ? 'is-on' : ''}" style="height:${c ? Math.max(14, (c / max) * 100) : 8}%"></span>`).join('');
     $('sumAxis').innerHTML = axis.map(a => `<span>${a}</span>`).join('');
     $('sumLabel').textContent = label;
     $('sumCount').textContent = data.length;
+    $('sumDays').textContent = new Set(data.map(h => new Date(h.timestamp).toDateString())).size;
+    const self = data.filter(h => h.type === SELF_TYPE).length;
+    $('sumSelf').textContent = self;
+    $('sumAgent').textContent = data.length - self;
 }
 
 function renderList() {
     const container = $('historyList');
     container.textContent = '';
-    LIST_STATE = { shown: 0, lastDate: null, list: null };
+    LIST_STATE = { shown: 0, list: null };
     if (FILTERED.length === 0) {
-        container.innerHTML = '<div class="empty"><i class="bi bi-inbox"></i>ไม่พบประวัติการส่งงานในช่วงนี้</div>';
+        container.innerHTML = `<div class="card empty">${icon('inbox')}ไม่พบประวัติการส่งงานในช่วงนี้</div>`;
         $('loadMoreBtn').hidden = true;
         return;
     }
+    LIST_STATE.list = document.createElement('div');
+    LIST_STATE.list.className = 'hist-list';
+    container.appendChild(LIST_STATE.list);
     appendItems(DISPLAY_LIMIT);
 }
 
 // เพิ่มรายการต่อท้ายโดยไม่สร้างรายการเดิมใหม่
 function appendItems(count) {
-    const container = $('historyList');
     const st = LIST_STATE;
     FILTERED.slice(st.shown, st.shown + count).forEach(item => {
-        if (!st.list || item.date !== st.lastDate) {
-            st.lastDate = item.date;
-            const head = document.createElement('p');
-            head.className = 'hist-group-label';
-            head.textContent = item.date;
-            st.list = document.createElement('ul');
-            st.list.className = 'hist-list';
-            container.append(head, st.list);
-        }
-        const li = document.createElement('li');
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'hist-item';
-        btn.innerHTML = `<img class="hist-thumb" alt="" loading="lazy"><div class="hist-text"><strong></strong><small><i class="bi bi-clock"></i> </small></div><i class="bi bi-chevron-right"></i>`;
-        if (item.image) btn.querySelector('img').src = item.image;
-        btn.querySelector('strong').textContent = item.type;
-        btn.querySelector('small').append(`${item.time} น.`);
-        btn.addEventListener('click', () => openViewer(item));
-        li.appendChild(btn);
-        st.list.appendChild(li);
+        const id = `hist-${st.shown}`;
+        const row = document.createElement('div');
+        row.className = 'hist-row';
+        const isSelf = item.type === SELF_TYPE;
+        row.innerHTML = `
+          <button type="button" class="hist-head" aria-expanded="false" aria-controls="${id}">
+            <span class="hist-when"><b></b><span class="mono"></span></span>
+            <span class="chip ${isSelf ? 'chip-self' : 'chip-agent'}">${isSelf ? 'ขายเอง' : 'โดยตัวแทน'}</span>
+            ${icon('chevron-down')}
+          </button>
+          <div class="hist-body" id="${id}" hidden></div>`;
+        row.querySelector('.hist-when b').textContent = item.date;
+        row.querySelector('.hist-when .mono').textContent = `${item.time} น.`;
+        const head = row.querySelector('.hist-head');
+        const body = row.querySelector('.hist-body');
+        head.addEventListener('click', () => {
+            const open = head.getAttribute('aria-expanded') !== 'true';
+            head.setAttribute('aria-expanded', String(open));
+            body.hidden = !open;
+            // โหลดรูปเมื่อเปิดครั้งแรกเท่านั้น
+            if (open && !body.childElementCount) {
+                if (item.image) {
+                    const img = document.createElement('img');
+                    img.alt = `ภาพหลักฐาน ${item.date} ${item.time}`;
+                    img.src = item.image;
+                    body.appendChild(img);
+                } else {
+                    body.innerHTML = `<div class="empty">${icon('image')}ไม่มีภาพหลักฐานสำหรับรายการนี้</div>`;
+                }
+                const note = document.createElement('p');
+                note.textContent = item.type;
+                body.appendChild(note);
+            }
+        });
+        st.list.appendChild(row);
         st.shown++;
     });
     $('loadMoreBtn').hidden = st.shown >= FILTERED.length;
-}
-
-function openViewer(item) {
-    const img = $('viewerImg');
-    $('viewerTitle').textContent = item.type;
-    $('viewerMeta').textContent = `${item.date} · ${item.time} น.`;
-    img.removeAttribute('src');
-    img.hidden = !item.image;
-    $('viewerEmpty').hidden = !!item.image;
-    if (item.image) img.src = item.image;
-    showModal('viewerModal');
 }
