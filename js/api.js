@@ -26,6 +26,6 @@ async function callApi(action, payload = {}) {
     } catch (error) {
         console.error("Connection Error:", error);
         // Fallback กรณี CORS มีปัญหา หรือ Network หลุด
-        return { success: false, message: "การเชื่อมต่อขัดข้อง กรุณาตรวจสอบอินเทอร์เน็ต" };
+        return { success: false, networkError: true, message: "การเชื่อมต่อขัดข้อง กรุณาตรวจสอบอินเทอร์เน็ต" };
     }
 }

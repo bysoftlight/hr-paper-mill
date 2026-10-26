@@ -21,26 +21,63 @@ function compressImage(file) {
     });
 }
 
-// อัปเดตชื่อไฟล์หน้าเว็บ
-function updateFileName(input) {
-    const label = document.getElementById('uploadBtnLabel');
-    const display = document.getElementById('fileNameDisplay');
-    if (input.files && input.files.length > 0) {
-        label.innerHTML = `<i class="bi bi-check-circle-fill me-2"></i> ภาพถูกเลือกแล้ว`;
-        label.classList.remove('btn-outline-primary'); label.classList.add('btn-success', 'text-white');
-        display.innerText = `ไฟล์: ${input.files[0].name}`;
-    } else {
-        label.innerHTML = `<i class="bi bi-camera-fill me-2"></i> ถ่ายภาพ / เลือกรูป`;
-        label.classList.add('btn-outline-primary'); label.classList.remove('btn-success', 'text-white');
-        display.innerText = 'Max: 2 MB';
-    }
+// localStorage ที่ไม่ทำให้แอปพังเมื่อเบราว์เซอร์ปิดการเก็บข้อมูล
+const store = {
+    get(key) { try { return localStorage.getItem(key); } catch (e) { return null; } },
+    set(key, val) { try { localStorage.setItem(key, val); } catch (e) {} },
+    remove(key) { try { localStorage.removeItem(key); } catch (e) {} }
+};
+
+// Loading overlay
+function showLoading(show, text = 'กำลังประมวลผล...') {
+    document.getElementById('loadingText').textContent = text;
+    document.getElementById('loading').hidden = !show;
 }
 
-// Loading Spinner
-function showLoading(show) { 
-    document.getElementById('loading').style.display = show ? 'flex' : 'none'; 
+// Modal helpers (native <dialog>)
+function showModal(id) {
+    const dlg = document.getElementById(id);
+    if (dlg && !dlg.open) dlg.showModal();
 }
 
-// Modal Helpers
-function showRulesModal() { new bootstrap.Modal(document.getElementById('rulesModal'), { backdrop: 'static', keyboard: false }).show(); }
-function showModal(id) { new bootstrap.Modal(document.getElementById(id)).show(); }
+// แทน alert / confirm: คืนค่า Promise<boolean>
+const MSG_ICONS = { info: 'bi-info-lg', success: 'bi-check-lg', warning: 'bi-exclamation-lg', danger: 'bi-x-lg' };
+function showMessage({ title, text = '', tone = 'info', okText = 'ตกลง', cancelText = null }) {
+    return new Promise(resolve => {
+        const dlg = document.getElementById('msgDialog');
+        const icon = document.getElementById('msgIcon');
+        const ok = document.getElementById('msgOk');
+        const cancel = document.getElementById('msgCancel');
+        icon.className = `msg-icon is-${tone}`;
+        icon.innerHTML = `<i class="bi ${MSG_ICONS[tone] || MSG_ICONS.info}"></i>`;
+        document.getElementById('msgTitle').textContent = title;
+        document.getElementById('msgText').textContent = text;
+        ok.textContent = okText;
+        ok.className = tone === 'danger' && cancelText ? 'btn btn-danger-quiet' : 'btn btn-primary';
+        cancel.hidden = !cancelText;
+        if (cancelText) cancel.textContent = cancelText;
+
+        const done = (val) => {
+            ok.onclick = cancel.onclick = null;
+            dlg.onclose = null;
+            if (dlg.open) dlg.close();
+            resolve(val);
+        };
+        ok.onclick = () => done(true);
+        cancel.onclick = () => done(false);
+        dlg.onclose = () => done(false);
+        dlg.showModal();
+        ok.focus();
+    });
+}
+
+function initDialogs() {
+    document.addEventListener('click', (e) => {
+        const opener = e.target.closest('[data-open]');
+        if (opener) { showModal(opener.dataset.open); return; }
+        const closer = e.target.closest('[data-close]');
+        if (closer) { closer.closest('dialog').close(); return; }
+        // แตะพื้นหลังเพื่อปิด (ยกเว้น dialog ที่ต้องกดยืนยัน)
+        if (e.target.tagName === 'DIALOG' && !e.target.dataset.locked) e.target.close();
+    });
+}

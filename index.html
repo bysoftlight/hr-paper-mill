@@ -2,326 +2,413 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="msvalidate.01" content="9654F48ADE053EF746F7697791ABC9A1" />
   <title>HR Paper Mill</title>
-  
+
   <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
-  
   <link rel="alternate icon" type="image/png" href="img/favicon-50x50.png">
   <link rel="apple-touch-icon" sizes="500x500" href="img/apple-touch-icon.png">
-  
-  <meta name="theme-color" content="#0d6efd">
-  
   <link rel="manifest" href="site.webmanifest">
-  <meta name="theme-color" content="#0d6efd"> <meta name="description" content="ระบบบันทึกการขายและส่งหลักฐานการทำงาน โครงการใช้สิทธิ์สัมปทานผู้พิการตามมาตรา 35">
+
+  <meta name="theme-color" content="#FAF9F5" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1F1E1B" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="ระบบบันทึกการขายและส่งหลักฐานการทำงาน โครงการใช้สิทธิ์สัมปทานผู้พิการตามมาตรา 35">
   <meta name="author" content="TUBE Creative Group">
   <meta name="keywords" content="HR, Paper Mill, Sales, Reporting, มาตรา 35, ผู้พิการ">
 
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://bysoftlight.github.io/hr-paper-mill/"> <meta property="og:title" content="HR Paper Mill - Sales System">
+  <meta property="og:url" content="https://bysoftlight.github.io/hr-paper-mill/">
+  <meta property="og:title" content="HR Paper Mill - Sales System">
   <meta property="og:description" content="ระบบส่งงานและบันทึกข้อมูลการขาย สำหรับผู้ใช้สิทธิ์มาตรา 35">
-  <meta property="og:image" content="logo-share.png"> <meta property="twitter:card" content="summary_large_image">
+  <meta property="og:image" content="logo-share.png">
+  <meta property="twitter:card" content="summary_large_image">
   <meta property="twitter:title" content="HR Paper Mill - Sales System">
   <meta property="twitter:description" content="ระบบส่งงานและบันทึกข้อมูลการขาย สำหรับผู้ใช้สิทธิ์มาตรา 35">
   <meta property="twitter:image" content="logo-share.png">
 
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <script>
+    // ใช้ธีมที่ผู้ใช้เลือกไว้ก่อนวาดหน้า เพื่อไม่ให้สีกระพริบ
+    try { const t = localStorage.getItem('HRPM_THEME'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@600&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lazywasabi/thai-web-fonts@7/fonts/LineSeedSansTH/LineSeedSansTH.css">
-  
-  <link rel="stylesheet" href="css/style.css"> 
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-  <div id="loading" class="loading-overlay">
-    <div class="spinner-border text-primary" role="status"></div>
-    <span class="ms-3 text-primary fw-bold">กำลังประมวลผล...</span>
+  <!-- ===== Shared content ===== -->
+  <template id="rulesTemplate">
+    <div class="rules">
+      <h3>ประเภทการจัดสถานที่จำหน่ายสินค้าหรือบริการ</h3>
+      <ol>
+        <li>ผู้ใช้สิทธิ์ ต้องส่งข้อมูลเข้าห้องรายงาน ใน Application WIX (หรืออาจมีการเปลี่ยนแปลง Application) เพื่อรายงานตัวทุกวัน โดยบริษัทจะนำข้อมูลไปประกอบการพิจารณาให้สิทธิ์ในปีถัดไป โดยมีเงื่อนไข การส่งข้อมูล ดังนี้
+          <ul>
+            <li>1.1 ต้องถ่ายรูปให้เห็นบัตรประจำร้านค้าผู้พิการ ล็อคที่ขาย และผู้ที่ขาย</li>
+            <li>1.2 หากวันไหนไม่มาขาย ต้องแจ้งเหตุผลของการหยุดขาย และแจ้งกำหนดว่าจะหยุดขายกี่วัน</li>
+            <li>1.3 หากวันไหนให้ผู้อื่นเข้ามาขาย แจ้งเหตุผลของ และแจ้งว่าเป็นใครเข้ามาขายทดแทน</li>
+          </ul>
+        </li>
+        <li>หากผู้พิการ เสียชีวิตลง ผู้ดูแลต้องแจ้งข้อมูลมาที่บริษัท ภายใน 10 วันหลังจากผู้พิการเสียชีวิต
+          <strong>หากไม่ปฏิบัติตามผู้ดูแลต้องชดใช้ค่าเสียหายทั้งหมดตามมูลค่าในสัญญาที่ได้รับไป</strong></li>
+        <li>หากได้ลงนามสัญญา เพื่อเข้าร่วมสัมปทานแล้ว ผู้พิการไม่สามารถใช้สิทธิ์ผู้พิการ ในการเข้าทำงานกับบริษัทอื่น หรือใช้สิทธิ์รูปแบบอื่นกับบริษัทใดได้อีก เนื่องจากจะเป็นการใช้สิทธิ์ผู้พิการซ้ำซ้อน
+          <strong>หากมีการใช้สิทธิ์ผู้พิการซ้ำซ้อนจนเกิดความเสียหายแก่บริษัท ทางผู้พิการ หรือผู้ดูแลต้องชดใช้ค่าเสียหายทั้งหมดตามมูลค่าในสัญญาที่ได้รับไป</strong></li>
+        <li>หากต้องการเปลี่ยนประเภทสินค้าที่ขาย ให้แจ้งข้อมูลกลับมาที่
+          <ul>
+            <li>คุณศิวดลย์ (เต้) <a href="tel:0858354911">085-835-4911</a></li>
+            <li>คุณศักดิพัฒน์ (อู๋) <a href="tel:0858353663">085-835-3663</a></li>
+          </ul>
+        </li>
+        <li>ผู้ใช้สิทธิ์ ต้องไม่ให้ผู้อื่นใช้สถานที่แทน หรือไม่นำไปปล่อยเช่าต่อ
+          <strong>หากไม่ปฏิบัติตาม บริษัทจะนำข้อมูลไปประกอบการพิจารณาให้สิทธิ์ในปีถัดไป</strong></li>
+        <li>ผู้ใช้สิทธิ์ต้องประกอบกิจการใดๆ ที่ไม่ผิดกฎหมาย และไม่ขัดต่อกฎระเบียบของผู้ให้สิทธิ์ตามที่ได้ตกลงกัน
+          <strong>หากไม่ปฏิบัติตาม ต้องชดใช้ค่าเสียหายทั้งหมดตามมูลค่าในสัญญาที่ได้รับไป และบริษัทจะนำข้อมูลไปประกอบการพิจารณาให้สิทธิ์ในปีถัดไป</strong></li>
+      </ol>
+    </div>
+  </template>
+
+  <!-- ===== Dialogs ===== -->
+  <dialog id="rulesModal" aria-labelledby="rulesTitle">
+    <div class="dlg-head">
+      <h2 id="rulesTitle" class="display">ข้อปฏิบัติในการใช้สิทธิ์มาตรา 35</h2>
+      <button type="button" class="dlg-close" data-close aria-label="ปิด" id="rulesClose" hidden><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="dlg-body" data-rules></div>
+    <div class="dlg-foot" id="rulesFoot">
+      <label class="check">
+        <input type="checkbox" id="rulesAck">
+        <span>ข้าพเจ้าได้อ่านและรับทราบข้อปฏิบัติทั้งหมดแล้ว</span>
+      </label>
+      <button type="button" class="btn btn-primary btn-block btn-lg" id="rulesAccept" disabled>รับทราบและดำเนินการต่อ</button>
+    </div>
+  </dialog>
+
+  <dialog id="aboutModal" aria-labelledby="aboutTitle">
+    <div class="dlg-head">
+      <h2 id="aboutTitle" class="display">เกี่ยวกับระบบ</h2>
+      <button type="button" class="dlg-close" data-close aria-label="ปิด"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="dlg-body">
+      <p>ระบบ HR Paper Mill พัฒนาขึ้นเพื่ออำนวยความสะดวกในการส่งหลักฐานการขายและติดตามผลการดำเนินงานของผู้ใช้สิทธิ์ตามมาตรา 35</p>
+      <p class="muted" style="margin-top: var(--sp-3)">Version 3.0 (2026)</p>
+    </div>
+    <div class="dlg-foot"><button type="button" class="btn btn-secondary btn-block" data-close>ปิด</button></div>
+  </dialog>
+
+  <dialog id="howtoModal" aria-labelledby="howtoTitle">
+    <div class="dlg-head">
+      <h2 id="howtoTitle" class="display">วิธีการใช้งาน</h2>
+      <button type="button" class="dlg-close" data-close aria-label="ปิด"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="dlg-body">
+      <ol class="info-list">
+        <li><b>เข้าสู่ระบบ:</b> กรอกรหัสผู้ใช้สิทธิ์ 6 หลัก ระบบจะจำไว้ในเครื่องนี้ ครั้งต่อไปไม่ต้องกรอกใหม่</li>
+        <li><b>ส่งงาน:</b> ทำตาม 3 ขั้นตอน — ยืนยันตำแหน่ง GPS, เลือกประเภทการขาย, ถ่ายภาพหลักฐาน แล้วกด "ส่งหลักฐานการขาย"</li>
+        <li><b>ดูประวัติ:</b> แท็บ "ประวัติ" แสดงยอดรายสัปดาห์ / เดือน / ปี แตะรายการเพื่อดูภาพหลักฐาน</li>
+        <li><b>GPS:</b> ระบบต้องการพิกัดเพื่อยืนยันสถานที่ กรุณากด "อนุญาต" เมื่อเบราว์เซอร์ถาม</li>
+        <li><b>ติดตั้งบนหน้าจอ:</b> เปิดเมนูเบราว์เซอร์แล้วเลือก "เพิ่มไปยังหน้าจอหลัก" เพื่อเปิดใช้งานได้เร็วขึ้น</li>
+      </ol>
+    </div>
+    <div class="dlg-foot"><button type="button" class="btn btn-secondary btn-block" data-close>เข้าใจแล้ว</button></div>
+  </dialog>
+
+  <dialog id="privacyModal" aria-labelledby="privacyTitle">
+    <div class="dlg-head">
+      <h2 id="privacyTitle" class="display">นโยบายความเป็นส่วนตัว</h2>
+      <button type="button" class="dlg-close" data-close aria-label="ปิด"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="dlg-body">
+      <p style="margin-bottom: var(--sp-3)">ระบบนี้จะเก็บข้อมูลของคุณดังนี้:</p>
+      <ul class="info-list">
+        <li>ชื่อ-นามสกุล และรหัสผู้ใช้สิทธิ์</li>
+        <li>ตำแหน่ง GPS ขณะส่งงาน</li>
+        <li>รูปภาพหลักฐานการขาย</li>
+      </ul>
+      <p class="muted" style="margin-top: var(--sp-4); font-size: var(--fs-sm)">
+        <b>วัตถุประสงค์:</b> เพื่อตรวจสอบการใช้สิทธิ์สัมปทาน<br>
+        <b>การรักษาความปลอดภัย:</b> ข้อมูลจะถูกเก็บรักษาอย่างปลอดภัยและเข้าถึงได้เฉพาะเจ้าหน้าที่ที่เกี่ยวข้อง
+      </p>
+    </div>
+    <div class="dlg-foot"><button type="button" class="btn btn-secondary btn-block" data-close>ปิด</button></div>
+  </dialog>
+
+  <dialog id="viewerModal" class="viewer" aria-labelledby="viewerTitle">
+    <div class="dlg-head">
+      <div style="flex: 1">
+        <h2 id="viewerTitle" style="font-size: var(--fs-lg)"></h2>
+        <p class="muted" id="viewerMeta" style="font-size: var(--fs-sm)"></p>
+      </div>
+      <button type="button" class="dlg-close" data-close aria-label="ปิด"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <img id="viewerImg" alt="ภาพหลักฐานการส่งงาน">
+    <p class="empty" id="viewerEmpty" hidden><i class="bi bi-image"></i>ไม่มีภาพหลักฐานสำหรับรายการนี้</p>
+    <div class="dlg-foot"><button type="button" class="btn btn-secondary btn-block" data-close>ปิด</button></div>
+  </dialog>
+
+  <dialog id="msgDialog" class="msg-dialog" aria-labelledby="msgTitle">
+    <div class="dlg-head">
+      <div class="msg-icon" id="msgIcon"><i class="bi bi-info-lg"></i></div>
+      <h2 id="msgTitle" class="display"></h2>
+    </div>
+    <div class="dlg-body" id="msgText"></div>
+    <div class="dlg-foot row">
+      <button type="button" class="btn btn-primary" id="msgOk">ตกลง</button>
+      <button type="button" class="btn btn-secondary" id="msgCancel">ยกเลิก</button>
+    </div>
+  </dialog>
+
+  <div id="loading" class="loading-overlay" hidden role="status" aria-live="polite">
+    <div class="spinner"></div>
+    <span id="loadingText">กำลังประมวลผล...</span>
   </div>
 
-  <div class="modal fade" id="rulesModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered">
-      <div class="modal-content" style="border-radius: 20px;">
-        <div class="modal-header bg-warning bg-opacity-10" style="border-top-left-radius: 20px; border-top-right-radius: 20px;">
-          <h5 class="modal-title text-dark fw-bold" style="font-size: 1.1rem;"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i> ข้อปฏิบัติในการใช้สิทธิ์มาตรา 35</h5>
+  <!-- ===== Login ===== -->
+  <main id="loginView" class="login-page">
+    <div class="wrap">
+      <header class="login-head">
+        <div class="brand-mark" aria-hidden="true">H</div>
+        <span class="eyebrow">โครงการมาตรา 35 · ปี 2569</span>
+        <h1 class="display">HR Paper Mill</h1>
+        <p>ส่งหลักฐานการขายรายวัน สำหรับผู้ใช้สิทธิ์สัมปทานผู้พิการตามมาตรา 35</p>
+      </header>
+
+      <form class="card login-card" id="loginForm" novalidate>
+        <label for="loginId" class="field-label">รหัสผู้ใช้สิทธิ์ (6 หลัก)</label>
+        <input type="text" id="loginId" class="input input-code" placeholder="XXXXXX"
+               autocomplete="username" autocapitalize="characters" spellcheck="false" inputmode="text"
+               aria-describedby="loginHint" required>
+        <p class="field-hint" id="loginHint">ตัวอักษรภาษาอังกฤษหรือตัวเลข ระบบจะจำรหัสไว้ในเครื่องนี้</p>
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="loginBtn" disabled>
+          เข้าสู่ระบบ <i class="bi bi-arrow-right"></i>
+        </button>
+        <div class="login-meta">
+          <button type="button" class="link-btn" data-open="rulesModal">อ่านข้อปฏิบัติการใช้สิทธิ์</button>
+          <button type="button" class="link-btn" data-open="howtoModal">วิธีใช้งาน</button>
         </div>
-        <div class="modal-body rules-content p-4">
-           <h6 class="fw-bold mb-3">ประเภทการจัดสถานที่จำหน่ายสินค้าหรือบริการ</h6>
-           <ol>
-             <li>ผู้ใช้สิทธิ์ ต้องส่งข้อมูลเข้าห้องรายงาน ใน Application WIX (หรืออาจมีการเปลี่ยนแปลง Application) เพื่อรายงานตัวทุกวัน โดยบริษัทจะนำข้อมูลไปประกอบการพิจารณาให้สิทธิ์ในปีถัดไป โดยมีเงื่อนไข การส่งข้อมูล ดังนี้
-               <ul>
-                 <li>1.1 ต้องถ่ายรูปให้เห็นบัตรประจำร้านค้าผู้พิการ ล็อคที่ขาย และผู้ที่ขาย</li>
-                 <li>1.2 หากวันไหนไม่มาขาย ต้องแจ้งเหตุผลของการหยุดขาย และแจ้งกำหนดว่าจะหยุดขายกี่วัน</li>
-                 <li>1.3 หากวันไหนให้ผู้อื่นเข้ามาขาย แจ้งเหตุผลของ และแจ้งว่าเป็นใครเข้ามาขายทดแทน</li>
-               </ul>
-             </li>
-             <li>หากผู้พิการ เสียชีวิตลง ผู้ดูแลต้องแจ้งข้อมูลมาที่บริษัท ภายใน 10 วันหลังจากผู้พิการเสียชีวิต หากไม่ปฏิบัติตามผู้ดูแลต้องชดใช้ค่าเสียหายทั้งหมดตามมูลค่าในสัญญาที่ได้รับไป</strong></li>
-             <li>หากได้ลงนามสัญญา เพื่อเข้าร่วมสัมปทานแล้ว ผู้พิการไม่สามารถใช้สิทธิ์ผู้พิการ ในการเข้าทำงานกับบริษัทอื่น หรือใช้สิทธิ์รูปแบบอื่นกับบริษัทใดได้อีก เนื่องจากจะเป็นการใช้สิทธิ์ผู้พิการซ้ำซ้อน
-               <strong>หากมีการใช้สิทธิ์ผู้พิการซ้ำซ้อนจนเกิดความเสียหายแก่บริษัท ทางผู้พิการ หรือผู้ดูแลต้องชดใช้ค่าเสียหายทั้งหมดตามมูลค่าในสัญญาที่ได้รับไป</strong></li>
-             <li>หากต้องการเปลี่ยนประเภทสินค้าที่ขาย ให้แจ้งข้อมูลกลับมาที่</li>
-               <ul>
-                 <li>คุณศิวดลย์ (เต้) 085-835-4911</li>
-                 <li>คุณศักดิพัฒน์ (อู๋) 085-835-3663</li>
-               </ul>
-             <li>ผู้ใช้สิทธิ์ ต้องไม่ให้ผู้อื่นใช้สถานที่แทน หรือไม่นำไปปล่อยเช่าต่อ 
-               <strong>หากไม่ปฏิบัติตาม บริษัทจะนำข้อมูลไปประกอบการพิจารณาให้สิทธิ์ในปีถัดไป</strong></li>
-             <li>ผู้ใช้สิทธิ์ต้องประกอบกิจการใดๆ ที่ไม่ผิดกฎหมาย และไม่ขัดต่อกฎระเบียบของผู้ให้สิทธิ์ตามที่ได้ตกลงกัน 
-               <strong>หากไม่ปฏิบัติตาม ต้องชดใช้ค่าเสียหายทั้งหมดตามมูลค่าในสัญญาที่ได้รับไป และบริษัทจะนำข้อมูลไปประกอบการพิจารณาให้สิทธิ์ในปีถัดไป</strong></li>
-           </ol>
-        </div>
-        <div class="modal-footer border-0 pt-0 pb-4 px-4">
-          <button type="button" class="btn btn-primary w-100 rounded-pill py-2 fw-bold" data-bs-dismiss="modal">รับทราบและดำเนินการต่อ</button>
-        </div>
-      </div>
+      </form>
     </div>
-  </div>
-
-  <div class="modal fade" id="aboutModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content" style="border-radius: 20px; padding: 20px;">
-        <button type="button" class="btn-close position-absolute end-0 top-0 m-3" data-bs-dismiss="modal"></button>
-        <div class="modal-body text-center">
-           <div class="info-modal-icon bg-primary"><i class="bi bi-info-circle"></i></div>
-           <h4 class="info-modal-title">เกี่ยวกับระบบ</h4>
-           <p>ระบบ HR Paper Mill พัฒนาขึ้นเพื่ออำนวยความสะดวกในการส่งหลักฐานการขายและติดตามผลการดำเนินงานของผู้ใช้สิทธิ์ตามมาตรา 35</p>
-           <p class="text-muted small mt-3">Version 2.6 (2026)</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal fade" id="howtoModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content" style="border-radius: 20px; padding: 20px;">
-        <button type="button" class="btn-close position-absolute end-0 top-0 m-3" data-bs-dismiss="modal"></button>
-        <div class="modal-body">
-           <div class="info-modal-icon bg-success"><i class="bi bi-journal-text"></i></div>
-           <h4 class="info-modal-title">วิธีการใช้งาน</h4>
-           <ul class="info-list">
-             <li><strong>ส่งงาน:</strong> กรอกข้อมูล, เลือกประเภทการขาย, ระบุตำแหน่ง GPS, ถ่ายรูปหลักฐาน และกดบันทึก</li>
-             <li><strong>ดูประวัติ:</strong> กดเมนู "ประวัติ" เพื่อดูรายการย้อนหลัง เลือกเดือน/ปี เพื่อดูสรุปผล</li>
-             <li><strong>GPS:</strong> ระบบต้องการพิกัด GPS เพื่อยืนยันสถานที่ กรุณากด "อนุญาต"</li>
-           </ul>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal fade" id="privacyModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content" style="border-radius: 20px; padding: 20px;">
-        <button type="button" class="btn-close position-absolute end-0 top-0 m-3" data-bs-dismiss="modal"></button>
-        <div class="modal-body">
-           <div class="info-modal-icon bg-secondary"><i class="bi bi-shield-lock"></i></div>
-           <h4 class="info-modal-title">นโยบายความเป็นส่วนตัว</h4>
-           <p class="mb-3 text-center">ระบบนี้จะเก็บข้อมูลของคุณดังนี้:</p>
-           <ul class="info-list">
-             <li>ชื่อ-นามสกุล และรหัสผู้ใช้สิทธิ์</li>
-             <li>ตำแหน่ง GPS ขณะส่งงาน</li>
-             <li>รูปภาพหลักฐานการขาย</li>
-           </ul>
-           <p class="small text-muted mt-3 text-center">
-             <strong>วัตถุประสงค์:</strong> เพื่อตรวจสอบการใช้สิทธิ์สัมปทาน<br>
-             <strong>การรักษาความปลอดภัย:</strong> ข้อมูลจะถูกเก็บรักษาอย่างปลอดภัยและเข้าถึงได้เฉพาะเจ้าหน้าที่ที่เกี่ยวข้อง
-           </p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="content-wrapper">
-    <div class="container mt-5 mb-3 app-header text-center">
-      <h1>HR Paper Mill</h1>
-      <h5>โครงการใช้สิทธิ์สัมปทานผู้พิการตามมาตรา 35 ประจำปี 2569</h5>
-      <p class="mt-2">เว็บไซต์ HR Paper Mill v.26</p>
-    </div>
-
-    <div id="loginView" class="container">
-      <div class="card main-card">
-        <div class="text-center mb-4"><h4 class="fw-bold text-primary">ส่วนที่ 1: เข้าสู่ระบบ</h4></div>
-        <div class="mb-4">
-          <label for="loginId" class="form-label text-center w-100 mb-3">กรอกรหัสผู้ใช้สิทธิ์ <span class="required-star">*</span></label>
-          <input type="text" id="loginId" class="form-control form-control-rounded text-center text-uppercase" style="font-size: 1.2rem; letter-spacing: 2px;" maxlength="6" placeholder="XXXXXX">
-        </div>
-        <button onclick="manualLogin()" class="btn btn-primary w-100 rounded-pill py-3 fw-bold">ตรวจสอบข้อมูล</button>
-        <div class="text-center mt-3">
-           <small class="text-muted cursor-pointer text-decoration-underline" onclick="showRulesModal()">อ่านข้อปฏิบัติการใช้สิทธิ์</small>
-        </div>
-      </div>
-    </div>
-
-    <div id="appContainer" class="hidden">
-      
-      <div id="formView" class="container">
-        <div class="card main-card mb-4">
-           <h5 class="text-center fw-bold mb-4">ข้อมูลของฉัน</h5>
-           <div class="profile-section">
-             <img id="formProfilePic" src="" class="profile-img-center" alt="Profile">
-             <div class="profile-row"><span class="profile-label">ชื่อ-สกุล:</span><span class="profile-value" id="formName">...</span></div>
-             <div class="profile-row"><span class="profile-label">รหัสผู้ใช้สิทธิ์:</span><span class="profile-value" id="formId">...</span></div>
-             <div class="profile-row"><span class="profile-label">การใช้สิทธิ์:</span><span class="profile-value" id="formStatus">...</span></div>
-             <p class="info-note">กรุณาตรวจสอบข้อมูลของท่านให้เรียบร้อย ก่อนดำเนินการในส่วนถัดไป</p>
-           </div>
-        </div>
-
-        <div class="card main-card">
-          <h5 class="fw-bold text-primary mb-4">ส่วนที่ 2: ส่งหลักฐานการขาย</h5>
-          <form id="salesForm" onsubmit="handleFormSubmit(event)">
-            <input type="hidden" id="userId"><input type="hidden" id="userName">
-            <input type="hidden" id="lat" name="lat"><input type="hidden" id="long" name="long">
-            
-            <div class="mb-3">
-               <label class="form-label text-muted small ms-2 mb-1">ชื่อผู้ใช้สิทธิ์</label>
-               <input type="text" id="displayUserName" class="form-control form-control-rounded bg-white border-0 ps-3 fw-bold text-primary shadow-sm" disabled value="...">
-            </div>
-
-            <div class="row g-3 mb-3">
-               <div class="col-12 col-md-6">
-                 <label class="form-label text-muted small ms-2 mb-1">วันที่ปัจจุบัน</label>
-                 <div class="input-group">
-                   <span class="input-group-text bg-white border-end-0 text-primary ps-3" style="border-radius: 50px 0 0 50px;"><i class="bi bi-calendar-event"></i></span>
-                   <input type="text" id="currentDate" class="form-control form-control-rounded border-start-0 bg-white ps-0" disabled style="border-radius: 0 50px 50px 0;">
-                 </div>
-               </div>
-               <div class="col-12 col-md-6">
-                  <label class="form-label text-muted small ms-2 mb-1">เวลาปัจจุบัน</label>
-                  <div class="input-group">
-                    <span class="input-group-text bg-white border-end-0 text-primary ps-3" style="border-radius: 50px 0 0 50px;"><i class="bi bi-clock"></i></span>
-                    <input type="text" id="currentTime" class="form-control form-control-rounded border-start-0 bg-white ps-0" disabled style="border-radius: 0 50px 50px 0;">
-                  </div>
-               </div>
-             </div>
-
-            <div class="location-card">
-                <div class="loc-title"><i class="bi bi-geo-alt-fill loc-icon"></i> ตำแหน่งของคุณ</div>
-                <div id="locationStatus" class="mb-2" style="font-size: 1rem; color: #555;">กำลังระบุพิกัด...</div>
-                <button type="button" class="btn-refresh" onclick="getLocation()"><i class="bi bi-arrow-clockwise"></i> รีเฟรชตำแหน่ง</button>
-                <div class="gps-note">
-                   <div class="d-flex align-items-start">
-                      <i class="bi bi-info-circle-fill me-2 mt-1" style="font-size: 1.1rem;"></i>
-                      <div><strong>หมายเหตุ:</strong><br>ระบบจะบันทึกตำแหน่ง GPS ของคุณโดยอัตโนมัติ เพื่อยืนยันสถานที่จำหน่ายสินค้า</div>
-                   </div>
-                </div>
-            </div>
-
-            <div class="mb-4 mt-4">
-              <label class="form-label">ประเภทการขาย <span class="required-star">*</span></label>
-              <div class="d-flex flex-column ps-3 gap-2">
-                <div class="form-check">
-                  <input class="form-check-input" type="radio" name="salesTypeRadio" id="saleSelf" value="ทำการขายด้วยตัวเอง" checked>
-                  <label class="form-check-label" for="saleSelf">ทำการขายด้วยตัวเอง</label>
-                </div>
-                <div class="form-check">
-                  <input class="form-check-input" type="radio" name="salesTypeRadio" id="saleAgent" value="ทำการขายโดยตัวแทน">
-                  <label class="form-check-label" for="saleAgent">ทำการขายโดยตัวแทน</label>
-                </div>
-              </div>
-            </div>
-
-            <div class="mb-5">
-              <label class="form-label">ถ่ายภาพหลักฐาน <span class="required-star">*</span></label>
-              <input type="file" id="evidenceImg" class="hidden" accept="image/*" capture="environment" onchange="updateFileName(this)">
-              <label for="evidenceImg" class="btn-upload" id="uploadBtnLabel"><i class="bi bi-camera-fill me-2"></i> ถ่ายภาพ / เลือกรูป</label>
-               <div class="form-text text-muted small ps-3 mt-2" id="fileNameDisplay">Max: 2 MB</div>
-            </div>
-
-            <button type="submit" class="btn btn-submit-gray w-100 py-3">
-              <i class="bi bi-rocket-takeoff-fill me-2"></i> บันทึกข้อมูล
-            </button>
-          </form>
-
-          <div class="accordion accordion-flush mt-4 pt-3 border-top" id="accordionRulesForm">
-            <div class="accordion-item">
-              <h2 class="accordion-header" id="headingForm">
-                <button class="accordion-button collapsed text-muted" type="button" data-bs-toggle="collapse" data-bs-target="#collapseForm">
-                  <small><i class="bi bi-info-circle me-2"></i> ทบทวนข้อปฏิบัติการใช้สิทธิ์</small>
-                </button>
-              </h2>
-              <div id="collapseForm" class="accordion-collapse collapse" data-bs-parent="#accordionRulesForm">
-                <div class="accordion-body rules-content bg-light rounded mt-2 text-start">
-                   <h6 class="fw-bold mb-3">ประเภทการจัดสถานที่จำหน่ายสินค้าหรือบริการ</h6>
-                   <ol class="ps-3 mb-0">
-                     <li>ผู้ใช้สิทธิ์ ต้องส่งข้อมูลเข้าห้องรายงาน ใน Application WIX (หรืออาจมีการเปลี่ยนแปลง Application) เพื่อรายงานตัวทุกวัน โดยบริษัทจะนำข้อมูลไปประกอบการพิจารณาให้สิทธิ์ในปีถัดไป โดยมีเงื่อนไข การส่งข้อมูล ดังนี้
-               <ul>
-                 <li>1.1 ต้องถ่ายรูปให้เห็นบัตรประจำร้านค้าผู้พิการ ล็อคที่ขาย และผู้ที่ขาย</li>
-                 <li>1.2 หากวันไหนไม่มาขาย ต้องแจ้งเหตุผลของการหยุดขาย และแจ้งกำหนดว่าจะหยุดขายกี่วัน</li>
-                 <li>1.3 หากวันไหนให้ผู้อื่นเข้ามาขาย แจ้งเหตุผลของ และแจ้งว่าเป็นใครเข้ามาขายทดแทน</li>
-               </ul>
-             </li>
-             <li>หากผู้พิการ เสียชีวิตลง ผู้ดูแลต้องแจ้งข้อมูลมาที่บริษัท ภายใน 10 วันหลังจากผู้พิการเสียชีวิต หากไม่ปฏิบัติตามผู้ดูแลต้องชดใช้ค่าเสียหายทั้งหมดตามมูลค่าในสัญญาที่ได้รับไป</strong></li>
-             <li>หากได้ลงนามสัญญา เพื่อเข้าร่วมสัมปทานแล้ว ผู้พิการไม่สามารถใช้สิทธิ์ผู้พิการ ในการเข้าทำงานกับบริษัทอื่น หรือใช้สิทธิ์รูปแบบอื่นกับบริษัทใดได้อีก เนื่องจากจะเป็นการใช้สิทธิ์ผู้พิการซ้ำซ้อน
-               <strong>หากมีการใช้สิทธิ์ผู้พิการซ้ำซ้อนจนเกิดความเสียหายแก่บริษัท ทางผู้พิการ หรือผู้ดูแลต้องชดใช้ค่าเสียหายทั้งหมดตามมูลค่าในสัญญาที่ได้รับไป</strong></li>
-             <li>หากต้องการเปลี่ยนประเภทสินค้าที่ขาย ให้แจ้งข้อมูลกลับมาที่</li>
-               <ul>
-                 <li>คุณศิวดลย์ (เต้) 085-835-4911</li>
-                 <li>คุณศักดิพัฒน์ (อู๋) 085-835-3663</li>
-               </ul>
-             <li>ผู้ใช้สิทธิ์ ต้องไม่ให้ผู้อื่นใช้สถานที่แทน หรือไม่นำไปปล่อยเช่าต่อ 
-               <strong>หากไม่ปฏิบัติตาม บริษัทจะนำข้อมูลไปประกอบการพิจารณาให้สิทธิ์ในปีถัดไป</strong></li>
-             <li>ผู้ใช้สิทธิ์ต้องประกอบกิจการใดๆ ที่ไม่ผิดกฎหมาย และไม่ขัดต่อกฎระเบียบของผู้ให้สิทธิ์ตามที่ได้ตกลงกัน 
-               <strong>หากไม่ปฏิบัติตาม ต้องชดใช้ค่าเสียหายทั้งหมดตามมูลค่าในสัญญาที่ได้รับไป และบริษัทจะนำข้อมูลไปประกอบการพิจารณาให้สิทธิ์ในปีถัดไป</strong></li>
-                     </ol>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="historyView" class="hidden container">
-        <div class="card main-card mb-4">
-           <h5 class="text-center fw-bold mb-4">ข้อมูลของฉัน</h5>
-           <div class="profile-section">
-             <img id="histProfilePic" src="" class="profile-img-center" alt="Profile">
-             <div class="profile-row"><span class="profile-label">ชื่อ-สกุล:</span><span class="profile-value" id="histName">...</span></div>
-             <div class="profile-row"><span class="profile-label">รหัสผู้ใช้สิทธิ์:</span><span class="profile-value" id="histId">...</span></div>
-             <div class="profile-row"><span class="profile-label">การใช้สิทธิ์:</span><span class="profile-value" id="histStatus">...</span></div>
-           </div>
-        </div>
-
-        <div class="d-flex justify-content-center gap-2 mb-3 filter-btn-group">
-          <button onclick="changeFilter('week')" id="btnWeek" class="btn btn-outline-primary active">รายสัปดาห์</button>
-          <button onclick="changeFilter('month')" id="btnMonth" class="btn btn-outline-primary">รายเดือน</button>
-          <button onclick="changeFilter('year')" id="btnYear" class="btn btn-outline-primary">รายปี</button>
-        </div>
-
-        <div id="dashboardSummary" class="dashboard-box">
-           <div class="dash-title">กำลังโหลด...</div>
-        </div>
-
-        <div class="accordion accordion-flush mb-4" id="historyAccordion"></div>
-        <button id="loadMoreBtn" class="btn btn-light w-100 mb-4 text-muted hidden" onclick="loadMoreItems()">โหลดเพิ่มเติม <i class="bi bi-chevron-down"></i></button>
-        <button onclick="logout()" class="btn btn-danger w-100 rounded-pill py-3 mb-4 fw-bold">ออกจากระบบ</button>
-      </div>
-
-      <div class="bottom-nav">
-        <div class="nav-item active" id="navForm" onclick="switchTab('form')">
-          <i class="bi bi-plus-circle-fill nav-icon"></i><span>ส่งงาน</span>
-        </div>
-        <div class="nav-item" id="navHistory" onclick="switchTab('history')">
-          <i class="bi bi-clock-history nav-icon"></i><span>ประวัติ</span>
-        </div>
-      </div>
-    </div>
-  </div>
+  </main>
 
   <footer class="footer" id="mainFooter">
-    <div class="container text-center">
-      <div class="footer-logo">H</div>
+    <div class="wrap">
       <ul class="footer-links">
-        <li><a onclick="showModal('aboutModal')">เกี่ยวกับระบบ</a></li>
-        <li>|</li>
-        <li><a onclick="showModal('howtoModal')">วิธีการใช้งาน</a></li>
-        <li>|</li>
-        <li><a onclick="showModal('privacyModal')">นโยบายความเป็นส่วนตัว</a></li>
+        <li><button type="button" data-open="aboutModal">เกี่ยวกับระบบ</button></li>
+        <li><button type="button" data-open="howtoModal">วิธีการใช้งาน</button></li>
+        <li><button type="button" data-open="privacyModal">นโยบายความเป็นส่วนตัว</button></li>
       </ul>
-      <p class="copyright">© 2026 TUBE™ Creative Group. All right reserved.</p>
+      <p class="copyright">© 2026 TUBE™ Creative Group. All rights reserved.</p>
     </div>
   </footer>
 
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  
+  <!-- ===== App ===== -->
+  <div id="appContainer" class="app" hidden>
+    <header class="topbar">
+      <div class="wrap">
+        <div class="brand-mark brand-mark-sm" aria-hidden="true">H</div>
+        <div class="topbar-title">
+          <strong>HR Paper Mill</strong>
+          <span data-user="name">...</span>
+        </div>
+        <span class="pill" id="todayPill"><i class="bi bi-circle"></i> ยังไม่ส่งวันนี้</span>
+      </div>
+    </header>
+
+    <!-- Submit -->
+    <main id="formView" class="view wrap" aria-labelledby="formTitle">
+      <div class="view-head">
+        <div>
+          <h2 id="formTitle" class="display">ส่งหลักฐานการขาย</h2>
+          <p>ทำครบ 3 ขั้นตอนแล้วกดส่ง</p>
+        </div>
+      </div>
+
+      <div class="stack">
+        <section class="card" aria-label="ข้อมูลของฉันและเวลาปัจจุบัน">
+          <div class="profile">
+            <div class="avatar avatar-lg" data-user="avatar"></div>
+            <div style="min-width: 0">
+              <div class="profile-name" data-user="name">...</div>
+              <div class="profile-meta">
+                <span class="pill"><i class="bi bi-person-vcard"></i> <span data-user="id">...</span></span>
+                <span class="pill"><span data-user="status">...</span></span>
+              </div>
+            </div>
+          </div>
+          <div class="today">
+            <div>
+              <div class="today-clock" id="currentTime">--:--</div>
+              <div class="today-date" id="currentDate">-</div>
+            </div>
+            <i class="bi bi-calendar-check muted" style="font-size: var(--fs-2xl)" aria-hidden="true"></i>
+          </div>
+          <p class="field-hint" style="margin-top: 0">กรุณาตรวจสอบข้อมูลของท่านให้เรียบร้อย ก่อนดำเนินการในส่วนถัดไป</p>
+        </section>
+
+        <form id="salesForm" class="stack" novalidate>
+          <input type="hidden" id="lat" name="lat"><input type="hidden" id="long" name="long">
+
+          <section class="card step" id="stepLocation" aria-labelledby="stepLocTitle">
+            <div class="step-head">
+              <div class="step-num"><span>1</span></div>
+              <h3 class="card-title" id="stepLocTitle">ยืนยันตำแหน่ง</h3>
+            </div>
+            <div class="loc-status" id="locationStatus" aria-live="polite">
+              <i class="bi bi-geo-alt"></i>
+              <div class="loc-status-text"><strong>กำลังระบุพิกัด...</strong></div>
+            </div>
+            <div class="photo-actions">
+              <button type="button" class="btn btn-secondary btn-sm" id="locRefresh"><i class="bi bi-arrow-clockwise"></i> รีเฟรชตำแหน่ง</button>
+              <a class="btn btn-quiet btn-sm" id="locMap" target="_blank" rel="noopener" hidden><i class="bi bi-map"></i> ดูบนแผนที่</a>
+            </div>
+            <p class="field-hint">ระบบบันทึกตำแหน่ง GPS อัตโนมัติ เพื่อยืนยันสถานที่จำหน่ายสินค้า</p>
+          </section>
+
+          <section class="card step is-done" id="stepType" aria-labelledby="stepTypeTitle">
+            <div class="step-head">
+              <div class="step-num"><span>2</span></div>
+              <h3 class="card-title" id="stepTypeTitle">ประเภทการขาย</h3>
+            </div>
+            <div class="choices" role="radiogroup" aria-labelledby="stepTypeTitle">
+              <label class="choice">
+                <input type="radio" name="salesTypeRadio" value="ทำการขายด้วยตัวเอง" checked>
+                <i class="bi bi-person-fill"></i>
+                <span>ขายด้วยตัวเอง</span>
+                <small>ผู้ใช้สิทธิ์อยู่ที่ร้าน</small>
+              </label>
+              <label class="choice">
+                <input type="radio" name="salesTypeRadio" value="ทำการขายโดยตัวแทน">
+                <i class="bi bi-people-fill"></i>
+                <span>ขายโดยตัวแทน</span>
+                <small>มีผู้อื่นขายแทน</small>
+              </label>
+            </div>
+          </section>
+
+          <section class="card step" id="stepPhoto" aria-labelledby="stepPhotoTitle">
+            <div class="step-head">
+              <div class="step-num"><span>3</span></div>
+              <h3 class="card-title" id="stepPhotoTitle">ถ่ายภาพหลักฐาน</h3>
+            </div>
+            <input type="file" id="evidenceImg" class="sr-only" accept="image/*" capture="environment">
+            <div id="photoEmpty">
+              <label for="evidenceImg" class="photo-drop">
+                <i class="bi bi-camera-fill"></i>
+                <strong>ถ่ายภาพ / เลือกรูป</strong>
+                <small>ให้เห็นบัตรประจำร้านค้าผู้พิการ ล็อคที่ขาย และผู้ที่ขาย</small>
+              </label>
+            </div>
+            <div id="photoFilled" hidden>
+              <div class="photo-preview"><img id="photoPreview" alt="ตัวอย่างภาพหลักฐาน"></div>
+              <p class="photo-name" id="fileNameDisplay"></p>
+              <div class="photo-actions">
+                <label for="evidenceImg" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-repeat"></i> ถ่ายใหม่</label>
+                <button type="button" class="btn btn-danger-quiet btn-sm" id="photoRemove"><i class="bi bi-trash3"></i> ลบรูป</button>
+              </div>
+            </div>
+          </section>
+
+          <div class="submit-bar">
+            <ul class="checklist" id="checklist" aria-live="polite"></ul>
+            <button type="submit" class="btn btn-primary btn-block btn-lg" id="submitBtn">
+              <i class="bi bi-send-fill"></i> ส่งหลักฐานการขาย
+            </button>
+          </div>
+        </form>
+
+        <details class="disclosure">
+          <summary><i class="bi bi-journal-text"></i> ทบทวนข้อปฏิบัติการใช้สิทธิ์</summary>
+          <div class="disclosure-body" data-rules></div>
+        </details>
+      </div>
+    </main>
+
+    <!-- History -->
+    <main id="historyView" class="view wrap" hidden aria-labelledby="histTitle">
+      <div class="view-head">
+        <div>
+          <h2 id="histTitle" class="display">ประวัติการส่งงาน</h2>
+          <p id="histUpdated">&nbsp;</p>
+        </div>
+        <button type="button" class="btn btn-quiet btn-sm" id="histRefresh" aria-label="รีเฟรชประวัติ"><i class="bi bi-arrow-clockwise"></i> รีเฟรช</button>
+      </div>
+
+      <div class="stack">
+        <div class="segmented" role="group" aria-label="ช่วงเวลา" id="filterGroup">
+          <button type="button" data-filter="week" aria-pressed="true">รายสัปดาห์</button>
+          <button type="button" data-filter="month" aria-pressed="false">รายเดือน</button>
+          <button type="button" data-filter="year" aria-pressed="false">รายปี</button>
+        </div>
+
+        <section class="card summary" id="dashboardSummary" aria-live="polite">
+          <div class="summary-top">
+            <span class="summary-label" id="sumLabel">สัปดาห์นี้</span>
+            <div class="summary-pickers">
+              <select class="select" id="monthSelect" aria-label="เลือกเดือน" hidden></select>
+              <select class="select" id="yearSelect" aria-label="เลือกปี" hidden></select>
+            </div>
+          </div>
+          <div class="summary-value"><span class="display" id="sumCount">0</span><span class="muted">รายการ</span></div>
+          <div>
+            <div class="bars" id="sumBars" aria-hidden="true"></div>
+            <div class="bars-axis" id="sumAxis" aria-hidden="true"></div>
+          </div>
+        </section>
+
+        <div id="historyList"></div>
+        <button id="loadMoreBtn" type="button" class="btn btn-secondary btn-block" hidden>โหลดเพิ่มเติม <i class="bi bi-chevron-down"></i></button>
+      </div>
+    </main>
+
+    <!-- Account -->
+    <main id="accountView" class="view wrap" hidden aria-labelledby="accTitle">
+      <div class="view-head"><h2 id="accTitle" class="display">บัญชีของฉัน</h2></div>
+      <div class="stack">
+        <section class="card profile-card">
+          <div class="avatar avatar-xl" data-user="avatar"></div>
+          <div class="profile-name" data-user="name">...</div>
+          <dl class="kv">
+            <dt>รหัสผู้ใช้สิทธิ์</dt><dd data-user="id">...</dd>
+            <dt>การใช้สิทธิ์</dt><dd data-user="status">...</dd>
+          </dl>
+        </section>
+        <div class="notice">
+          <i class="bi bi-info-circle-fill"></i>
+          <div>กรุณาตรวจสอบข้อมูลของท่านให้ถูกต้อง หากไม่ถูกต้องโปรดติดต่อเจ้าหน้าที่ก่อนส่งงาน</div>
+        </div>
+
+        <p class="section-label">ข้อมูลและช่วยเหลือ</p>
+        <ul class="menu">
+          <li><button type="button" data-open="rulesModal"><i class="bi bi-journal-text"></i><span>ข้อปฏิบัติการใช้สิทธิ์</span><i class="bi bi-chevron-right"></i></button></li>
+          <li><button type="button" data-open="howtoModal"><i class="bi bi-question-circle"></i><span>วิธีการใช้งาน</span><i class="bi bi-chevron-right"></i></button></li>
+          <li><button type="button" data-open="privacyModal"><i class="bi bi-shield-lock"></i><span>นโยบายความเป็นส่วนตัว</span><i class="bi bi-chevron-right"></i></button></li>
+          <li><button type="button" data-open="aboutModal"><i class="bi bi-info-circle"></i><span>เกี่ยวกับระบบ</span><i class="bi bi-chevron-right"></i></button></li>
+        </ul>
+
+        <p class="section-label">การแสดงผล</p>
+        <div class="segmented" role="group" aria-label="ธีม" id="themeGroup">
+          <button type="button" data-theme-opt="auto" aria-pressed="true"><i class="bi bi-circle-half"></i> ตามเครื่อง</button>
+          <button type="button" data-theme-opt="light" aria-pressed="false"><i class="bi bi-sun"></i> สว่าง</button>
+          <button type="button" data-theme-opt="dark" aria-pressed="false"><i class="bi bi-moon"></i> มืด</button>
+        </div>
+
+        <button type="button" class="btn btn-danger-quiet btn-block" id="logoutBtn"><i class="bi bi-box-arrow-right"></i> ออกจากระบบ</button>
+        <p class="version">HR Paper Mill v3.0 · © 2026 TUBE™ Creative Group</p>
+      </div>
+    </main>
+
+    <nav class="bottom-nav" aria-label="เมนูหลัก">
+      <div class="wrap">
+        <button type="button" class="nav-item" data-tab="form" aria-current="page"><i class="bi bi-send"></i><span>ส่งงาน</span></button>
+        <button type="button" class="nav-item" data-tab="history"><i class="bi bi-clock-history"></i><span>ประวัติ</span><span class="nav-dot" id="navDot" hidden></span></button>
+        <button type="button" class="nav-item" data-tab="account"><i class="bi bi-person-circle"></i><span>บัญชี</span></button>
+      </div>
+    </nav>
+  </div>
+
   <script src="js/config.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/api.js"></script>
