@@ -6,7 +6,7 @@ const decode = (str) => decodeURIComponent(atob(str).split('').map(function(c) {
 }).join(''));
 
 // 🔥 ใส่ค่าที่แปลงเป็น Base64 แล้วที่นี่ 🔥
-const _E_URL = "aHR0cHM6Ly9zY3JpcHQuZ29vZ2xlLmNvbS9tYWNyb3Mvcy9BS2Z5Y2J4dVVETFJFNFNWOEQ5bHgwTVVQMnQ3bDVXMW1hLWg1VFhTZllFdkZjX0ppdi1zVmljOVcxZkJ3bW96Vy1mOVpDeHgvZXhlYw=="; 
+const _E_URL = "aHR0cHM6Ly9zY3JpcHQuZ29vZ2xlLmNvbS9tYWNyb3Mvcy9BS2Z5Y2J6X0ozZ1RyLTlPcUJ0LVpMOTBoZWtOcFQ1bVN1Q29NX0Qzcm5RSnlYa3JqSXdaQnZNd0xHSGdCVHdfZGtLZXRGQy0vZXhlYw=="; 
 const _E_KEY = "TVlfU1VQRVJfU0VDUkVUX0tFWV8yMDI2";
 
 // Export ค่าที่ถอดรหัสแล้วให้ไฟล์อื่นใช้
