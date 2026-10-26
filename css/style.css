@@ -631,3 +631,107 @@ dialog::backdrop { background: var(--scrim); }
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* =====================================================
+   History detail: photo viewer, location, PDF export
+   ===================================================== */
+.head-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+.photo-btn {
+    position: relative; display: block; width: 100%; padding: 0;
+    background: var(--field); border: 1px solid var(--line); border-radius: var(--r-sm);
+    overflow: hidden; cursor: zoom-in;
+}
+.photo-btn img { width: 100%; max-height: 360px; object-fit: contain; border: 0; border-radius: 0; }
+.photo-zoom {
+    position: absolute; right: 8px; bottom: 8px;
+    display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+    border-radius: 999px; background: rgba(22, 25, 29, .72); color: #fff; font-size: 12px; font-weight: 500;
+}
+.hist-meta { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.hist-meta p { margin: 0; font-size: 12px; color: var(--muted); }
+
+.loc-link {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-box);
+    background: var(--field); color: var(--ink); text-decoration: none; min-width: 0;
+}
+.loc-link .ic { margin-top: 2px; color: var(--accent); }
+.loc-link span { display: flex; flex-direction: column; min-width: 0; line-height: 1.4; }
+.loc-link b { font-size: 13px; }
+.loc-link small { font-size: 12px; color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+span.loc-link .ic { color: var(--muted); }
+@media (hover: hover) { a.loc-link:hover { border-color: var(--accent); } }
+
+.viewer-body { flex: 1; min-height: 0; overflow: auto; display: grid; place-items: center; padding: 12px; background: var(--ground); }
+.viewer-body img { max-width: 100%; max-height: 70dvh; object-fit: contain; border-radius: var(--r-sm); }
+.viewer-foot { gap: 12px; }
+.viewer-actions { display: flex; gap: 10px; }
+.viewer-actions .btn { flex: 1; }
+
+.export-body { display: flex; flex-direction: column; gap: 16px; }
+.export-pickers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.export-pickers label { display: flex; flex-direction: column; gap: 6px; }
+.export-pickers .select { width: 100%; height: 44px; }
+.banner-info { background: var(--accent-soft); color: var(--accent); }
+
+@media (min-width: 768px) {
+    .viewer { max-width: 920px; }
+    .viewer-foot { flex-direction: row; align-items: center; justify-content: space-between; }
+    .viewer-foot .loc-link { flex: 1; }
+    .viewer-actions .btn { width: auto; flex: none; padding: 0 20px; }
+}
+
+/* --- PDF pages (rendered off-screen, A4 = 794×1123 px) --- */
+.pdf-stage { position: absolute; left: -12000px; top: 0; width: 794px; }
+.pdf-page {
+    position: relative; width: 794px; height: 1123px; padding: 44px 48px 40px;
+    display: flex; flex-direction: column; gap: 20px;
+    background: #fff; color: var(--ink); font-size: 13px; line-height: 1.5;
+}
+.pdf-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding-bottom: 14px; border-bottom: 2px solid var(--ink); }
+.pdf-brand { display: flex; align-items: center; gap: 10px; }
+.pdf-brand span:last-child { display: flex; flex-direction: column; line-height: 1.35; }
+.pdf-brand b { font-size: 15px; }
+.pdf-brand small { font-size: 11px; color: var(--muted); }
+.pdf-title { font-size: 17px; font-weight: 600; text-align: right; }
+.pdf-body { flex: 1; display: flex; flex-direction: column; gap: 18px; min-height: 0; }
+.pdf-foot { display: flex; justify-content: space-between; gap: 12px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 10px; color: var(--muted); }
+
+.pdf-summary { display: flex; flex-direction: column; gap: 14px; }
+.pdf-user { display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 10px; padding: 12px 14px; background: var(--field); border: 1px solid var(--line); border-radius: var(--r-md); }
+.pdf-user div { display: flex; flex-direction: column; }
+.pdf-user small { font-size: 11px; color: var(--muted); }
+.pdf-user b { font-size: 14px; }
+.pdf-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.pdf-tile { display: flex; flex-direction: column; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-md); }
+.pdf-tile small { font-size: 11px; color: var(--muted); }
+.pdf-tile b { font-size: 26px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.pdf-tile span { font-size: 11px; color: var(--muted); }
+.pdf-tile.is-warn b { color: var(--warn); }
+.pdf-tile.is-bad b { color: var(--bad); }
+.pdf-note { margin: 0; padding: 10px 14px; border-radius: var(--r-md); background: var(--ok-soft); color: var(--ok); font-size: 12px; }
+.pdf-note.is-warn { background: var(--warn-soft); color: var(--warn); }
+
+.pdf-h3 { margin: 0 0 8px; font-size: 14px; }
+.pdf-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.pdf-table th { padding: 7px 8px; text-align: left; font-size: 11px; font-weight: 600; color: var(--muted); background: var(--field); border-bottom: 1px solid var(--line); }
+.pdf-table td { padding: 6px 8px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+.pdf-table td:first-child, .pdf-table th:first-child { width: 36px; color: var(--muted); }
+.pdf-table a { color: var(--accent); text-decoration: none; }
+.pdf-chip { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 11px; font-weight: 500; }
+.pdf-chip.is-agent { background: var(--warn-soft); color: var(--warn); }
+.pdf-muted, .pdf-empty { color: var(--muted); }
+
+.pdf-photos { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(3, 1fr); gap: 14px; flex: 1; min-height: 0; }
+.pdf-photo { margin: 0; display: flex; flex-direction: column; gap: 6px; min-height: 0; border: 1px solid var(--line); border-radius: var(--r-md); padding: 8px; }
+.pdf-photo img, .pdf-photo-missing { flex: 1; min-height: 0; width: 100%; object-fit: contain; background: var(--field); border-radius: var(--r-sm); }
+.pdf-photo-missing { display: grid; place-items: center; color: var(--muted); font-size: 12px; }
+.pdf-photo figcaption { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; }
+.pdf-photo figcaption span { color: var(--muted); }
+/* html2canvas จัดกึ่งกลางด้วย grid/baseline ไม่ตรง: ใช้ line-height คงที่ในหน้า PDF */
+.pdf-brand .logo { display: block; text-align: center; line-height: 36px; }
+.pdf-chip { height: 20px; line-height: 20px; padding: 0 8px; vertical-align: middle; }
+.pdf-tile b { margin: 2px 0 4px; }
+.pdf-lift { position: relative; top: -3px; }
+.pdf-chip { position: relative; top: 3px; }
