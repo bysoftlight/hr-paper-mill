@@ -283,7 +283,8 @@ b { font-weight: 600; }
 .view-head { margin-bottom: 16px; }
 .view-head h2 { font-size: 22px; line-height: 1.35; }
 .view-head p { font-size: 13px; color: var(--muted); }
-.view-head-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.view-head-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; }
+.view-head-row > div:first-child { flex: 1 1 12em; }
 
 /* --- Submit form --- */
 .form-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); grid-template-areas: "top" "main" "side"; }
@@ -418,13 +419,6 @@ b { font-weight: 600; }
 
 .empty { padding: 32px 16px; text-align: center; color: var(--muted); font-size: 14px; }
 .empty .ic { display: block; margin: 0 auto 8px; width: 30px; height: 30px; color: var(--dash); }
-.skeleton {
-    height: 60px; border-radius: var(--r-md);
-    background: linear-gradient(90deg, var(--line-soft), var(--field), var(--line-soft));
-    background-size: 200% 100%; animation: shimmer 1.2s infinite;
-}
-@keyframes shimmer { to { background-position: -200% 0; } }
-
 /* --- Account --- */
 .acc-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
 .form-grid > *, .hist-grid > *, .acc-grid > *, .stack > * { min-width: 0; }
@@ -766,3 +760,87 @@ span.loc-link .ic { color: var(--muted); }
 .pdf-tile b { margin: 2px 0 4px; }
 .pdf-lift { position: relative; top: -3px; }
 .pdf-chip { position: relative; top: 3px; }
+
+/* =====================================================
+   Skeleton loader — โครงเนื้อหาระหว่างรอข้อมูลจริง
+   ใช้สี line-soft / field ของ Paper Ledger, ไม่มีสีเน้น
+   ===================================================== */
+@keyframes skel-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+.skel,
+.is-booting [data-user]:not([data-user="avatar"]),
+.is-booting [data-user="avatar"],
+.is-syncing [data-today],
+.is-syncing [data-agent-used],
+.is-syncing .summary .big,
+.is-syncing .summary .unit,
+.is-syncing .summary-sub,
+.is-syncing .summary-split .chip,
+.is-syncing .agent-meter-top b,
+.is-syncing .summary .meter,
+.is-syncing #sumLabel,
+.photo-btn.is-loading,
+.viewer-body.is-loading {
+    background: linear-gradient(90deg, var(--line-soft) 0%, var(--field) 50%, var(--line-soft) 100%);
+    background-size: 200% 100%;
+    animation: skel-shimmer 1.4s ease-in-out infinite;
+}
+.skel { display: block; border-radius: 6px; }
+.skel-text { height: 12px; margin: 4px 0; }
+.skel-sm { height: 10px; }
+.skel-chip { width: 64px; height: 24px; border-radius: 999px; flex: none; }
+.skel-icon { width: 16px; height: 16px; border-radius: 4px; flex: none; }
+
+/* ข้อความที่ยังไม่มีข้อมูล: ซ่อนตัวอักษร เหลือแท่งโครง */
+.is-booting [data-user]:not([data-user="avatar"]),
+.is-syncing [data-today],
+.is-syncing [data-agent-used],
+.is-syncing .summary .big,
+.is-syncing .summary .unit,
+.is-syncing .summary-sub,
+.is-syncing .summary-split .chip,
+.is-syncing .agent-meter-top b,
+.is-syncing #sumLabel,
+.is-syncing .summary-sub *,
+.is-syncing .agent-meter-top b * {
+    color: transparent !important; border-radius: 6px; user-select: none;
+}
+.is-syncing .summary-sub * { background: none; }
+.is-booting [data-user]:not([data-user="avatar"]) { display: inline-block; min-width: 9em; line-height: 1.2; margin: 2px 0; }
+.is-booting [data-user="id"] { min-width: 5.5em; }
+.is-booting [data-user="status"] { min-width: 11em; }
+.is-booting dd[data-user] { min-width: 6em; }
+.is-booting [data-user="avatar"] { color: transparent; }
+.is-syncing [data-today] { min-width: 104px; min-height: 24px; }
+.is-syncing [data-today] > * { visibility: hidden; }
+.is-syncing [data-agent-used] { display: inline-block; min-width: 1.4em; }
+.is-syncing .summary .big { display: inline-block; min-width: 1.6em; }
+.is-syncing .summary .meter { background-color: transparent; }
+.is-syncing .summary .meter-bar { visibility: hidden; }
+.is-syncing .summary-split .chip > * { visibility: hidden; }
+.is-syncing #exportOpen { visibility: hidden; }
+.bars .skel { flex: 1; border-radius: 3px 3px 0 0; }
+
+.hist-skel { display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 10px 16px; }
+.hist-skel .hist-when { display: flex; flex-direction: column; }
+
+.photo-btn.is-loading { min-height: 220px; border-color: var(--line-soft); }
+.photo-btn.is-loading img, .photo-btn.is-loading .photo-zoom { visibility: hidden; }
+.photo-btn.is-failed { min-height: 0; }
+.viewer-body.is-loading { min-height: min(50dvh, 420px); }
+.viewer-body.is-loading img { visibility: hidden; }
+
+/* ปุ่มกำลังทำงาน (เช่น เข้าสู่ระบบ): spinner เล็กในปุ่ม แทนการบังทั้งหน้าจอ */
+.btn.is-busy { cursor: progress; }
+.btn.is-busy .ic { display: none; }
+.btn.is-busy::before {
+    content: ""; width: 18px; height: 18px; border-radius: 50%;
+    border: 2px solid currentColor; border-right-color: transparent;
+    animation: spin .8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skel, .is-booting [data-user], .is-syncing [data-today], .is-syncing [data-agent-used],
+    .is-syncing .summary .big, .is-syncing .summary .unit, .is-syncing .summary-sub,
+    .is-syncing .summary-split .chip, .is-syncing .agent-meter-top b, .is-syncing .summary .meter,
+    .is-syncing #sumLabel, .photo-btn.is-loading, .viewer-body.is-loading { animation: none; background: var(--line-soft); }
+}

@@ -104,10 +104,34 @@ function manualLogin() {
     performLogin(idInput, false);
 }
 
+// เข้าสู่ระบบอัตโนมัติ: แสดงโครงหน้าแอป (skeleton) ระหว่างรอข้อมูลผู้ใช้
+function showAppSkeleton() {
+    $('loginView').hidden = true;
+    $('appContainer').hidden = false;
+    $('appContainer').classList.add('is-booting');
+    $('salesForm').inert = true;
+    switchTab(tabFromHash(), false);
+}
+
+function backToLogin() {
+    $('appContainer').hidden = true;
+    $('appContainer').classList.remove('is-booting');
+    $('loginView').hidden = false;
+}
+
+// ปุ่มเข้าสู่ระบบแบบกำลังทำงาน (ไม่บังทั้งหน้าจอ)
+function setLoginBusy(busy) {
+    const btn = $('loginBtn');
+    btn.disabled = busy || $('loginId').value.length !== 6;
+    btn.setAttribute('aria-busy', String(busy));
+    btn.classList.toggle('is-busy', busy);
+    $('loginId').readOnly = busy;
+}
+
 async function performLogin(userId, isAuto) {
-    showLoading(true, isAuto ? 'กำลังเข้าสู่ระบบ…' : 'กำลังตรวจสอบรหัส…');
+    if (isAuto) showAppSkeleton(); else setLoginBusy(true);
     const res = await callApi('login', { userId: userId });
-    showLoading(false);
+    if (!isAuto) setLoginBusy(false);
 
     if (res.success) {
         store.set(USER_KEY, res.data.id);
@@ -118,12 +142,14 @@ async function performLogin(userId, isAuto) {
         if (isAuto) {
             const retry = await showMessage({ title: 'เชื่อมต่อไม่ได้', text: res.message, tone: 'warn', okText: 'ลองอีกครั้ง', cancelText: 'ปิด' });
             if (retry) return performLogin(userId, true);
+            backToLogin();
             $('loginId').value = userId;
             $('loginBtn').disabled = false;
         }
         setLoginError(res.message);
     } else {
         store.remove(USER_KEY);
+        if (isAuto) backToLogin();
         $('loginId').value = isAuto ? '' : $('loginId').value;
         setLoginError(res.message || 'ไม่พบรหัสผู้ใช้สิทธิ์นี้ กรุณาตรวจสอบอีกครั้ง');
         if (isAuto) showRulesModal(true);
@@ -146,6 +172,8 @@ async function logout() {
 function setupApp() {
     $('loginView').hidden = true;
     $('appContainer').hidden = false;
+    $('appContainer').classList.remove('is-booting');
+    $('salesForm').inert = false;
 
     document.querySelectorAll('[data-user="name"]').forEach(el => el.textContent = CURRENT_USER.name || '-');
     document.querySelectorAll('[data-user="id"]').forEach(el => el.textContent = CURRENT_USER.id || '-');
@@ -382,14 +410,33 @@ function initHistory() {
     $('yearSelect').addEventListener('change', (e) => { FILTER_YEAR_VAL = parseInt(e.target.value); renderFilteredHistory(); });
     $('loadMoreBtn').addEventListener('click', () => appendItems(DISPLAY_LIMIT));
     $('histRefresh').addEventListener('click', () => loadHistoryData(true));
+    setHistoryLoading(true);
 }
 
 // รวมคำขอที่ซ้อนกันเป็นคำขอเดียว; force = โหลดใหม่แม้มีคำขอค้างอยู่ (ผลของคำขอเก่าจะถูกทิ้ง)
+function setHistoryLoading(loading) {
+    $('appContainer').classList.toggle('is-syncing', loading);
+    document.querySelector('#historyView .summary').setAttribute('aria-busy', String(loading));
+    $('historyList').setAttribute('aria-busy', String(loading));
+    if (loading) {
+        $('historyList').innerHTML = historySkeleton(6);
+        $('sumBars').innerHTML = [40, 70, 30, 85, 55, 65, 45].map(h => `<span class="skel" style="height:${h}%"></span>`).join('');
+        $('sumAxis').innerHTML = '';
+    }
+}
+
+// โครงรายการประวัติ: วันที่ + เวลา + ป้ายประเภท เหมือนแถวจริง
+function historySkeleton(rows) {
+    const row = (w) => `<div class="hist-row hist-skel"><span class="hist-when"><span class="skel skel-text" style="width:${w}%"></span><span class="skel skel-text skel-sm" style="width:22%"></span></span><span class="skel skel-chip"></span><span class="skel skel-icon"></span></div>`;
+    return `<div class="hist-list" aria-hidden="true">${Array.from({ length: rows }, (_, i) => row([46, 38, 52, 42, 48, 36][i % 6])).join('')}</div><span class="sr-only" role="status">กำลังโหลดประวัติการส่งงาน</span>`;
+}
+
 function loadHistoryData(force = false) {
+    if (!CURRENT_USER.id) return Promise.resolve();
     if (historyReq && !force) return historyReq;
     const seq = ++historySeq;
-    if (!HISTORY_LOADED) $('historyList').innerHTML = '<div class="stack"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>';
-    $('histUpdated').textContent = 'กำลังโหลด…';
+    if (!HISTORY_LOADED) setHistoryLoading(true);
+    $('histUpdated').innerHTML = '<span class="skel skel-text" style="width:9em" aria-hidden="true"></span><span class="sr-only">กำลังโหลด</span>';
     $('histRefresh').disabled = true;
 
     historyReq = callApi('history', { userId: CURRENT_USER.id }).then(res => {
@@ -399,6 +446,7 @@ function loadHistoryData(force = false) {
         if (res.success) {
             ALL_HISTORY = (res.history || []).slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
             HISTORY_LOADED = true;
+            setHistoryLoading(false);
             $('histUpdated').textContent = 'อัปเดตล่าสุด ' + new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
             updateTodayStatus();
             renderYearOptions();
@@ -406,6 +454,10 @@ function loadHistoryData(force = false) {
             renderFilteredHistory();
         } else {
             $('histUpdated').textContent = res.message || 'โหลดข้อมูลไม่สำเร็จ';
+            if (!HISTORY_LOADED) {
+                setHistoryLoading(false);
+                document.querySelectorAll('[data-today]').forEach(chip => { chip.className = 'chip'; chip.textContent = 'ไม่ทราบสถานะวันนี้'; });
+            }
             if (!HISTORY_LOADED) $('historyList').innerHTML = `<div class="card empty">${icon('wifi-off')}โหลดประวัติไม่สำเร็จ กด "รีเฟรช" เพื่อลองใหม่</div>`;
         }
     });
@@ -575,8 +627,13 @@ function renderHistoryBody(body, item) {
         btn.type = 'button';
         btn.className = 'photo-btn';
         btn.setAttribute('aria-label', `ขยายภาพหลักฐาน ${formatThaiDate(item.timestamp)} ${item.time} น.`);
+        btn.classList.add('is-loading');
+        btn.setAttribute('aria-busy', 'true');
         btn.innerHTML = `<img alt="" referrerpolicy="no-referrer"><span class="photo-zoom">${icon('maximize', 'ic-16')} ขยายภาพ</span>`;
-        loadImageInto(btn.querySelector('img'), item);
+        const img = btn.querySelector('img');
+        const done = () => { btn.classList.remove('is-loading'); btn.setAttribute('aria-busy', 'false'); };
+        img.addEventListener('load', done);
+        loadImageInto(img, item, () => { done(); btn.classList.add('is-failed'); });
         btn.addEventListener('click', () => openPhotoViewer(item));
         body.appendChild(btn);
     } else {
@@ -635,8 +692,12 @@ let VIEWER_ITEM = null;
 function openPhotoViewer(item) {
     VIEWER_ITEM = item;
     const img = $('photoLarge');
+    const stage = img.parentElement;
     img.removeAttribute('src');
     img.hidden = false;
+    stage.classList.add('is-loading');
+    stage.setAttribute('aria-busy', 'true');
+    img.onload = () => { stage.classList.remove('is-loading'); stage.setAttribute('aria-busy', 'false'); };
     $('photoLargeEmpty').hidden = true;
     img.alt = `ภาพหลักฐาน ${formatThaiDate(item.timestamp)} ${item.time} น.`;
     $('photoTitle').textContent = formatThaiDate(item.timestamp);
@@ -652,7 +713,7 @@ function openPhotoViewer(item) {
     fetchImageData(item).then(dataUrl => {
         if (VIEWER_ITEM !== item) return;
         if (dataUrl) img.src = dataUrl;
-        else loadImageInto(img, item, () => { img.hidden = true; $('photoLargeEmpty').hidden = false; });
+        else loadImageInto(img, item, () => { stage.classList.remove('is-loading'); img.hidden = true; $('photoLargeEmpty').hidden = false; });
     });
     showModal('photoModal');
 }
