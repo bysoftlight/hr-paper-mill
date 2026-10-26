@@ -309,8 +309,9 @@ function formState() {
 
 function updateChecklist() {
     const s = formState();
-    $('stepLocation').classList.toggle('is-done', s.location);
-    $('stepPhoto').classList.toggle('is-done', s.photo);
+    markStep('stepLocation', s.location);
+    markStep('stepType', true);
+    markStep('stepPhoto', s.photo);
     const items = [
         [s.location, 'ยืนยันตำแหน่ง GPS', 'ยังไม่ได้รับพิกัด'],
         [true, 'เลือกประเภทการขาย', ''],
@@ -321,6 +322,16 @@ function updateChecklist() {
     $('submitBtn').classList.toggle('is-ready', s.location && s.photo && !TODAY_RECORD);
     $('todayBanner').hidden = !TODAY_RECORD;
     if (TODAY_RECORD) $('todayTime').textContent = `${TODAY_RECORD.time} น.`;
+}
+
+// สถานะขั้นตอน: เลขขั้นตอนเป็นพื้นเขียวเมื่อเสร็จ + ข้อความสำหรับโปรแกรมอ่านหน้าจอ (ไม่สื่อด้วยสีอย่างเดียว)
+function markStep(id, done) {
+    const step = $(id);
+    step.classList.toggle('is-done', done);
+    const title = step.querySelector('.step-head h3');
+    let sr = title.querySelector('.sr-only');
+    if (!sr) { sr = document.createElement('span'); sr.className = 'sr-only'; title.appendChild(sr); }
+    sr.textContent = done ? ' (เสร็จแล้ว)' : ' (ยังไม่เสร็จ)';
 }
 
 function flagStep(id) {
