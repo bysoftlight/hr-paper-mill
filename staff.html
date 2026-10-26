@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>HR Paper Mill — สำหรับเจ้าหน้าที่</title>
+
+  <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
+  <link rel="alternate icon" type="image/png" href="img/favicon-50x50.png">
+  <link rel="apple-touch-icon" sizes="500x500" href="img/apple-touch-icon.png">
+  <meta name="theme-color" content="#F3F1EC">
+  <meta name="description" content="Dashboard สำหรับเจ้าหน้าที่ HR — ติดตามและจัดการรายงานการขาย โครงการใช้สิทธิ์มาตรา 35">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap">
+  <style>
+    :where(svg.ic) { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; }
+  </style>
+  <!-- เปลี่ยนเลข ?v= ทุกครั้งที่แก้ CSS/JS -->
+  <link rel="stylesheet" href="css/style.css?v=3.5.0">
+  <link rel="stylesheet" href="css/staff.css?v=3.5.0">
+</head>
+<body class="staff">
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></symbol>
+      <symbol id="i-history" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+      <symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+      <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></symbol>
+      <symbol id="i-camera" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+      <symbol id="i-check-circle" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></symbol>
+      <symbol id="i-x-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6M9 9l6 6"/></symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+      <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+      <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+      <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+      <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+      <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></symbol>
+      <symbol id="i-book" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+      <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+      <symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+      <symbol id="i-map" viewBox="0 0 24 24"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/><path d="M8 2v16M16 6v16"/></symbol>
+      <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="m1 1 22 22"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.58 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></symbol>
+      <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></symbol>
+      <symbol id="i-maximize" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></symbol>
+      <symbol id="i-external" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14 21 3"/></symbol>
+      <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></symbol>
+      <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+      <symbol id="i-filter" viewBox="0 0 24 24"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></symbol>
+      <symbol id="i-restore" viewBox="0 0 24 24"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></symbol>
+      <symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></symbol>
+      <symbol id="i-activity" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+      <symbol id="i-user-check" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="m17 11 2 2 4-4"/></symbol>
+      <symbol id="i-user-x" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="m18 8 5 5M23 8l-5 5"/></symbol>
+      <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+      <symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></symbol>
+    </defs>
+  </svg>
+
+  <!-- ===== Alert dialog (ใช้ร่วมกับ utils.js) ===== -->
+  <dialog id="msgDialog" class="alert" role="alertdialog" aria-labelledby="msgTitle" aria-describedby="msgText">
+    <div class="alert-icon" id="msgIcon"></div>
+    <h2 id="msgTitle"></h2>
+    <p id="msgText"></p>
+    <div class="alert-actions">
+      <button type="button" class="btn btn-outline" id="msgCancel">ยกเลิก</button>
+      <button type="button" class="btn btn-primary" id="msgOk">ตกลง</button>
+    </div>
+  </dialog>
+
+  <div id="loading" class="loading" hidden role="status" aria-live="polite">
+    <div class="spinner"></div>
+    <span id="loadingText">กำลังประมวลผล…</span>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <!-- ===== Filters ===== -->
+  <dialog id="filterModal" class="sheet" aria-labelledby="filterTitle">
+    <div class="sheet-head">
+      <div><h2 id="filterTitle">ตัวกรอง</h2><p>เลือกได้หลายรายการในแต่ละหมวด</p></div>
+      <button type="button" class="icon-btn" data-close aria-label="ปิด"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="sheet-body filter-body">
+      <fieldset class="fgroup">
+        <legend>ผู้ใช้สิทธิ์ <span class="fcount" id="fUserCount"></span></legend>
+        <div class="search-field"><svg class="ic ic-16" aria-hidden="true"><use href="#i-search"/></svg><input type="search" class="input input-sm" id="fUserSearch" placeholder="ค้นหาชื่อหรือรหัส" aria-label="ค้นหาผู้ใช้สิทธิ์"></div>
+        <div class="check-list" id="fUsers" role="group" aria-label="ผู้ใช้สิทธิ์"></div>
+        <div class="row-actions"><button type="button" class="btn-chip" id="fUsersClear">ล้างที่เลือก</button></div>
+      </fieldset>
+      <fieldset class="fgroup">
+        <legend>ประเภทการขาย</legend>
+        <div class="check-row" id="fTypes"></div>
+      </fieldset>
+      <fieldset class="fgroup">
+        <legend>จุดขาย</legend>
+        <div class="check-row" id="fSites"></div>
+      </fieldset>
+      <fieldset class="fgroup">
+        <legend>ตำแหน่งการขาย</legend>
+        <div class="segmented seg-wrap" role="radiogroup" id="fLocation">
+          <button type="button" role="radio" data-v="all" aria-checked="true">ทั้งหมด</button>
+          <button type="button" role="radio" data-v="normal" aria-checked="false">ตรงจุดขาย</button>
+          <button type="button" role="radio" data-v="anomaly" aria-checked="false">ผิดปกติ</button>
+          <button type="button" role="radio" data-v="nogps" aria-checked="false">ไม่มี GPS</button>
+        </div>
+        <p class="hint" id="fRadiusHint"></p>
+      </fieldset>
+      <fieldset class="fgroup" data-perm="records.edit">
+        <legend>สถานะรายการ</legend>
+        <div class="segmented" role="radiogroup" id="fStatus">
+          <button type="button" role="radio" data-v="active" aria-checked="true">ใช้งาน</button>
+          <button type="button" role="radio" data-v="deleted" aria-checked="false">ลบแล้ว</button>
+          <button type="button" role="radio" data-v="all" aria-checked="false">ทั้งหมด</button>
+        </div>
+      </fieldset>
+    </div>
+    <div class="sheet-foot foot-row">
+      <button type="button" class="btn btn-outline" id="filterReset">ล้างตัวกรอง</button>
+      <button type="button" class="btn btn-primary" id="filterApply">แสดงผล</button>
+    </div>
+  </dialog>
+
+  <!-- ===== Export ===== -->
+  <dialog id="exportModal" class="sheet" aria-labelledby="exportTitle">
+    <div class="sheet-head">
+      <div><h2 id="exportTitle">ส่งออกข้อมูล</h2><p id="exportScope"></p></div>
+      <button type="button" class="icon-btn" data-close aria-label="ปิด"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="sheet-body">
+      <div class="export-options">
+        <button type="button" class="export-opt" data-export="xlsx">
+          <span class="icon-box is-ok"><svg class="ic" aria-hidden="true"><use href="#i-table"/></svg></span>
+          <span><b>Excel (.xlsx)</b><small>รายการ, สรุปรายบุคคล, รายวัน และตามจุดขาย — คนละแผ่นงาน</small></span>
+        </button>
+        <button type="button" class="export-opt" data-export="pdf">
+          <span class="icon-box is-bad"><svg class="ic" aria-hidden="true"><use href="#i-file"/></svg></span>
+          <span><b>PDF (A4)</b><small>สรุปยอดและตารางรายการ พร้อมลิงก์แผนที่ พิมพ์ได้ทันที</small></span>
+        </button>
+        <button type="button" class="export-opt" data-export="gsheet">
+          <span class="icon-box is-accent"><svg class="ic" aria-hidden="true"><use href="#i-external"/></svg></span>
+          <span><b>Google Sheets</b><small>สร้างไฟล์ใหม่ใน Google Drive และแชร์ให้อีเมลของคุณ</small></span>
+        </button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ===== Record detail ===== -->
+  <dialog id="recordModal" class="sheet viewer" aria-labelledby="recTitle">
+    <div class="sheet-head">
+      <div><h2 id="recTitle"></h2><p id="recMeta"></p></div>
+      <button type="button" class="icon-btn" data-close aria-label="ปิด"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="sheet-body rec-body">
+      <div class="viewer-body rec-photo"><img id="recImg" alt=""><div class="empty" id="recImgEmpty" hidden><svg class="ic" aria-hidden="true"><use href="#i-image"/></svg>ไม่มีภาพหลักฐาน</div></div>
+      <dl class="kv rec-kv" id="recKv"></dl>
+    </div>
+    <div class="sheet-foot foot-row" id="recActions"></div>
+  </dialog>
+
+  <!-- ===== Record form (add / edit) ===== -->
+  <dialog id="recordFormModal" class="sheet" aria-labelledby="rfTitle">
+    <form id="recordForm" class="sheet-form" novalidate>
+      <div class="sheet-head">
+        <div><h2 id="rfTitle">เพิ่มรายการ</h2><p>บันทึกแทนผู้ใช้สิทธิ์ เช่น ส่งรายงานทาง LINE หรือแก้ไขข้อมูลที่ผิด</p></div>
+        <button type="button" class="icon-btn" data-close aria-label="ปิด"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+      </div>
+      <div class="sheet-body form-grid-2">
+        <label class="field span-2"><span class="label">ผู้ใช้สิทธิ์</span><select class="select select-lg" id="rfUser" required></select></label>
+        <label class="field"><span class="label">วันที่</span><input type="date" class="input" id="rfDate" required></label>
+        <label class="field"><span class="label">เวลา</span><input type="time" class="input" id="rfTime" required></label>
+        <div class="field span-2">
+          <span class="label" id="rfTypeLabel">ประเภทการขาย</span>
+          <div class="choices" role="radiogroup" aria-labelledby="rfTypeLabel" id="rfTypes"></div>
+        </div>
+        <label class="field"><span class="label">ละติจูด</span><input type="number" step="any" inputmode="decimal" class="input" id="rfLat" placeholder="เช่น 13.7563"></label>
+        <label class="field"><span class="label">ลองจิจูด</span><input type="number" step="any" inputmode="decimal" class="input" id="rfLng" placeholder="เช่น 100.5018"></label>
+        <div class="field span-2 row-actions"><button type="button" class="btn-chip" id="rfUseSite"><svg class="ic ic-16" aria-hidden="true"><use href="#i-pin"/></svg> ใช้พิกัดจุดขายของผู้ใช้</button><button type="button" class="btn-chip" id="rfClearLoc">ล้างพิกัด</button></div>
+        <label class="field span-2"><span class="label">หมายเหตุ</span><textarea class="input textarea" id="rfNote" rows="2" maxlength="500" placeholder="เช่น ส่งรายงานทาง LINE เนื่องจากโทรศัพท์เสีย"></textarea></label>
+        <div class="field span-2">
+          <span class="label">ภาพหลักฐาน</span>
+          <div class="rf-photo">
+            <img id="rfPhotoPreview" alt="" hidden>
+            <label class="btn-chip" for="rfPhoto"><svg class="ic ic-16" aria-hidden="true"><use href="#i-camera"/></svg> <span id="rfPhotoLabel">เลือกรูป</span></label>
+            <input type="file" id="rfPhoto" class="sr-only" accept="image/*">
+            <small class="muted-text" id="rfPhotoInfo">ไม่บังคับ — ระบบจะย่อขนาดให้อัตโนมัติ</small>
+          </div>
+        </div>
+      </div>
+      <div class="sheet-foot foot-row">
+        <button type="button" class="btn btn-outline" data-close>ยกเลิก</button>
+        <button type="submit" class="btn btn-primary" id="rfSave">บันทึก</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===== Reason prompt (ลบรายการ / ปฏิเสธ) ===== -->
+  <dialog id="reasonModal" class="alert" aria-labelledby="reasonTitle">
+    <form id="reasonForm" novalidate>
+      <div class="alert-icon is-bad"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg></div>
+      <h2 id="reasonTitle">ลบรายการนี้?</h2>
+      <p id="reasonText">รายการจะถูกซ่อนจากรายงาน (กู้คืนได้) และบันทึกเหตุผลไว้ใน Log</p>
+      <label class="sr-only" for="reasonInput">เหตุผล</label>
+      <textarea class="input textarea" id="reasonInput" rows="2" maxlength="300" placeholder="ระบุเหตุผล" required></textarea>
+      <div class="alert-actions">
+        <button type="button" class="btn btn-outline" id="reasonCancel">ยกเลิก</button>
+        <button type="submit" class="btn btn-bad" id="reasonOk">ยืนยัน</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===== Participant detail ===== -->
+  <dialog id="participantModal" class="sheet" aria-labelledby="pTitle">
+    <div class="sheet-head">
+      <div class="p-head"><div class="avatar avatar-lg" id="pAvatar"></div><div><h2 id="pTitle"></h2><p id="pMeta"></p></div></div>
+      <button type="button" class="icon-btn" data-close aria-label="ปิด"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="sheet-body stack">
+      <div class="p-stats" id="pStats"></div>
+      <section class="cal-card">
+        <div class="cal-head">
+          <button type="button" class="icon-btn" id="calPrev" aria-label="เดือนก่อน"><svg class="ic" aria-hidden="true"><use href="#i-chevron-left"/></svg></button>
+          <b id="calTitle"></b>
+          <button type="button" class="icon-btn" id="calNext" aria-label="เดือนถัดไป"><svg class="ic" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
+        </div>
+        <div class="cal-grid" id="calGrid" aria-live="polite"></div>
+        <div class="cal-legend"><span><i class="lg lg-self"></i>ขายเอง</span><span><i class="lg lg-agent"></i>โดยตัวแทน</span><span><i class="lg lg-anom"></i>ตำแหน่งผิดปกติ</span><span><i class="lg lg-miss"></i>ไม่ได้ส่ง</span></div>
+      </section>
+      <dl class="kv" id="pKv"></dl>
+    </div>
+    <div class="sheet-foot foot-row" id="pActions"></div>
+  </dialog>
+
+  <!-- ===== Participant form ===== -->
+  <dialog id="participantFormModal" class="sheet" aria-labelledby="pfTitle">
+    <form id="participantForm" class="sheet-form" novalidate>
+      <div class="sheet-head">
+        <div><h2 id="pfTitle">เพิ่มผู้ใช้สิทธิ์</h2><p>รหัส 6 หลักใช้เข้าสู่ระบบของผู้ใช้สิทธิ์ เปลี่ยนภายหลังไม่ได้</p></div>
+        <button type="button" class="icon-btn" data-close aria-label="ปิด"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+      </div>
+      <div class="sheet-body form-grid-2">
+        <label class="field"><span class="label">รหัสผู้ใช้สิทธิ์</span><input class="input mono" id="pfId" maxlength="6" autocapitalize="characters" required placeholder="XXXXXX"></label>
+        <label class="field"><span class="label">ชื่อ-สกุล</span><input class="input" id="pfName" maxlength="120" required></label>
+        <label class="field"><span class="label">การใช้สิทธิ์</span><input class="input" id="pfStatus" maxlength="120" placeholder="เช่น ใช้สิทธิ์ปี 2569"></label>
+        <label class="field"><span class="label">เบอร์โทร</span><input class="input" id="pfPhone" inputmode="tel" maxlength="40"></label>
+        <label class="field span-2"><span class="label">จุดขาย</span><input class="input" id="pfSite" maxlength="120" list="siteList" placeholder="เช่น ตลาดนัดจตุจักร ล็อค A12"><datalist id="siteList"></datalist></label>
+        <label class="field"><span class="label">ละติจูดจุดขาย</span><input type="number" step="any" class="input" id="pfLat"></label>
+        <label class="field"><span class="label">ลองจิจูดจุดขาย</span><input type="number" step="any" class="input" id="pfLng"></label>
+        <div class="field span-2 row-actions"><button type="button" class="btn-chip" id="pfUseLast"><svg class="ic ic-16" aria-hidden="true"><use href="#i-pin"/></svg> ใช้พิกัดจากรายงานล่าสุด</button><small class="muted-text">ใช้ตรวจ "ตำแหน่งผิดปกติ"</small></div>
+        <label class="field span-2"><span class="label">ลิงก์รูปโปรไฟล์ (Google Drive)</span><input class="input" id="pfPic" maxlength="500" placeholder="https://drive.google.com/..."></label>
+        <label class="field span-2"><span class="label">หมายเหตุ</span><textarea class="input textarea" id="pfNote" rows="2" maxlength="500"></textarea></label>
+        <label class="check span-2"><input type="checkbox" id="pfActive" checked><span>เปิดใช้งาน (ปิดแล้วผู้ใช้สิทธิ์จะเข้าสู่ระบบไม่ได้)</span></label>
+      </div>
+      <div class="sheet-foot foot-row">
+        <button type="button" class="btn btn-outline" data-close>ยกเลิก</button>
+        <button type="submit" class="btn btn-primary">บันทึก</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===== Staff account edit (Admin) ===== -->
+  <dialog id="staffModal" class="sheet" aria-labelledby="smTitle">
+    <form id="staffForm" class="sheet-form" novalidate>
+      <div class="sheet-head">
+        <div class="p-head"><div class="avatar avatar-lg" id="smAvatar"></div><div><h2 id="smTitle"></h2><p id="smMeta"></p></div></div>
+        <button type="button" class="icon-btn" data-close aria-label="ปิด"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+      </div>
+      <div class="sheet-body stack">
+        <div class="form-grid-2">
+          <label class="field"><span class="label">บทบาท</span>
+            <select class="select select-lg" id="smRole">
+              <option value="viewer">ผู้ดูข้อมูล (Viewer)</option>
+              <option value="editor">ผู้แก้ไข (Editor)</option>
+              <option value="admin">ผู้ดูแลระบบ (Admin)</option>
+            </select>
+          </label>
+          <label class="field"><span class="label">สถานะ</span>
+            <select class="select select-lg" id="smStatus">
+              <option value="active">ใช้งาน</option>
+              <option value="pending">รออนุมัติ</option>
+              <option value="suspended">ระงับ</option>
+              <option value="rejected">ปฏิเสธ</option>
+            </select>
+          </label>
+        </div>
+        <fieldset class="fgroup">
+          <legend>สิทธิ์การใช้งาน</legend>
+          <div class="perm-list" id="smPerms"></div>
+          <p class="hint">ผู้ดูแลระบบได้รับทุกสิทธิ์อัตโนมัติ</p>
+        </fieldset>
+        <label class="field"><span class="label">หมายเหตุ</span><textarea class="input textarea" id="smNote" rows="2" maxlength="300"></textarea></label>
+        <div class="danger-zone">
+          <b>การจัดการบัญชี</b>
+          <div class="row-actions">
+            <button type="button" class="btn-chip" id="smRevoke"><svg class="ic ic-16" aria-hidden="true"><use href="#i-logout"/></svg> บังคับออกจากระบบทุกอุปกรณ์</button>
+            <button type="button" class="btn-chip btn-chip-bad" id="smDelete"><svg class="ic ic-16" aria-hidden="true"><use href="#i-trash"/></svg> ลบบัญชี</button>
+          </div>
+        </div>
+      </div>
+      <div class="sheet-foot foot-row">
+        <button type="button" class="btn btn-outline" data-close>ยกเลิก</button>
+        <button type="submit" class="btn btn-primary">บันทึกสิทธิ์</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===== Sign in ===== -->
+  <div id="authView" class="login" hidden>
+    <section class="login-intro" aria-labelledby="authTitle">
+      <div class="brand"><span class="logo" aria-hidden="true">H</span><span>HR Paper Mill</span></div>
+      <p class="eyebrow">สำหรับเจ้าหน้าที่ HR และผู้ดูแลระบบ</p>
+      <h1 id="authTitle">ติดตามรายงานการขาย<br>ของผู้ใช้สิทธิ์ทุกคนในที่เดียว</h1>
+      <ol class="intro-steps">
+        <li><span class="mono">1</span><div><b>เข้าสู่ระบบด้วย Google หรือ LINE</b><small>ไม่ต้องตั้งรหัสผ่านใหม่</small></div></li>
+        <li><span class="mono">2</span><div><b>รอผู้ดูแลระบบอนุมัติ</b><small>บัญชีใหม่ยังไม่เห็นข้อมูลจนกว่าจะได้รับสิทธิ์</small></div></li>
+        <li><span class="mono">3</span><div><b>ดู กรอง แก้ไข และส่งออกข้อมูล</b><small>อัปเดตสด · Excel · PDF · Google Sheets</small></div></li>
+      </ol>
+    </section>
+    <main class="login-main">
+      <div class="card login-card">
+        <h2>เข้าสู่ระบบเจ้าหน้าที่</h2>
+        <p class="muted-text">ใช้บัญชี Google หรือ LINE ของคุณ</p>
+        <div class="auth-buttons">
+          <div id="googleBtn" class="google-btn-slot" aria-live="polite"></div>
+          <button type="button" class="btn btn-line" id="lineBtn">
+            <svg class="line-logo" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.5C6.48 2.5 2 6.13 2 10.6c0 4 3.55 7.36 8.35 8 .33.07.77.22.88.5.1.25.07.65.03.9l-.14.86c-.04.25-.2 1 .88.54 1.08-.45 5.82-3.43 7.94-5.87C21.4 13.95 22 12.34 22 10.6c0-4.47-4.48-8.1-10-8.1Zm-3.8 10.5H6.22a.53.53 0 0 1-.53-.53V8.5a.53.53 0 1 1 1.06 0v3.44H8.2a.53.53 0 1 1 0 1.06Zm2.05-.53a.53.53 0 1 1-1.06 0V8.5a.53.53 0 1 1 1.06 0v3.97Zm4.77 0a.53.53 0 0 1-.95.32l-2.03-2.77v2.45a.53.53 0 1 1-1.06 0V8.5a.53.53 0 0 1 .95-.32l2.03 2.77V8.5a.53.53 0 1 1 1.06 0v3.97Zm3.2-2.51a.53.53 0 1 1 0 1.06h-1.45v.92h1.45a.53.53 0 1 1 0 1.06h-1.98a.53.53 0 0 1-.53-.53V8.5c0-.29.24-.53.53-.53h1.98a.53.53 0 1 1 0 1.06h-1.45v.93h1.45Z"/></svg>
+            เข้าสู่ระบบด้วย LINE
+          </button>
+        </div>
+        <p class="hint" id="authHint" role="status"></p>
+        <div class="banner banner-info auth-note">
+          <svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg>
+          <div><b>บัญชีใหม่ต้องได้รับอนุมัติ</b>หลังเข้าสู่ระบบครั้งแรก ผู้ดูแลระบบต้องให้สิทธิ์ก่อนจึงจะเห็นข้อมูล</div>
+        </div>
+      </div>
+      <footer class="login-footer">
+        <nav aria-label="ลิงก์"><a class="btn-text" href="./">ไปหน้าผู้ใช้สิทธิ์</a></nav>
+        <p>© 2026 TUBE™ Creative Group. All rights reserved.</p>
+      </footer>
+    </main>
+  </div>
+
+  <!-- ===== Waiting for approval / suspended ===== -->
+  <main id="pendingView" class="pending-page" hidden>
+    <div class="card pending-card">
+      <div class="avatar avatar-xl" id="pendAvatar"></div>
+      <h1 id="pendTitle">รอผู้ดูแลระบบอนุมัติ</h1>
+      <p id="pendText" class="muted-text"></p>
+      <dl class="kv" id="pendKv"></dl>
+      <div class="foot-row">
+        <button type="button" class="btn btn-outline" data-action="logout"><svg class="ic" aria-hidden="true"><use href="#i-logout"/></svg> ออกจากระบบ</button>
+        <button type="button" class="btn btn-primary" id="pendRefresh"><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg> ตรวจสอบอีกครั้ง</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===== App ===== -->
+  <div id="appContainer" class="app" hidden>
+    <header class="topbar">
+      <div class="brand"><span class="logo" aria-hidden="true">H</span><span>HR Staff</span></div>
+      <span class="live" data-live><span class="live-dot"></span><span data-live-text>อัปเดตสด</span></span>
+    </header>
+
+    <nav class="sidenav" aria-label="เมนูหลัก">
+      <div class="brand"><span class="logo" aria-hidden="true">H</span><span class="brand-text">HR Staff</span></div>
+      <div class="nav-items">
+        <button type="button" class="nav-item" data-tab="overview" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-grid"/></svg><span>ภาพรวม</span></button>
+        <button type="button" class="nav-item" data-tab="records" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-list"/></svg><span>รายงาน</span></button>
+        <button type="button" class="nav-item" data-tab="participants" data-perm="participants.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-users"/></svg><span>ผู้ใช้สิทธิ์</span></button>
+        <button type="button" class="nav-item" data-tab="admin" data-perm="admin"><svg class="ic ic-22" aria-hidden="true"><use href="#i-shield"/></svg><span>ผู้ดูแลระบบ</span><span class="nav-badge" data-pending-badge hidden></span></button>
+        <button type="button" class="nav-item" data-tab="account"><svg class="ic ic-22" aria-hidden="true"><use href="#i-user"/></svg><span>บัญชี</span></button>
+      </div>
+      <div class="nav-user">
+        <span class="live" data-live><span class="live-dot"></span><span data-live-text>อัปเดตสด</span></span>
+        <div class="nav-user-row">
+          <div class="avatar" data-me="avatar"></div>
+          <div class="nav-user-text"><b data-me="name"></b><small data-me="role"></small></div>
+        </div>
+        <button type="button" class="btn-text btn-text-bad" data-action="logout"><svg class="ic ic-16" aria-hidden="true"><use href="#i-logout"/></svg> ออกจากระบบ</button>
+      </div>
+    </nav>
+
+    <!-- Overview -->
+    <main id="overviewView" class="view" hidden aria-labelledby="ovTitle">
+      <div class="view-head view-head-row">
+        <div><h2 id="ovTitle">ภาพรวมวันนี้</h2><p id="ovDate">&nbsp;</p></div>
+        <div class="head-actions"><button type="button" class="btn-text" id="ovRefresh"><svg class="ic ic-16" aria-hidden="true"><use href="#i-refresh"/></svg> รีเฟรช</button></div>
+      </div>
+      <div class="kpis" id="ovKpis" aria-live="polite"></div>
+      <div class="ov-grid">
+        <div class="stack">
+          <section class="card" aria-labelledby="trendTitle">
+            <div class="card-head"><h3 class="card-title" id="trendTitle">แนวโน้ม 30 วัน</h3><span class="legend"><i class="lg lg-self"></i>ขายเอง <i class="lg lg-agent"></i>โดยตัวแทน</span></div>
+            <div class="trend" id="ovTrend" role="img" aria-label="กราฟจำนวนรายงานย้อนหลัง 30 วัน"></div>
+            <div class="trend-axis" id="ovTrendAxis" aria-hidden="true"></div>
+          </section>
+          <section class="card" aria-labelledby="latestTitle">
+            <div class="card-head"><h3 class="card-title" id="latestTitle">รายการล่าสุด</h3><button type="button" class="btn-text" data-goto="records">ดูทั้งหมด</button></div>
+            <div id="ovLatest" class="feed"></div>
+          </section>
+        </div>
+        <div class="stack">
+          <section class="card" aria-labelledby="missTitle">
+            <div class="card-head"><h3 class="card-title" id="missTitle">ยังไม่ส่งวันนี้ <span class="count-pill" id="ovMissCount"></span></h3></div>
+            <div id="ovMissing" class="people-list"></div>
+          </section>
+          <section class="card" aria-labelledby="agentTitle">
+            <div class="card-head"><h3 class="card-title" id="agentTitle">เฝ้าระวังขายโดยตัวแทน (เดือนนี้)</h3></div>
+            <div id="ovAgent" class="people-list"></div>
+          </section>
+          <section class="card" aria-labelledby="anomTitle">
+            <div class="card-head"><h3 class="card-title" id="anomTitle">ตำแหน่งต้องตรวจสอบ (วันนี้)</h3></div>
+            <div id="ovAnom" class="feed"></div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <!-- Records -->
+    <main id="recordsView" class="view" hidden aria-labelledby="recsTitle">
+      <div class="view-head view-head-row">
+        <div><h2 id="recsTitle">รายงานการส่ง</h2><p id="recsRange">&nbsp;</p></div>
+        <div class="head-actions">
+          <button type="button" class="btn-chip" id="recExport" data-perm="export"><svg class="ic ic-16" aria-hidden="true"><use href="#i-download"/></svg> ส่งออก</button>
+          <button type="button" class="btn-chip btn-chip-primary" id="recAdd" data-perm="records.edit"><svg class="ic ic-16" aria-hidden="true"><use href="#i-plus"/></svg> เพิ่มรายการ</button>
+        </div>
+      </div>
+
+      <div class="new-banner" id="recNewBanner" hidden role="status">
+        <span><span class="live-dot"></span> มีรายการใหม่หรือมีการแก้ไข <b id="recNewCount"></b> รายการ</span>
+        <button type="button" class="btn-chip" id="recNewShow">แสดง</button>
+      </div>
+
+      <section class="toolbar" aria-label="ช่วงเวลาและตัวกรอง">
+        <div class="segmented period" role="tablist" aria-label="ช่วงเวลา" id="recPeriod">
+          <button type="button" role="tab" data-p="day" aria-selected="false">วัน</button>
+          <button type="button" role="tab" data-p="month" aria-selected="true">เดือน</button>
+          <button type="button" role="tab" data-p="year" aria-selected="false">ปี</button>
+          <button type="button" role="tab" data-p="range" aria-selected="false">ช่วงวันที่</button>
+        </div>
+        <div class="period-inputs" id="recPeriodInputs">
+          <input type="date" class="input input-sm" id="recDay" aria-label="วันที่" data-for="day">
+          <select class="select" id="recMonth" aria-label="เดือน" data-for="month"></select>
+          <select class="select" id="recYear" aria-label="ปี" data-for="month year"></select>
+          <input type="date" class="input input-sm" id="recFrom" aria-label="ตั้งแต่วันที่" data-for="range">
+          <span class="range-sep" data-for="range">ถึง</span>
+          <input type="date" class="input input-sm" id="recTo" aria-label="ถึงวันที่" data-for="range">
+        </div>
+        <div class="toolbar-row">
+          <div class="search-field grow"><svg class="ic ic-16" aria-hidden="true"><use href="#i-search"/></svg><input type="search" class="input input-sm" id="recSearch" placeholder="ค้นหาชื่อ รหัส จุดขาย หมายเหตุ" aria-label="ค้นหา"></div>
+          <button type="button" class="btn-chip" id="recFilterBtn"><svg class="ic ic-16" aria-hidden="true"><use href="#i-filter"/></svg> ตัวกรอง <span class="count-pill" id="recFilterCount" hidden></span></button>
+          <select class="select" id="recSort" aria-label="เรียงลำดับ">
+            <option value="ts_desc">ล่าสุดก่อน</option>
+            <option value="ts_asc">เก่าสุดก่อน</option>
+            <option value="name">ตามชื่อ</option>
+          </select>
+          <div class="segmented view-toggle" role="tablist" aria-label="มุมมอง" id="recViewMode">
+            <button type="button" role="tab" data-v="table" aria-selected="true"><svg class="ic ic-16" aria-hidden="true"><use href="#i-list"/></svg><span>ตาราง</span></button>
+            <button type="button" role="tab" data-v="map" aria-selected="false"><svg class="ic ic-16" aria-hidden="true"><use href="#i-map"/></svg><span>แผนที่</span></button>
+          </div>
+        </div>
+        <div class="chips-row" id="recChips"></div>
+      </section>
+
+      <div class="sumstrip" id="recSummary" aria-live="polite"></div>
+
+      <div id="recTableWrap">
+        <div class="table-card" id="recTable"></div>
+        <nav class="pager" id="recPager" aria-label="เปลี่ยนหน้า"></nav>
+      </div>
+      <div id="recMapWrap" hidden>
+        <div class="map-card"><div id="recMap" class="map" role="region" aria-label="แผนที่ตำแหน่งการขาย"></div></div>
+        <p class="hint" id="recMapHint"></p>
+      </div>
+    </main>
+
+    <!-- Participants -->
+    <main id="participantsView" class="view" hidden aria-labelledby="partTitle">
+      <div class="view-head view-head-row">
+        <div><h2 id="partTitle">ผู้ใช้สิทธิ์</h2><p id="partSub">&nbsp;</p></div>
+        <div class="head-actions">
+          <button type="button" class="btn-chip btn-chip-primary" id="partAdd" data-perm="participants.edit"><svg class="ic ic-16" aria-hidden="true"><use href="#i-plus"/></svg> เพิ่มผู้ใช้สิทธิ์</button>
+        </div>
+      </div>
+      <section class="toolbar">
+        <div class="toolbar-row">
+          <div class="search-field grow"><svg class="ic ic-16" aria-hidden="true"><use href="#i-search"/></svg><input type="search" class="input input-sm" id="partSearch" placeholder="ค้นหาชื่อ รหัส เบอร์โทร" aria-label="ค้นหาผู้ใช้สิทธิ์"></div>
+          <select class="select" id="partSite" aria-label="จุดขาย"></select>
+          <select class="select" id="partState" aria-label="สถานะ">
+            <option value="active">ใช้งานอยู่</option>
+            <option value="missing">ยังไม่ส่งวันนี้</option>
+            <option value="agent">ตัวแทนใกล้ครบโควตา</option>
+            <option value="inactive">ปิดใช้งาน</option>
+            <option value="all">ทั้งหมด</option>
+          </select>
+        </div>
+      </section>
+      <div class="table-card" id="partTable"></div>
+    </main>
+
+    <!-- Admin -->
+    <main id="adminView" class="view" hidden aria-labelledby="admTitle">
+      <div class="view-head view-head-row">
+        <div><h2 id="admTitle">ผู้ดูแลระบบ</h2><p>จัดการบัญชีเจ้าหน้าที่ สิทธิ์ และตรวจสอบ Log</p></div>
+      </div>
+      <div class="segmented adm-tabs" role="tablist" aria-label="ส่วนผู้ดูแลระบบ" id="admTabs">
+        <button type="button" role="tab" data-t="staff" aria-selected="true">บัญชีเจ้าหน้าที่ <span class="count-pill is-bad" data-pending-badge hidden></span></button>
+        <button type="button" role="tab" data-t="logs" aria-selected="false">Logs</button>
+      </div>
+
+      <div id="admStaff" class="stack">
+        <section aria-labelledby="pendTitle2">
+          <h3 class="section-title" id="pendTitle2">รออนุมัติ</h3>
+          <div class="pending-list" id="admPending"></div>
+        </section>
+        <section aria-labelledby="allStaffTitle">
+          <h3 class="section-title" id="allStaffTitle">เจ้าหน้าที่ทั้งหมด</h3>
+          <div class="table-card" id="admStaffTable"></div>
+        </section>
+        <section class="card role-help">
+          <h3 class="card-title">บทบาทและสิทธิ์</h3>
+          <dl class="kv">
+            <div><dt>ผู้ดูข้อมูล (Viewer)</dt><dd>ดูรายงานและผู้ใช้สิทธิ์</dd></div>
+            <div><dt>ผู้แก้ไข (Editor)</dt><dd>ดู + เพิ่ม/แก้ไข/ลบรายการ + จัดการผู้ใช้สิทธิ์ + ส่งออก</dd></div>
+            <div><dt>ผู้ดูแลระบบ (Admin)</dt><dd>ทุกสิทธิ์ + อนุมัติบัญชี + ดู Log</dd></div>
+          </dl>
+        </section>
+      </div>
+
+      <div id="admLogs" class="stack" hidden>
+        <section class="toolbar">
+          <div class="toolbar-row">
+            <input type="date" class="input input-sm" id="logFrom" aria-label="ตั้งแต่วันที่">
+            <span class="range-sep">ถึง</span>
+            <input type="date" class="input input-sm" id="logTo" aria-label="ถึงวันที่">
+            <select class="select" id="logCategory" aria-label="ประเภท Log">
+              <option value="">ทุกประเภท</option>
+              <option value="staff.">เข้าสู่ระบบ/สมัคร (staff)</option>
+              <option value="admin.">ผู้ดูแลระบบ (admin)</option>
+              <option value="records.">แก้ไขรายงาน (records)</option>
+              <option value="participants.">ผู้ใช้สิทธิ์ (participants)</option>
+              <option value="participant.">ฝั่งผู้ใช้สิทธิ์ (participant)</option>
+              <option value="export.">ส่งออกข้อมูล (export)</option>
+              <option value="system.">ระบบ (system)</option>
+            </select>
+            <div class="search-field grow"><svg class="ic ic-16" aria-hidden="true"><use href="#i-search"/></svg><input type="search" class="input input-sm" id="logSearch" placeholder="ค้นหาผู้กระทำ เป้าหมาย รายละเอียด" aria-label="ค้นหา Log"></div>
+            <button type="button" class="btn-chip" id="logExport"><svg class="ic ic-16" aria-hidden="true"><use href="#i-download"/></svg> Excel</button>
+          </div>
+        </section>
+        <div class="sumstrip" id="logSummary"></div>
+        <div class="table-card" id="logTable"></div>
+        <nav class="pager" id="logPager" aria-label="เปลี่ยนหน้า Log"></nav>
+      </div>
+    </main>
+
+    <!-- Account -->
+    <main id="accountView" class="view" hidden aria-labelledby="accTitle">
+      <div class="view-head"><h2 id="accTitle">บัญชีของฉัน</h2><p>ข้อมูลการเข้าสู่ระบบและสิทธิ์</p></div>
+      <div class="acc-grid">
+        <section class="card profile-card">
+          <div class="avatar avatar-xl" data-me="avatar"></div>
+          <b class="profile-name" data-me="name"></b>
+          <span class="chip" data-me="roleChip"></span>
+          <dl class="kv" id="accKv"></dl>
+        </section>
+        <div class="stack">
+          <section class="card">
+            <h3 class="card-title">สิทธิ์ของคุณ</h3>
+            <ul class="perm-view" id="accPerms"></ul>
+          </section>
+          <a class="btn btn-outline" href="./"><svg class="ic" aria-hidden="true"><use href="#i-external"/></svg> เปิดหน้าผู้ใช้สิทธิ์</a>
+          <button type="button" class="btn btn-danger" data-action="logout"><svg class="ic" aria-hidden="true"><use href="#i-logout"/></svg> ออกจากระบบ</button>
+          <p class="footnote">HR Paper Mill Staff v1.0 · © 2026 TUBE™ Creative Group</p>
+        </div>
+      </div>
+    </main>
+
+    <nav class="bottomnav" aria-label="เมนูหลัก (มือถือ)">
+      <button type="button" class="nav-item" data-tab="overview" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-grid"/></svg><span>ภาพรวม</span></button>
+      <button type="button" class="nav-item" data-tab="records" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-list"/></svg><span>รายงาน</span></button>
+      <button type="button" class="nav-item" data-tab="participants" data-perm="participants.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-users"/></svg><span>ผู้ใช้สิทธิ์</span></button>
+      <button type="button" class="nav-item" data-tab="admin" data-perm="admin"><svg class="ic ic-22" aria-hidden="true"><use href="#i-shield"/></svg><span>ผู้ดูแล</span><span class="nav-badge" data-pending-badge hidden></span></button>
+      <button type="button" class="nav-item" data-tab="account"><svg class="ic ic-22" aria-hidden="true"><use href="#i-user"/></svg><span>บัญชี</span></button>
+    </nav>
+  </div>
+
+  <div id="pdfStage" class="pdf-stage" aria-hidden="true"></div>
+
+  <script src="js/config.js?v=3.5.0"></script>
+  <script src="js/utils.js?v=3.5.0"></script>
+  <script src="js/api.js?v=3.5.0"></script>
+  <script src="js/staff/core.js?v=3.5.0"></script>
+  <script src="js/staff/overview.js?v=3.5.0"></script>
+  <script src="js/staff/records.js?v=3.5.0"></script>
+  <script src="js/staff/participants.js?v=3.5.0"></script>
+  <script src="js/staff/admin.js?v=3.5.0"></script>
+  <script src="js/staff/export.js?v=3.5.0"></script>
+</body>
+</html>

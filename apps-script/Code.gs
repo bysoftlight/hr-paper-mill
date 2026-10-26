@@ -1,7 +1,10 @@
 // HR Paper Mill — Google Apps Script (ผูกกับ Google Sheets)
 // รองรับ 2 ทาง:
 //   1) เว็บบน GitHub Pages  → เรียกผ่าน doPost (fetch POST JSON: { action, secret, ... })
+//      - หน้าผู้ใช้สิทธิ์ (index.html): login / history / submit / image
+//      - หน้าเจ้าหน้าที่ (staff.html): staff.* และ admin.* (ดู Staff.gs, Admin.gs)
 //   2) หน้าเว็บของ Apps Script เอง (Index.html) → เรียกผ่าน google.script.run
+// ไฟล์ในโปรเจกต์: Code.gs, Schema.gs, Auth.gs, Staff.gs, Admin.gs, Export.gs (+ Index.html) — วิธีติดตั้งดู apps-script/README.md
 // หลังแก้โค้ด: Deploy → Manage deployments → Edit (รูปดินสอ) → Version: New version → Deploy
 // ตั้งค่า deployment: Execute as = Me, Who has access = Anyone
 
@@ -30,10 +33,21 @@ function doPost(e) {
   }
   if (req.secret !== API_SECRET) return json_({ success: false, message: 'ไม่มีสิทธิ์เข้าถึงระบบ' });
 
+  // คำสั่งของเจ้าหน้าที่ / ผู้ดูแลระบบ
+  if (/^(staff|admin)\./.test(String(req.action))) {
+    try {
+      return json_(handleStaffRequest_(req));
+    } catch (err) {
+      return json_({ success: false, code: err.code || 'ERROR', message: err.code ? err.message : 'Error: ' + err });
+    }
+  }
+
   try {
     switch (req.action) {
       case 'login': {
-        const user = findUser_(req.userId);
+        const user = findUser_(req.userId, true);
+        if (user && !user.active) return json_({ success: false, message: 'บัญชีนี้ถูกปิดใช้งาน กรุณาติดต่อเจ้าหน้าที่' });
+        if (!user) log_({ id: '', name: 'ผู้ใช้สิทธิ์', role: 'participant' }, 'participant.login_failed', String(req.userId || '').slice(0, 20), '', '');
         return json_(user ? { success: true, data: user } : { success: false, message: 'ไม่พบรหัสผู้ใช้สิทธิ์นี้ กรุณาตรวจสอบอีกครั้ง' });
       }
       case 'history':
@@ -54,14 +68,18 @@ function json_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
-// หาข้อมูลผู้ใช้จากแผ่น Users (A: รหัส, B: ชื่อ, C: การใช้สิทธิ์, D: รูป)
-function findUser_(userId) {
+// หาข้อมูลผู้ใช้จากแผ่น Users (A: รหัส, B: ชื่อ, C: การใช้สิทธิ์, D: รูป, ... I: ใช้งาน)
+// ผู้ใช้ที่ถูกปิดใช้งาน (I = FALSE) จะไม่พบ ยกเว้น includeInactive
+function findUser_(userId, includeInactive) {
   const id = String(userId || '').trim().toUpperCase();
   if (!/^[A-Z0-9]{6}$/.test(id)) return null;
   const data = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Users').getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][0]).trim().toUpperCase() === id) {
-      return { id: String(data[i][0]).trim(), name: String(data[i][1]), status: String(data[i][2]), pic: toImageUrl_(data[i][3]) };
+      const flag = data[i][8];
+      const active = !(flag === false || String(flag).toUpperCase() === 'FALSE' || String(flag) === '0');
+      if (!active && !includeInactive) return null;
+      return { id: String(data[i][0]).trim(), name: String(data[i][1]), status: String(data[i][2]), pic: toImageUrl_(data[i][3]), active: active };
     }
   }
   return null;
@@ -124,12 +142,13 @@ function submitSalesData(formObject) {
     const now = new Date();
     const todayStr = Utilities.formatDate(now, TZ, 'yyyy-MM-dd');
 
-    // --- ตรวจสอบการส่งซ้ำ: ดึงเฉพาะ Timestamp(A) ถึง EmployeeID(D) ---
+    // --- ตรวจสอบการส่งซ้ำ: Timestamp(A) ถึงสถานะ(L) — รายการที่เจ้าหน้าที่ลบแล้วไม่นับ ---
     const lastRow = recordSheet.getLastRow();
     if (lastRow > 1) {
-      const checkData = recordSheet.getRange(2, 1, lastRow - 1, 4).getValues();
+      const checkData = recordSheet.getRange(2, 1, lastRow - 1, 12).getValues();
       for (let i = checkData.length - 1; i >= 0; i--) {
         if (String(checkData[i][3]).trim().toUpperCase() !== user.id.toUpperCase()) continue;
+        if (checkData[i][11] === 'deleted') continue;
         const ts = checkData[i][0] instanceof Date ? checkData[i][0] : new Date(checkData[i][1]);
         if (!isNaN(ts) && Utilities.formatDate(ts, TZ, 'yyyy-MM-dd') === todayStr) {
           return { success: false, message: 'คุณได้บันทึกข้อมูลของวันนี้ไปแล้ว' };
@@ -167,8 +186,13 @@ function submitSalesData(formObject) {
       file.getDownloadUrl(),
       lat,
       long,
-      `https://maps.google.com/maps?q=${lat},${long}`
+      `https://maps.google.com/maps?q=${lat},${long}`,
+      '',        // K: หมายเหตุ
+      'active',  // L: สถานะ
+      '', '',    // M–N: แก้ไขโดย / แก้ไขล่าสุด
+      'app'      // O: ที่มา
     ]);
+    log_({ id: user.id, name: user.name, role: 'participant' }, 'participant.submit', user.id + ' ' + todayStr, { type: formObject.salesType }, '');
 
     return { success: true, message: 'บันทึกข้อมูลเรียบร้อยแล้ว', record: toRecord_(now, formObject.salesType, file.getDownloadUrl(), lat, long) };
   } catch (error) {
@@ -201,10 +225,11 @@ function getUserHistory(userId) {
   const lastRow = sheet.getLastRow();
   if (!id || lastRow < 2) return [];
 
-  const data = sheet.getRange(2, 1, lastRow - 1, 9).getValues(); // A–I: ... G: รูป, H: lat, I: long
+  const data = sheet.getRange(2, 1, lastRow - 1, 12).getValues(); // A–L: ... G: รูป, H: lat, I: long, L: สถานะ
   const history = [];
   for (let i = data.length - 1; i >= 0 && history.length < HISTORY_LIMIT; i--) {
     if (String(data[i][3]).trim().toUpperCase() !== id) continue;
+    if (data[i][11] === 'deleted') continue;
     const ts = data[i][0] instanceof Date ? data[i][0] : new Date(data[i][1]);
     if (isNaN(ts)) continue;
     history.push(toRecord_(ts, data[i][5], data[i][6], data[i][7], data[i][8]));
