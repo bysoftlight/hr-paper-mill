@@ -11,6 +11,9 @@ let FILTER_YEAR_VAL = new Date().getFullYear();
 
 const USER_KEY = 'SALES_APP_USER_ID';
 const SELF_TYPE = 'ทำการขายด้วยตัวเอง';
+const AGENT_TYPE = 'ทำการขายโดยตัวแทน';
+const AGENT_LIMIT = 10;     // ข้อ 1.3: ให้ผู้อื่นขายแทนได้ไม่เกินเดือนละ 10 ครั้ง
+let TODAY_RECORD = null;    // รายการที่ส่งแล้ววันนี้ (ระบบรับวันละ 1 ครั้ง)
 const MONTHS = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 const MONTHS_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 const DAYS_SHORT = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
@@ -287,7 +290,9 @@ function updateChecklist() {
     ];
     $('checklist').innerHTML = items.map(([ok, done, missing]) =>
         `<li class="${ok ? 'is-ok' : ''}">${icon(ok ? 'check-circle' : 'x-circle')}<span>${ok ? done : missing}</span></li>`).join('');
-    $('submitBtn').classList.toggle('is-ready', s.location && s.photo);
+    $('submitBtn').classList.toggle('is-ready', s.location && s.photo && !TODAY_RECORD);
+    $('todayBanner').hidden = !TODAY_RECORD;
+    if (TODAY_RECORD) $('todayTime').textContent = `${TODAY_RECORD.time} น.`;
 }
 
 function flagStep(id) {
@@ -299,6 +304,10 @@ function flagStep(id) {
 async function handleFormSubmit(e) {
     e.preventDefault();
     if (SUBMITTING) return;
+    if (TODAY_RECORD) {
+        await showMessage({ title: 'วันนี้ส่งรายงานแล้ว', text: `ส่งไปเมื่อเวลา ${TODAY_RECORD.time} น. ระบบรับรายงานวันละหนึ่งครั้ง ส่งครั้งถัดไปได้พรุ่งนี้`, tone: 'ok' });
+        return;
+    }
     const s = formState();
     if (!s.location) {
         flagStep('stepLocation');
@@ -414,15 +423,39 @@ function sameDay(a, b) {
     return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
+function formatThaiDate(ts) {
+    return new Date(ts).toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 function updateTodayStatus() {
     const today = new Date();
-    const count = ALL_HISTORY.filter(h => sameDay(new Date(h.timestamp), today)).length;
+    const todays = ALL_HISTORY.filter(h => sameDay(new Date(h.timestamp), today));
+    const count = todays.length;
+    TODAY_RECORD = todays[0] || null;
+    updateChecklist();
+    updateAgentMeter();
     document.querySelectorAll('[data-today]').forEach(chip => {
         chip.className = 'chip ' + (count ? 'is-ok' : 'is-warn');
         chip.innerHTML = count
             ? `${icon('check-circle')} ส่งแล้ววันนี้${count > 1 ? ` <span class="mono">${count}</span> ครั้ง` : ''}`
             : `${icon('alert')} ยังไม่ส่งวันนี้`;
     });
+}
+
+// มิเตอร์ "ขายโดยตัวแทน เดือนนี้" — สีตามเกณฑ์: < 50% accent, ≥ 50% warn, ≥ 80% bad
+function updateAgentMeter() {
+    const now = new Date();
+    const used = ALL_HISTORY.filter(h => {
+        const d = new Date(h.timestamp);
+        return h.type === AGENT_TYPE && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    }).length;
+    const ratio = used / AGENT_LIMIT;
+    const level = ratio >= 0.8 ? 'bad' : ratio >= 0.5 ? 'warn' : 'ok';
+    document.querySelectorAll('[data-agent-used]').forEach(el => { el.textContent = used; });
+    const meter = $('agentMeter');
+    meter.dataset.level = level;
+    meter.querySelector('.meter-bar').style.width = Math.min(100, ratio * 100) + '%';
+    meter.querySelector('[role="meter"]').setAttribute('aria-valuenow', String(used));
 }
 
 function changeFilter(type) {
@@ -517,7 +550,7 @@ function appendItems(count) {
             ${icon('chevron-down')}
           </button>
           <div class="hist-body" id="${id}" hidden></div>`;
-        row.querySelector('.hist-when b').textContent = item.date;
+        row.querySelector('.hist-when b').textContent = formatThaiDate(item.timestamp);
         row.querySelector('.hist-when .mono').textContent = `${item.time} น.`;
         const head = row.querySelector('.hist-head');
         const body = row.querySelector('.hist-body');
@@ -529,7 +562,16 @@ function appendItems(count) {
             if (open && !body.childElementCount) {
                 if (item.image) {
                     const img = document.createElement('img');
-                    img.alt = `ภาพหลักฐาน ${item.date} ${item.time}`;
+                    img.alt = `ภาพหลักฐาน ${formatThaiDate(item.timestamp)} ${item.time}`;
+                    img.referrerPolicy = 'no-referrer';
+                    // ถ้ารูปไม่ได้แชร์สาธารณะ (นโยบายองค์กร) ให้ขอรูปผ่าน API แทน
+                    img.onerror = () => {
+                        img.onerror = null;
+                        if (!item.fileId) return;
+                        callApi('image', { userId: CURRENT_USER.id, fileId: item.fileId }).then(res => {
+                            if (res.success && res.dataUrl) img.src = res.dataUrl;
+                        });
+                    };
                     img.src = item.image;
                     body.appendChild(img);
                 } else {

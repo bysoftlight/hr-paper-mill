@@ -186,6 +186,18 @@ b { font-weight: 600; }
 .banner b { display: block; }
 .banner-warn { background: var(--warn-soft); color: var(--warn); }
 .banner-bad { background: var(--bad-soft); color: var(--bad); }
+.banner-ok { background: var(--ok-soft); color: var(--ok); }
+
+.agent-meter { display: flex; flex-direction: column; gap: 6px; padding-top: 12px; border-top: 1px solid var(--line-soft); }
+.agent-meter-top { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); }
+.agent-meter-top b { color: var(--accent); }
+.agent-meter small { font-size: 11px; color: var(--muted); }
+.meter { height: 8px; border-radius: 4px; background: var(--line-soft); overflow: hidden; }
+.meter-bar { width: 0; height: 100%; border-radius: 4px; background: var(--accent); transition: width .3s; }
+.agent-meter[data-level="warn"] .meter-bar { background: var(--warn); }
+.agent-meter[data-level="warn"] .agent-meter-top b { color: var(--warn); }
+.agent-meter[data-level="bad"] .meter-bar { background: var(--bad); }
+.agent-meter[data-level="bad"] .agent-meter-top b { color: var(--bad); }
 
 .icon-box {
     display: grid; place-items: center; flex: none;
