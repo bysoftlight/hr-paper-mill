@@ -34,25 +34,10 @@ function showLoading(show, text = 'กำลังประมวลผล...') 
     document.getElementById('loading').hidden = !show;
 }
 
-// Toast
-let toastTimer;
-function showToast(text) {
-    const el = document.getElementById('toast');
-    el.textContent = text;
-    el.classList.add('is-shown');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove('is-shown'), 2600);
-}
-
 // Modal helpers (native <dialog>)
 function showModal(id) {
     const dlg = document.getElementById(id);
     if (dlg && !dlg.open) dlg.showModal();
-}
-
-function closeModal(id) {
-    const dlg = document.getElementById(id);
-    if (dlg && dlg.open) dlg.close();
 }
 
 // แทน alert / confirm: คืนค่า Promise<boolean>

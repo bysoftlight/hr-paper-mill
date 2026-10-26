@@ -4,7 +4,8 @@ let CURRENT_USER = {};
 let ALL_HISTORY = [];
 let HISTORY_LOADED = false;
 let CURRENT_FILTER = 'week';
-let DISPLAY_LIMIT = 10;
+const DISPLAY_LIMIT = 10;
+let SUBMITTING = false;
 let FILTER_MONTH_IDX = new Date().getMonth();
 let FILTER_YEAR_VAL = new Date().getFullYear();
 
@@ -54,6 +55,8 @@ function initRules() {
     $('rulesAccept').addEventListener('click', () => { delete dlg.dataset.locked; dlg.close(); $('loginId').focus(); });
     // ห้ามกด Esc ปิด ตอนที่ต้องยืนยันการรับทราบ
     dlg.addEventListener('cancel', (e) => { if (dlg.dataset.locked) e.preventDefault(); });
+    // เบราว์เซอร์ยอมให้ยกเลิก cancel ได้ครั้งเดียว: ถ้ายังถูกปิดโดยไม่ได้รับทราบ ให้เปิดกลับ
+    dlg.addEventListener('close', () => { if (dlg.dataset.locked) showRulesModal(true); });
     // ปุ่มทั่วไปที่เปิดข้อปฏิบัติ: เปิดแบบอ่านอย่างเดียว
     document.querySelectorAll('[data-open="rulesModal"]').forEach(btn => {
         btn.removeAttribute('data-open');
@@ -121,6 +124,15 @@ async function performLogin(userId, isAuto) {
         store.set(USER_KEY, res.data.id);
         CURRENT_USER = res.data;
         setupApp();
+    } else if (res.networkError) {
+        // เน็ตหลุด ไม่ใช่รหัสผิด: เก็บรหัสที่จำไว้ และให้ลองใหม่
+        if (isAuto) {
+            const retry = await showMessage({ title: 'เชื่อมต่อไม่ได้', text: res.message, tone: 'warning', okText: 'ลองอีกครั้ง', cancelText: 'ปิด' });
+            if (retry) return performLogin(userId, true);
+            $('loginId').value = userId;
+            $('loginBtn').disabled = false;
+        }
+        setLoginError(res.message);
     } else {
         store.remove(USER_KEY);
         $('loginId').value = isAuto ? '' : $('loginId').value;
@@ -154,7 +166,7 @@ function setupApp() {
 
     getLocation();
     switchTab(tabFromHash(), false);
-    loadHistoryData(true);
+    loadHistoryData();
 }
 
 function renderAvatar(el) {
@@ -188,7 +200,7 @@ function switchTab(tab, pushHash = true) {
     });
     if (pushHash && location.hash !== '#' + tab) history.pushState(null, '', '#' + tab);
     window.scrollTo({ top: 0 });
-    if (tab === 'history') loadHistoryData(HISTORY_LOADED);
+    if (tab === 'history' && !HISTORY_LOADED) loadHistoryData();
 }
 
 // --- FORM HANDLING ---
@@ -289,6 +301,7 @@ function flagStep(id) {
 
 async function handleFormSubmit(e) {
     e.preventDefault();
+    if (SUBMITTING) return;
     const s = formState();
     if (!s.location) {
         flagStep('stepLocation');
@@ -303,6 +316,8 @@ async function handleFormSubmit(e) {
     }
     const selectedSalesType = document.querySelector('input[name="salesTypeRadio"]:checked')?.value;
 
+    SUBMITTING = true;
+    $('submitBtn').disabled = true;
     showLoading(true, 'กำลังส่งหลักฐาน...');
     try {
         const file = $('evidenceImg').files[0];
@@ -322,7 +337,7 @@ async function handleFormSubmit(e) {
             $('salesForm').reset();
             updateFileName($('evidenceImg'));
             getLocation();
-            HISTORY_LOADED = false;
+            loadHistoryData(true);
             switchTab('history');
         } else {
             showMessage({ title: 'บันทึกไม่สำเร็จ', text: res.message || 'กรุณาลองใหม่อีกครั้ง', tone: 'danger' });
@@ -330,40 +345,64 @@ async function handleFormSubmit(e) {
     } catch (error) {
         showLoading(false);
         showMessage({ title: 'เกิดข้อผิดพลาด', text: 'Client Error: ' + error.toString(), tone: 'danger' });
+    } finally {
+        SUBMITTING = false;
+        $('submitBtn').disabled = false;
     }
 }
 
 // --- HISTORY HANDLING ---
+let historyReq = null;
+let historySeq = 0;
+let FILTERED = [];
+let LIST_STATE = { shown: 0, lastDate: null, list: null };
+
 function initHistory() {
     $('filterGroup').addEventListener('click', (e) => {
         const btn = e.target.closest('[data-filter]');
         if (btn) changeFilter(btn.dataset.filter);
     });
-    $('monthSelect').addEventListener('change', (e) => { FILTER_MONTH_IDX = parseInt(e.target.value); DISPLAY_LIMIT = 10; renderFilteredHistory(); });
-    $('yearSelect').addEventListener('change', (e) => { FILTER_YEAR_VAL = parseInt(e.target.value); DISPLAY_LIMIT = 10; renderFilteredHistory(); });
-    $('loadMoreBtn').addEventListener('click', () => { DISPLAY_LIMIT += 10; renderFilteredHistory(); });
-    $('histRefresh').addEventListener('click', () => loadHistoryData(false));
+    $('monthSelect').innerHTML = MONTHS.map((m, i) => `<option value="${i}">${m}</option>`).join('');
+    $('monthSelect').value = FILTER_MONTH_IDX;
+    $('monthSelect').addEventListener('change', (e) => { FILTER_MONTH_IDX = parseInt(e.target.value); renderFilteredHistory(); });
+    $('yearSelect').addEventListener('change', (e) => { FILTER_YEAR_VAL = parseInt(e.target.value); renderFilteredHistory(); });
+    $('loadMoreBtn').addEventListener('click', () => appendItems(DISPLAY_LIMIT));
+    $('histRefresh').addEventListener('click', () => loadHistoryData(true));
 }
 
-// silent = มีข้อมูลเดิมแสดงอยู่แล้ว โหลดใหม่เบื้องหลังโดยไม่บังหน้าจอ
-async function loadHistoryData(silent) {
-    if (!silent || !HISTORY_LOADED) {
-        if (!HISTORY_LOADED) $('historyList').innerHTML = '<div class="stack"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>';
-        $('histUpdated').textContent = 'กำลังโหลด...';
-    }
+// รวมคำขอที่ซ้อนกันเป็นคำขอเดียว; force = โหลดใหม่แม้มีคำขอค้างอยู่ (ผลของคำขอเก่าจะถูกทิ้ง)
+function loadHistoryData(force = false) {
+    if (historyReq && !force) return historyReq;
+    const seq = ++historySeq;
+    if (!HISTORY_LOADED) $('historyList').innerHTML = '<div class="stack"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>';
+    $('histUpdated').textContent = 'กำลังโหลด...';
     $('histRefresh').disabled = true;
-    const res = await callApi('history', { userId: CURRENT_USER.id });
-    $('histRefresh').disabled = false;
-    if (res.success) {
-        ALL_HISTORY = (res.history || []).slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        HISTORY_LOADED = true;
-        $('histUpdated').textContent = 'อัปเดตล่าสุด ' + new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
-        updateTodayStatus();
-        renderFilteredHistory();
-    } else {
-        $('histUpdated').textContent = res.message || 'โหลดข้อมูลไม่สำเร็จ';
-        if (!HISTORY_LOADED) $('historyList').innerHTML = '<div class="empty"><i class="bi bi-wifi-off"></i>โหลดประวัติไม่สำเร็จ กดรีเฟรชเพื่อลองใหม่</div>';
-    }
+
+    historyReq = callApi('history', { userId: CURRENT_USER.id }).then(res => {
+        if (seq !== historySeq) return;
+        historyReq = null;
+        $('histRefresh').disabled = false;
+        if (res.success) {
+            ALL_HISTORY = (res.history || []).slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            HISTORY_LOADED = true;
+            $('histUpdated').textContent = 'อัปเดตล่าสุด ' + new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+            updateTodayStatus();
+            renderYearOptions();
+            renderFilteredHistory();
+        } else {
+            $('histUpdated').textContent = res.message || 'โหลดข้อมูลไม่สำเร็จ';
+            if (!HISTORY_LOADED) $('historyList').innerHTML = '<div class="empty"><i class="bi bi-wifi-off"></i>โหลดประวัติไม่สำเร็จ กดรีเฟรชเพื่อลองใหม่</div>';
+        }
+    });
+    return historyReq;
+}
+
+function renderYearOptions() {
+    const years = [...new Set(ALL_HISTORY.map(h => new Date(h.timestamp).getFullYear()).filter(y => !isNaN(y)))];
+    if (!years.includes(new Date().getFullYear())) years.push(new Date().getFullYear());
+    years.sort((a, b) => b - a);
+    $('yearSelect').innerHTML = years.map(y => `<option value="${y}">พ.ศ. ${y + 543}</option>`).join('');
+    $('yearSelect').value = FILTER_YEAR_VAL;
 }
 
 function sameDay(a, b) {
@@ -382,7 +421,7 @@ function updateTodayStatus() {
 }
 
 function changeFilter(type) {
-    CURRENT_FILTER = type; DISPLAY_LIMIT = 10;
+    CURRENT_FILTER = type;
     document.querySelectorAll('[data-filter]').forEach(btn => btn.setAttribute('aria-pressed', String(btn.dataset.filter === type)));
     renderFilteredHistory();
 }
@@ -396,27 +435,20 @@ function startOfWeek(date) {
 
 function renderFilteredHistory() {
     const weekStart = startOfWeek(new Date());
-    const filtered = ALL_HISTORY.filter(item => {
+    FILTERED = ALL_HISTORY.filter(item => {
         const d = new Date(item.timestamp);
         if (CURRENT_FILTER === 'week') return d >= weekStart;
         if (CURRENT_FILTER === 'month') return d.getMonth() === FILTER_MONTH_IDX && d.getFullYear() === FILTER_YEAR_VAL;
         if (CURRENT_FILTER === 'year') return d.getFullYear() === FILTER_YEAR_VAL;
         return true;
     });
-    updateDashboard(filtered, weekStart);
-    renderList(filtered);
+    updateDashboard(FILTERED, weekStart);
+    renderList();
 }
 
 function updateDashboard(data, weekStart) {
-    const monthSel = $('monthSelect'), yearSel = $('yearSelect');
-    monthSel.hidden = CURRENT_FILTER !== 'month';
-    yearSel.hidden = CURRENT_FILTER === 'week';
-
-    monthSel.innerHTML = MONTHS.map((m, i) => `<option value="${i}" ${i === FILTER_MONTH_IDX ? 'selected' : ''}>${m}</option>`).join('');
-    const years = [...new Set(ALL_HISTORY.map(h => new Date(h.timestamp).getFullYear()).filter(y => !isNaN(y)))];
-    if (!years.includes(new Date().getFullYear())) years.push(new Date().getFullYear());
-    years.sort((a, b) => b - a);
-    yearSel.innerHTML = years.map(y => `<option value="${y}" ${y === FILTER_YEAR_VAL ? 'selected' : ''}>พ.ศ. ${y + 543}</option>`).join('');
+    $('monthSelect').hidden = CURRENT_FILTER !== 'month';
+    $('yearSelect').hidden = CURRENT_FILTER === 'week';
 
     // แท่งกราฟแสดงจำนวนรายการในแต่ละวัน/เดือน
     let buckets, axis, bucketOf, label;
@@ -442,25 +474,31 @@ function updateDashboard(data, weekStart) {
     $('sumCount').textContent = data.length;
 }
 
-function renderList(data) {
+function renderList() {
     const container = $('historyList');
     container.textContent = '';
-    if (data.length === 0) {
+    LIST_STATE = { shown: 0, lastDate: null, list: null };
+    if (FILTERED.length === 0) {
         container.innerHTML = '<div class="empty"><i class="bi bi-inbox"></i>ไม่พบประวัติการส่งงานในช่วงนี้</div>';
         $('loadMoreBtn').hidden = true;
         return;
     }
+    appendItems(DISPLAY_LIMIT);
+}
 
-    let list = null, lastDate = null;
-    data.slice(0, DISPLAY_LIMIT).forEach(item => {
-        if (item.date !== lastDate) {
-            lastDate = item.date;
+// เพิ่มรายการต่อท้ายโดยไม่สร้างรายการเดิมใหม่
+function appendItems(count) {
+    const container = $('historyList');
+    const st = LIST_STATE;
+    FILTERED.slice(st.shown, st.shown + count).forEach(item => {
+        if (!st.list || item.date !== st.lastDate) {
+            st.lastDate = item.date;
             const head = document.createElement('p');
             head.className = 'hist-group-label';
             head.textContent = item.date;
-            list = document.createElement('ul');
-            list.className = 'hist-list';
-            container.append(head, list);
+            st.list = document.createElement('ul');
+            st.list.className = 'hist-list';
+            container.append(head, st.list);
         }
         const li = document.createElement('li');
         const btn = document.createElement('button');
@@ -472,14 +510,19 @@ function renderList(data) {
         btn.querySelector('small').append(`${item.time} น.`);
         btn.addEventListener('click', () => openViewer(item));
         li.appendChild(btn);
-        list.appendChild(li);
+        st.list.appendChild(li);
+        st.shown++;
     });
-    $('loadMoreBtn').hidden = data.length <= DISPLAY_LIMIT;
+    $('loadMoreBtn').hidden = st.shown >= FILTERED.length;
 }
 
 function openViewer(item) {
+    const img = $('viewerImg');
     $('viewerTitle').textContent = item.type;
     $('viewerMeta').textContent = `${item.date} · ${item.time} น.`;
-    $('viewerImg').src = item.image || '';
+    img.removeAttribute('src');
+    img.hidden = !item.image;
+    $('viewerEmpty').hidden = !!item.image;
+    if (item.image) img.src = item.image;
     showModal('viewerModal');
 }

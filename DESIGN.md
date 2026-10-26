@@ -69,7 +69,7 @@ Tokens อยู่ใน `css/style.css` (`:root`) — ห้ามใช้ค
 - **Segmented control** — `.segmented` สำหรับ สัปดาห์ / เดือน / ปี และธีม
 - **Status pill** — `.pill` + `is-success|is-warning|is-danger`
 - **Bottom nav** — 3 แท็บ (ส่งงาน, ประวัติ, บัญชี), ไอคอน + ป้าย, แท็บที่เลือกสี primary
-- **Dialog** — `<dialog>` native, `--r-xl`, ใช้แทน alert/confirm ทั้งหมด; toast สั้นๆ ด้านล่างสำหรับข้อความสำเร็จเล็กๆ
+- **Dialog** — `<dialog>` native, `--r-xl`, ใช้แทน alert/confirm ทั้งหมด
 - **Footer** — แสดงเฉพาะหน้าเข้าสู่ระบบ ลิงก์ข้อมูลอยู่ในแท็บ "บัญชี" เมื่อเข้าสู่ระบบแล้ว
 
 ## Imagery & icons

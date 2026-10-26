@@ -150,8 +150,7 @@ a {
     outline-offset: 2px;
 }
 
-[hidden],
-.hidden {
+[hidden] {
     display: none !important;
 }
 
@@ -820,7 +819,7 @@ a {
     font-size: var(--fs-sm);
 }
 
-#evidenceImg:focus-visible + .photo-drop {
+.step:has(#evidenceImg:focus-visible) .photo-drop {
     outline: 3px solid var(--primary);
     outline-offset: 2px;
 }
@@ -1439,7 +1438,7 @@ dialog[open] {
     background: var(--surface-2);
 }
 
-/* --- Loading & toast --- */
+/* --- Loading --- */
 .loading-overlay {
     position: fixed;
     inset: 0;
@@ -1460,30 +1459,6 @@ dialog[open] {
     border-top-color: var(--primary);
     border-radius: 50%;
     animation: spin .8s linear infinite;
-}
-
-.toast {
-    position: fixed;
-    left: 50%;
-    bottom: calc(var(--nav-h) + var(--sp-4) + env(safe-area-inset-bottom));
-    z-index: 110;
-    max-width: calc(100% - 2 * var(--sp-4));
-    padding: var(--sp-3) var(--sp-5);
-    border-radius: var(--r-full);
-    background: var(--text);
-    color: var(--bg);
-    font-size: var(--fs-sm);
-    font-weight: 700;
-    box-shadow: var(--shadow-lg);
-    transform: translate(-50%, 16px);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity .2s, transform .2s;
-}
-
-.toast.is-shown {
-    opacity: 1;
-    transform: translate(-50%, 0);
 }
 
 @media (min-width: 640px) {
