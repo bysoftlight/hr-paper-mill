@@ -33,7 +33,7 @@ Project Settings (รูปเฟือง) → **Script properties** → Add sc
 | `GOOGLE_CLIENT_ID` | ✔ (ถ้าใช้ Google) | Client ID จากข้อ 3 |
 | `LINE_CHANNEL_ID` | ✔ (ถ้าใช้ LINE) | Channel ID จากข้อ 4 |
 | `LINE_CHANNEL_SECRET` | ✔ (ถ้าใช้ LINE) | Channel secret จากข้อ 4 (เก็บที่นี่เท่านั้น ห้ามใส่ในเว็บ) |
-| `LINE_REDIRECT_URIS` | – | ค่าเริ่มต้น `https://bysoftlight.github.io/staff.html` |
+| `LINE_REDIRECT_URIS` | – | ค่าเริ่มต้น `https://bysoftlight.github.io/hr-paper-mill/staff.html` (ถ้าเคยตั้งค่านี้ไว้เป็นลิงก์เดิม ให้แก้เป็นลิงก์นี้) |
 | `EXPORT_FOLDER_ID` | – | โฟลเดอร์ Drive สำหรับเก็บไฟล์ Google Sheets ที่ส่งออก |
 | `ANOMALY_RADIUS_M` | – | ระยะ (เมตร) ห่างจากจุดขายที่ถือว่า "ตำแหน่งผิดปกติ" ค่าเริ่มต้น 300 |
 | `SUMMARY_EMAILS` | – | อีเมลรับสรุปรายวัน (คั่นด้วย `,`) |
@@ -46,13 +46,13 @@ Project Settings (รูปเฟือง) → **Script properties** → Add sc
 1. https://console.cloud.google.com → เลือก/สร้างโปรเจกต์
 2. **APIs & Services → OAuth consent screen** → External → กรอกชื่อแอปและอีเมล → Scopes: `openid`, `email`, `profile`
 3. **Credentials → Create credentials → OAuth client ID** → Application type: **Web application**
-4. **Authorized JavaScript origins**: `https://bysoftlight.github.io`
+4. **Authorized JavaScript origins**: `https://bysoftlight.github.io` (ใส่เฉพาะโดเมน ไม่ต้องมี `/hr-paper-mill`)
 5. คัดลอก **Client ID** ไปใส่ `GOOGLE_CLIENT_ID`
 
 ## 4. LINE Login (LINE Developers Console)
 
 1. https://developers.line.biz/console/ → สร้าง Provider → **Create a LINE Login channel**
-2. แท็บ **LINE Login** → Callback URL: `https://bysoftlight.github.io/staff.html` → เปิดใช้ Web app
+2. แท็บ **LINE Login** → Callback URL: `https://bysoftlight.github.io/hr-paper-mill/staff.html` → เปิดใช้ Web app
 3. แท็บ **Basic settings** → คัดลอก **Channel ID** และ **Channel secret**
 4. (ไม่บังคับ) ขอสิทธิ์ **OpenID Connect → Email address permission** ถ้าต้องการอีเมลของผู้ใช้ LINE (ใช้แชร์ไฟล์ Google Sheets ที่ส่งออก)
 5. เปลี่ยนสถานะ channel เป็น **Published** เมื่อพร้อมใช้งานจริง
