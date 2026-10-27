@@ -244,6 +244,11 @@ button.feed-item, button.person { cursor: pointer; }
 .input.mono { font-family: var(--mono); letter-spacing: 2px; text-transform: uppercase; }
 .rf-photo { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .rf-photo img { width: 72px; height: 72px; object-fit: cover; border-radius: var(--r-sm); border: 1px solid var(--line); }
+.pf-pic { display: flex; align-items: flex-start; gap: 14px; min-width: 0; }
+.pf-pic .avatar { flex: none; }
+.pf-pic-main { flex: 1; min-width: 0; display: grid; gap: 8px; }
+.pf-pic-main .row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pf-pic-main .input:disabled { color: var(--muted); }
 @media (max-width: 420px) { .form-grid-2 { grid-template-columns: minmax(0, 1fr); } }
 
 .export-options { display: flex; flex-direction: column; gap: 10px; }

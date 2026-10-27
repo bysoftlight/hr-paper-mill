@@ -22,8 +22,8 @@
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <!-- เปลี่ยนเลข ?v= ทุกครั้งที่แก้ CSS/JS -->
-  <link rel="stylesheet" href="css/style.css?v=3.6.0">
-  <link rel="stylesheet" href="css/staff.css?v=3.6.0">
+  <link rel="stylesheet" href="css/style.css?v=3.7.0">
+  <link rel="stylesheet" href="css/staff.css?v=3.7.0">
 </head>
 <body class="staff">
 
@@ -168,7 +168,7 @@
   <!-- ===== Record detail ===== -->
   <dialog id="recordModal" class="sheet viewer" aria-labelledby="recTitle">
     <div class="sheet-head">
-      <div><h2 id="recTitle"></h2><p id="recMeta"></p></div>
+      <div class="p-head"><div class="avatar" id="recAvatar"></div><div><h2 id="recTitle"></h2><p id="recMeta"></p></div></div>
       <button type="button" class="icon-btn" data-close aria-label="ปิด"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
     </div>
     <div class="sheet-body rec-body">
@@ -267,7 +267,21 @@
         <label class="field"><span class="label">ละติจูดจุดขาย</span><input type="number" step="any" class="input" id="pfLat"></label>
         <label class="field"><span class="label">ลองจิจูดจุดขาย</span><input type="number" step="any" class="input" id="pfLng"></label>
         <div class="field span-2 row-actions"><button type="button" class="btn-chip" id="pfUseLast"><svg class="ic ic-16" aria-hidden="true"><use href="#i-pin"/></svg> ใช้พิกัดจากรายงานล่าสุด</button><small class="muted-text">ใช้ตรวจ "ตำแหน่งผิดปกติ"</small></div>
-        <label class="field span-2"><span class="label">ลิงก์รูปโปรไฟล์ (Google Drive)</span><input class="input" id="pfPic" maxlength="500" placeholder="https://drive.google.com/..."></label>
+        <div class="field span-2">
+          <label class="label" for="pfPic">รูปโปรไฟล์</label>
+          <div class="pf-pic">
+            <div class="avatar avatar-lg" id="pfPicPreview"></div>
+            <div class="pf-pic-main">
+              <input class="input" id="pfPic" maxlength="500" placeholder="วางลิงก์ Google Drive หรือลิงก์รูป">
+              <div class="row-actions">
+                <label class="btn-chip" for="pfPicFile"><svg class="ic ic-16" aria-hidden="true"><use href="#i-camera"/></svg> อัปโหลดรูป</label>
+                <input type="file" id="pfPicFile" class="sr-only" accept="image/*">
+                <button type="button" class="btn-chip" id="pfPicClear" hidden>ล้างรูป</button>
+                <small class="muted-text" id="pfPicInfo">อัปโหลดแล้วบันทึกลง Google Drive ชื่อไฟล์ IMG_รหัส</small>
+              </div>
+            </div>
+          </div>
+        </div>
         <label class="field span-2"><span class="label">หมายเหตุ</span><textarea class="input textarea" id="pfNote" rows="2" maxlength="500"></textarea></label>
         <label class="check span-2"><input type="checkbox" id="pfActive" checked><span>เปิดใช้งาน (ปิดแล้วผู้ใช้สิทธิ์จะเข้าสู่ระบบไม่ได้)</span></label>
       </div>
@@ -606,14 +620,14 @@
 
   <div id="pdfStage" class="pdf-stage" aria-hidden="true"></div>
 
-  <script src="js/config.js?v=3.6.0"></script>
-  <script src="js/utils.js?v=3.6.0"></script>
-  <script src="js/api.js?v=3.6.0"></script>
-  <script src="js/staff/core.js?v=3.6.0"></script>
-  <script src="js/staff/overview.js?v=3.6.0"></script>
-  <script src="js/staff/records.js?v=3.6.0"></script>
-  <script src="js/staff/participants.js?v=3.6.0"></script>
-  <script src="js/staff/admin.js?v=3.6.0"></script>
-  <script src="js/staff/export.js?v=3.6.0"></script>
+  <script src="js/config.js?v=3.7.0"></script>
+  <script src="js/utils.js?v=3.7.0"></script>
+  <script src="js/api.js?v=3.7.0"></script>
+  <script src="js/staff/core.js?v=3.7.0"></script>
+  <script src="js/staff/overview.js?v=3.7.0"></script>
+  <script src="js/staff/records.js?v=3.7.0"></script>
+  <script src="js/staff/participants.js?v=3.7.0"></script>
+  <script src="js/staff/admin.js?v=3.7.0"></script>
+  <script src="js/staff/export.js?v=3.7.0"></script>
 </body>
 </html>

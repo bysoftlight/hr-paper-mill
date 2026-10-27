@@ -53,10 +53,23 @@ function relTime(ts) {
 }
 function fmtNum(n) { return Number(n || 0).toLocaleString('th-TH'); }
 function fmtDistance(m) { return m === null || m === undefined ? '-' : m >= 1000 ? `${(m / 1000).toFixed(1)} กม.` : `${m} ม.`; }
+// รูปโปรไฟล์: ใช้รูปย่อจาก Drive ก่อน ถ้าไฟล์ไม่ได้แชร์สาธารณะจะขอผ่าน API (avatarFallback) ไม่ได้ก็แสดงตัวอักษรแรก
 function avatarHtml(name, pic, cls = '') {
     const initial = esc(String(name || '?').trim().charAt(0) || '?');
-    const img = pic ? `<img src="${esc(pic)}" alt="" referrerpolicy="no-referrer" loading="lazy" onerror="this.remove()">` : '';
+    const size = /avatar-(lg|xl)/.test(cls) ? 'w240' : 'w96';
+    const src = pic ? String(pic).replace(/([?&]sz=)w\d+/, '$1' + size) : '';
+    const img = src ? `<img src="${esc(src)}" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" onerror="avatarFallback(this)">` : '';
     return `<div class="avatar ${cls}"><span>${initial}</span>${img}</div>`;
+}
+function avatarFallback(img) {
+    img.onerror = null;
+    const m = img.src.match(/drive\.google\.com\/thumbnail\?id=([\w-]{20,})/);
+    if (!m || !ST.token) return img.remove();
+    imageData(m[1], true).then(u => {
+        if (!u || !img.isConnected) return img.remove();
+        img.onerror = () => img.remove();
+        img.src = u;
+    });
 }
 function typeChip(type) {
     return type === AGENT_TYPE ? '<span class="chip chip-agent">โดยตัวแทน</span>' : '<span class="chip chip-self">ขายเอง</span>';

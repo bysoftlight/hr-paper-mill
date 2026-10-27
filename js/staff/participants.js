@@ -14,7 +14,11 @@ VIEWS.participants = {
             if (!p || p.lastLat === null || p.lastLat === undefined) return toast('ยังไม่มีพิกัดจากรายงานล่าสุด');
             $('pfLat').value = p.lastLat; $('pfLng').value = p.lastLng;
         });
-        $('pfId').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6); });
+        $('pfId').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6); this.updatePicInfo(); });
+        $('pfName').addEventListener('input', debounce(() => this.previewPic(), 300));
+        $('pfPic').addEventListener('input', debounce(() => this.previewPic(), 300));
+        $('pfPicFile').addEventListener('change', e => this.pickPic(e.target.files[0]));
+        $('pfPicClear').addEventListener('click', () => this.clearPic());
         $('calPrev').addEventListener('click', () => this.shiftMonth(-1));
         $('calNext').addEventListener('click', () => this.shiftMonth(1));
     },
@@ -174,11 +178,60 @@ VIEWS.participants = {
         $('pfLat').value = p && p.siteLat !== null ? p.siteLat : '';
         $('pfLng').value = p && p.siteLng !== null ? p.siteLng : '';
         $('pfPic').value = p ? p.picRaw : '';
+        this.photo = null;
+        $('pfPicFile').value = '';
+        $('pfPic').disabled = false;
+        this.previewPic();
         $('pfNote').value = p ? p.note : '';
         $('pfActive').checked = p ? p.active : true;
         $('pfUseLast').hidden = !p;
         showModal('participantFormModal');
         (p ? $('pfName') : $('pfId')).focus();
+    },
+
+    // ---------- รูปโปรไฟล์: วางลิงก์ หรืออัปโหลดไฟล์ (ส่งไปพร้อมการบันทึก) ----------
+    previewPic() {
+        const name = $('pfName').value || $('pfId').value || '?';
+        const src = this.photo ? 'data:image/jpeg;base64,' + this.photo.base64 : this.picUrl($('pfPic').value.trim());
+        $('pfPicPreview').outerHTML = avatarHtml(name, src, 'avatar-lg').replace('<div class="avatar', '<div id="pfPicPreview" class="avatar');
+        $('pfPicClear').hidden = !this.photo && !$('pfPic').value.trim();
+        this.updatePicInfo();
+    },
+    // ลิงก์ Drive (/file/d/…, open?id=…) → รูปย่อที่แสดงใน <img> ได้
+    picUrl(raw) {
+        const m = raw.match(/[?&]id=([\w-]{20,})/) || raw.match(/\/d\/([\w-]{20,})/);
+        if (m) return 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w240';
+        return /^https:\/\//.test(raw) ? raw : '';
+    },
+    updatePicInfo() {
+        const id = $('pfId').value || 'รหัส';
+        $('pfPicInfo').textContent = this.photo
+            ? `จะอัปโหลดเป็น IMG_${id} เมื่อกดบันทึก (${formatBytes(this.photo.bytes)})`
+            : `อัปโหลดแล้วบันทึกลง Google Drive ชื่อไฟล์ IMG_${id}`;
+    },
+    async pickPic(file) {
+        if (!file) return;
+        if (!/^image\//.test(file.type)) { $('pfPicFile').value = ''; return toast('กรุณาเลือกไฟล์รูปภาพ'); }
+        $('pfPicInfo').textContent = 'กำลังย่อขนาด…';
+        try {
+            this.photo = await compressImage(file, 512, 0.82);
+            $('pfPic').value = '';
+            $('pfPic').disabled = true;
+            $('pfPic').placeholder = file.name;
+        } catch (e) {
+            this.photo = null;
+            toast('อ่านรูปไม่ได้ กรุณาเลือกรูปใหม่');
+        }
+        this.previewPic();
+    },
+    clearPic() {
+        this.photo = null;
+        $('pfPicFile').value = '';
+        $('pfPic').disabled = false;
+        $('pfPic').placeholder = 'วางลิงก์ Google Drive หรือลิงก์รูป';
+        $('pfPic').value = '';
+        this.previewPic();
+        $('pfPic').focus();
     },
 
     async save() {
@@ -194,8 +247,9 @@ VIEWS.participants = {
             const ok = await showMessage({ title: 'ปิดใช้งานผู้ใช้สิทธิ์?', text: `${data.name} จะเข้าสู่ระบบส่งรายงานไม่ได้ ข้อมูลเดิมยังอยู่ครบ`, tone: 'warn', okText: 'ปิดใช้งาน', cancelText: 'ยกเลิก' });
             if (!ok) return;
         }
-        showLoading(true, 'กำลังบันทึก…');
-        const r = await api('staff.participants.save', { participant: data, originalId: p ? p.id : '' });
+        const photo = this.photo ? { data: this.photo.base64, mimeType: 'image/jpeg' } : null;
+        showLoading(true, photo ? 'กำลังอัปโหลดรูปและบันทึก…' : 'กำลังบันทึก…');
+        const r = await api('staff.participants.save', { participant: data, originalId: p ? p.id : '', photo });
         showLoading(false);
         if (!r.success) return showMessage({ title: 'บันทึกไม่สำเร็จ', text: r.message, tone: 'bad' });
         $('participantFormModal').close();

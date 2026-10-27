@@ -57,7 +57,7 @@ function doPost(e) {
       case 'submit':
         return json_(submitSalesData(Object.assign({}, req.formData, { userId: req.userId })));
       case 'image':
-        return json_(getImageData_(req.userId, req.fileId));
+        return json_(getImageData_(req.userId, req.fileId, req.thumb));
       default:
         return json_({ success: false, message: 'ไม่รู้จักคำสั่ง: ' + req.action });
     }
@@ -240,19 +240,25 @@ function getUserHistory(userId) {
 }
 
 // 4. ส่งรูปหลักฐานเป็น data URL (ใช้เมื่อรูปไม่ได้แชร์สาธารณะ) — เฉพาะรูปของผู้ใช้คนนั้นเท่านั้น
-function getImageData_(userId, fileId) {
+function getImageData_(userId, fileId, thumb) {
   const id = String(userId || '').trim().toUpperCase();
   fileId = String(fileId || '');
   if (!id || !/^[\w-]{20,}$/.test(fileId)) return { success: false, message: 'คำขอไม่ถูกต้อง' };
 
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Records');
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return { success: false, message: 'ไม่พบรูป' };
-  const data = sheet.getRange(2, 4, lastRow - 1, 4).getValues(); // D: รหัส ... G: ลิงก์รูป
-  const owns = data.some(r => String(r[0]).trim().toUpperCase() === id && toFileId_(r[3]) === fileId);
+  const user = findUser_(id, true);
+  let owns = !!user && toFileId_(user.pic) === fileId; // รูปโปรไฟล์ของตัวเอง
+  if (!owns) {
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Records');
+    const lastRow = sheet.getLastRow();
+    const data = lastRow < 2 ? [] : sheet.getRange(2, 4, lastRow - 1, 4).getValues(); // D: รหัส ... G: ลิงก์รูป
+    owns = data.some(r => String(r[0]).trim().toUpperCase() === id && toFileId_(r[3]) === fileId);
+  }
   if (!owns) return { success: false, message: 'ไม่พบรูป' };
 
-  const blob = DriveApp.getFileById(fileId).getBlob();
+  const file = DriveApp.getFileById(fileId);
+  let blob = null;
+  if (thumb) { try { blob = file.getThumbnail(); } catch (e) { blob = null; } }
+  if (!blob) blob = file.getBlob();
   return { success: true, dataUrl: 'data:' + blob.getContentType() + ';base64,' + Utilities.base64Encode(blob.getBytes()) };
 }
 

@@ -181,7 +181,7 @@ VIEWS.records = {
           <tbody>${rows.map((r, i) => `
             <tr data-i="${i}" class="${r.status === 'deleted' ? 'is-deleted' : ''}" tabindex="0" aria-label="รายการของ ${esc(r.userName)} ${thDate(r.date)} ${esc(r.time)} น.">
               <td class="cell-when" data-label="วันที่"><b>${thDate(r.date, { weekday: 'short', day: 'numeric', month: 'short' })}</b><span class="cell-sub mono">${esc(r.time)} น.${r.source === 'staff' ? ' · เจ้าหน้าที่' : ''}</span></td>
-              <td class="td-main"><div class="cell-person">${avatarHtml(r.userName)}<span><b>${esc(r.userName)}</b><small class="mono">${esc(r.userId)}</small></span></div></td>
+              <td class="td-main"><div class="cell-person">${avatarHtml(r.userName, r.userPic)}<span><b>${esc(r.userName)}</b><small class="mono">${esc(r.userId)}</small></span></div></td>
               <td data-label="จุดขาย">${esc(r.site || '-')}</td>
               <td data-label="ประเภท">${typeChip(r.type)}${r.status === 'deleted' ? ' <span class="badge is-bad">ลบแล้ว</span>' : ''}${r.note ? ` <span class="badge" title="${esc(r.note)}">หมายเหตุ</span>` : ''}</td>
               <td data-label="ตำแหน่ง">${this.locCell(r)}</td>
@@ -325,6 +325,7 @@ VIEWS.records = {
     // ---------- รายละเอียด ----------
     openDetail(rec) {
         this.current = rec;
+        $('recAvatar').outerHTML = avatarHtml(rec.userName, rec.userPic).replace('<div class="avatar', '<div id="recAvatar" class="avatar');
         $('recTitle').textContent = rec.userName;
         $('recMeta').textContent = `${thDateLong(rec.date)} · ${rec.time} น. · ${rec.type === AGENT_TYPE ? 'ขายโดยตัวแทน' : 'ขายด้วยตัวเอง'}`;
         const img = $('recImg'), stage = img.parentElement;

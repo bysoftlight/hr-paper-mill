@@ -229,7 +229,13 @@ function renderAvatar(el) {
         const img = document.createElement('img');
         img.alt = '';
         img.onload = () => { el.textContent = ''; el.appendChild(img); };
-        img.src = CURRENT_USER.pic;
+        // รูปใน Drive ที่ไม่ได้แชร์สาธารณะ: ขอรูปย่อผ่าน API แทน
+        img.onerror = () => {
+            img.onerror = null;
+            const m = String(CURRENT_USER.pic).match(/[?&]id=([\w-]{20,})/);
+            if (m) callApi('image', { userId: CURRENT_USER.id, fileId: m[1], thumb: true }).then(r => { if (r.success && r.dataUrl) img.src = r.dataUrl; });
+        };
+        img.src = String(CURRENT_USER.pic).replace(/([?&]sz=)w\d+/, '$1w240');
     }
 }
 

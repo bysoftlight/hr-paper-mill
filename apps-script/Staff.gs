@@ -111,7 +111,7 @@ function readRecords_(participants) {
     const distance = hasGps && u && u.siteLat !== null && u.siteLng !== null ? distanceM_(lat, lng, u.siteLat, u.siteLng) : null;
     return {
       row: i + 2, ts: ts, date: fmtDate_(ts), time: fmtDate_(ts, 'HH:mm'), userId: userId,
-      userName: u ? u.name : String(r[RCOL.USER_NAME] || ''), site: u ? u.site : '',
+      userName: u ? u.name : String(r[RCOL.USER_NAME] || ''), userPicRaw: u ? u.picRaw : '', site: u ? u.site : '',
       type: String(r[RCOL.TYPE] || ''), imageRaw: String(r[RCOL.IMAGE] || ''),
       lat: lat, lng: lng, hasGps: hasGps, distance: distance, anomaly: distance !== null && distance > radius,
       note: String(r[RCOL.NOTE] || ''), status: r[RCOL.STATUS] === 'deleted' ? 'deleted' : 'active',
@@ -122,7 +122,7 @@ function readRecords_(participants) {
 
 function recordDto_(r) {
   return {
-    row: r.row, ts: r.ts.getTime(), date: r.date, time: r.time, userId: r.userId, userName: r.userName, site: r.site,
+    row: r.row, ts: r.ts.getTime(), date: r.date, time: r.time, userId: r.userId, userName: r.userName, userPic: toImageUrl_(r.userPicRaw), site: r.site,
     type: r.type, image: toImageUrl_(r.imageRaw), fileId: toFileId_(r.imageRaw), lat: r.lat, lng: r.lng,
     mapUrl: r.hasGps ? 'https://maps.google.com/maps?q=' + r.lat + ',' + r.lng : '', distance: r.distance, anomaly: r.anomaly,
     hasGps: r.hasGps, note: r.note, status: r.status, source: r.source, updatedBy: r.updatedBy,
@@ -218,14 +218,14 @@ function staffOverview_() {
   const todayRecs = records.filter(r => r.date === today);
   const reported = {};
   todayRecs.forEach(r => { reported[r.userId] = r; });
-  const missing = participants.filter(p => !reported[p.id]).map(p => ({ id: p.id, name: p.name, site: p.site, phone: p.phone }));
+  const missing = participants.filter(p => !reported[p.id]).map(p => ({ id: p.id, name: p.name, pic: p.pic, site: p.site, phone: p.phone }));
 
   const agentMonth = {};
   records.forEach(r => { if (r.date.slice(0, 7) === month && r.type === SALES_TYPES[1]) agentMonth[r.userId] = (agentMonth[r.userId] || 0) + 1; });
   const pMap = {};
   participants.forEach(p => { pMap[p.id] = p; });
   const agentWatch = Object.keys(agentMonth).filter(id => agentMonth[id] >= Math.ceil(AGENT_LIMIT_PER_MONTH * 0.5))
-    .map(id => ({ id: id, name: pMap[id] ? pMap[id].name : id, site: pMap[id] ? pMap[id].site : '', used: agentMonth[id], limit: AGENT_LIMIT_PER_MONTH }))
+    .map(id => ({ id: id, name: pMap[id] ? pMap[id].name : id, pic: pMap[id] ? pMap[id].pic : '', site: pMap[id] ? pMap[id].site : '', used: agentMonth[id], limit: AGENT_LIMIT_PER_MONTH }))
     .sort((a, b) => b.used - a.used);
 
   const byDate = {};
@@ -403,7 +403,9 @@ function staffParticipantSave_(req, staff, ua) {
     if (!isNew && String(req.originalId).toUpperCase() !== id) fail_('INVALID', 'ไม่สามารถเปลี่ยนรหัสผู้ใช้สิทธิ์ได้ (ประวัติจะไม่ตรงกัน)');
     if (!isNew && !existing) fail_('INVALID', 'ไม่พบผู้ใช้สิทธิ์นี้');
 
-    const values = [id, clean_(p.name, 120), clean_(p.status, 120), clean_(p.picRaw, 500), clean_(p.site, 120),
+    // อัปโหลดรูปใหม่ (ถ้ามี) ไปโฟลเดอร์รูปโปรไฟล์ แล้วใช้ลิงก์ Drive แทนลิงก์ที่กรอก
+    const picRaw = req.photo ? saveProfilePhoto_(id, req.photo) : clean_(p.picRaw, 500);
+    const values = [id, clean_(p.name, 120), clean_(p.status, 120), picRaw, clean_(p.site, 120),
       siteLat === null ? '' : siteLat, siteLng === null ? '' : siteLng, clean_(p.phone, 40), p.active === false ? false : true,
       clean_(p.note, 500), new Date(), staff.email || staff.name];
     if (isNew) sh.appendRow(values);
@@ -416,11 +418,35 @@ function staffParticipantSave_(req, staff, ua) {
         if (String(existing[k] === null ? '' : existing[k]) !== String(nv === null ? '' : nv)) changes[k] = [existing[k], nv];
       });
     }
-    log_(staff, isNew ? 'participants.create' : 'participants.update', id + ' ' + p.name, isNew ? { site: p.site } : changes, ua);
-    return { success: true };
+    if (existing && existing.picRaw !== picRaw) changes.pic = req.photo ? 'อัปโหลดรูปใหม่' : 'เปลี่ยนลิงก์รูป';
+    log_(staff, isNew ? 'participants.create' : 'participants.update', id + ' ' + p.name, isNew ? { site: p.site, pic: req.photo ? 'อัปโหลดรูป' : '' } : changes, ua);
+    return { success: true, picRaw: picRaw };
   } finally {
     lock.releaseLock();
   }
+}
+
+// รูปโปรไฟล์ผู้ใช้สิทธิ์: ไฟล์ชื่อ IMG_<รหัส> ในโฟลเดอร์รูปโปรไฟล์ (เปลี่ยนได้ด้วย Script Property PROFILE_FOLDER_ID)
+const PROFILE_FOLDER_ID = '1-GZAWmJ0daUrM6R9HuiayZzRBQwu_-HE';
+const MAX_PROFILE_BYTES = 2 * 1024 * 1024;
+function saveProfilePhoto_(id, photo) {
+  const mime = /^image\/(jpeg|png|webp)$/.test(String(photo.mimeType)) ? photo.mimeType : 'image/jpeg';
+  let bytes;
+  try { bytes = Utilities.base64Decode(String(photo.data || '')); } catch (e) { fail_('INVALID', 'ไฟล์รูปไม่ถูกต้อง'); }
+  if (!bytes.length) fail_('INVALID', 'ไฟล์รูปไม่ถูกต้อง');
+  if (bytes.length > MAX_PROFILE_BYTES) fail_('INVALID', 'รูปมีขนาดใหญ่เกิน 2 MB');
+  const name = 'IMG_' + id;
+  let folder;
+  try { folder = DriveApp.getFolderById(prop_('PROFILE_FOLDER_ID') || PROFILE_FOLDER_ID); }
+  catch (e) { fail_('ERROR', 'เปิดโฟลเดอร์รูปโปรไฟล์ไม่ได้ กรุณาตรวจสอบสิทธิ์ของบัญชีที่ Deploy'); }
+  const file = folder.createFile(Utilities.newBlob(bytes, mime, name));
+  shareFile_(file);
+  // เก็บเฉพาะรูปล่าสุด: ไฟล์ชื่อเดียวกันอันเก่าย้ายไปถังขยะ (กู้คืนได้ 30 วัน)
+  try {
+    const old = folder.getFilesByName(name);
+    while (old.hasNext()) { const f = old.next(); if (f.getId() !== file.getId()) f.setTrashed(true); }
+  } catch (e) { console.warn('ย้ายรูปเก่าไปถังขยะไม่สำเร็จ: ' + e); }
+  return 'https://drive.google.com/file/d/' + file.getId() + '/view?usp=drive_link';
 }
 
 // รูปหลักฐาน: อนุญาตเฉพาะไฟล์ที่อ้างอิงอยู่ในระบบ (กันการเปิดไฟล์อื่นใน Drive)
@@ -428,8 +454,9 @@ function staffParticipantSave_(req, staff, ua) {
 function staffImage_(fileId, thumb) {
   fileId = String(fileId || '');
   if (!/^[\w-]{20,}$/.test(fileId)) fail_('INVALID', 'คำขอไม่ถูกต้อง');
-  const known = readRows_(SHEET.RECORDS, RCOL.IMAGE + 1).some(r => toFileId_(r[RCOL.IMAGE]) === fileId) ||
-    readRows_(SHEET.USERS, UCOL.PIC + 1).some(r => toFileId_(r[UCOL.PIC]) === fileId);
+  // ตรวจแผ่น Users ก่อน (เล็กกว่า) — รูปโปรไฟล์ถูกขอบ่อยที่สุด
+  const known = readRows_(SHEET.USERS, UCOL.PIC + 1).some(r => toFileId_(r[UCOL.PIC]) === fileId) ||
+    readRows_(SHEET.RECORDS, RCOL.IMAGE + 1).some(r => toFileId_(r[RCOL.IMAGE]) === fileId);
   if (!known) fail_('INVALID', 'ไม่พบรูป');
   const file = DriveApp.getFileById(fileId);
   let blob = null;

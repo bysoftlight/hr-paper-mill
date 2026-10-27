@@ -83,7 +83,7 @@ VIEWS.overview = {
         // รายการล่าสุด
         $('ovLatest').innerHTML = d.latest.length ? d.latest.map((r, i) => `
           <button type="button" class="feed-item" data-i="${i}">
-            ${avatarHtml(r.userName)}
+            ${avatarHtml(r.userName, r.userPic)}
             <span class="fi-text"><b>${esc(r.userName)}</b><small>${esc(r.site || r.userId)} · ${thDate(r.date, { day: 'numeric', month: 'short' })} ${esc(r.time)} น.</small></span>
             <span class="fi-side">${r.anomaly ? `<span class="badge is-bad">${icon('alert')}${fmtDistance(r.distance)}</span>` : ''}${typeChip(r.type)}</span>
           </button>`).join('') : `<div class="empty">${icon('inbox')}ยังไม่มีรายการ</div>`;
@@ -93,7 +93,7 @@ VIEWS.overview = {
         $('ovMissCount').textContent = d.missing.length;
         $('ovMissing').innerHTML = d.missing.length ? d.missing.map(m => `
           <div class="person">
-            ${avatarHtml(m.name)}
+            ${avatarHtml(m.name, m.pic)}
             <span class="fi-text"><b>${esc(m.name)}</b><small><span class="mono">${esc(m.id)}</span>${m.site ? ' · ' + esc(m.site) : ''}</small></span>
             ${m.phone ? `<a class="call-btn" href="tel:${esc(m.phone.replace(/[^0-9+]/g, ''))}" aria-label="โทรหา ${esc(m.name)}">${icon('phone')}</a>` : ''}
             ${can('participants.view') ? `<button type="button" class="icon-btn" data-pid="${esc(m.id)}" aria-label="ดูข้อมูล ${esc(m.name)}" style="margin:0">${icon('chevron-right')}</button>` : ''}
@@ -104,7 +104,7 @@ VIEWS.overview = {
         $('ovAgent').innerHTML = d.agentWatch.length ? d.agentWatch.map(a => {
             const ratio = a.used / a.limit, cls = ratio >= 0.8 ? 'is-bad' : 'is-warn';
             return `<button type="button" class="person" data-uid="${esc(a.id)}">
-              ${avatarHtml(a.name)}
+              ${avatarHtml(a.name, a.pic)}
               <span class="fi-text"><b>${esc(a.name)}</b><small><span class="mono">${esc(a.id)}</span>${a.site ? ' · ' + esc(a.site) : ''}</small></span>
               <span class="fi-side"><span class="mini-meter ${cls}"><i style="width:${Math.min(100, ratio * 100)}%"></i></span><b class="mono ${a.used > a.limit ? 'text-bad' : ''}">${a.used}/${a.limit}</b></span>
             </button>`;
@@ -115,7 +115,7 @@ VIEWS.overview = {
         // ตำแหน่งต้องตรวจสอบ
         $('ovAnom').innerHTML = d.anomalies.length ? d.anomalies.map((r, i) => `
           <button type="button" class="feed-item" data-i="${i}">
-            ${avatarHtml(r.userName)}
+            ${avatarHtml(r.userName, r.userPic)}
             <span class="fi-text"><b>${esc(r.userName)}</b><small>${esc(r.site || '-')} · ${esc(r.time)} น.</small></span>
             <span class="fi-side">${r.hasGps ? `<span class="badge is-bad">${icon('alert')}ห่าง ${fmtDistance(r.distance)}</span>` : `<span class="badge is-warn">ไม่มี GPS</span>`}</span>
           </button>`).join('') : `<div class="empty">${icon('check-circle')}ไม่มีรายการผิดปกติวันนี้</div>`;
