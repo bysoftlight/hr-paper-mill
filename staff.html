@@ -22,8 +22,8 @@
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <!-- เปลี่ยนเลข ?v= ทุกครั้งที่แก้ CSS/JS -->
-  <link rel="stylesheet" href="css/style.css?v=3.7.0">
-  <link rel="stylesheet" href="css/staff.css?v=3.7.0">
+  <link rel="stylesheet" href="css/style.css?v=3.8.0">
+  <link rel="stylesheet" href="css/staff.css?v=3.8.0">
 </head>
 <body class="staff">
 
@@ -255,11 +255,11 @@
   <dialog id="participantFormModal" class="sheet" aria-labelledby="pfTitle">
     <form id="participantForm" class="sheet-form" novalidate>
       <div class="sheet-head">
-        <div><h2 id="pfTitle">เพิ่มผู้ใช้สิทธิ์</h2><p>รหัส 6 หลักใช้เข้าสู่ระบบของผู้ใช้สิทธิ์ เปลี่ยนภายหลังไม่ได้</p></div>
+        <div><h2 id="pfTitle">เพิ่มผู้ใช้สิทธิ์</h2><p>รหัส 6 หลักใช้เข้าสู่ระบบของผู้ใช้สิทธิ์ ห้ามซ้ำกับผู้อื่น</p></div>
         <button type="button" class="icon-btn" data-close aria-label="ปิด"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
       </div>
       <div class="sheet-body form-grid-2">
-        <label class="field"><span class="label">รหัสผู้ใช้สิทธิ์</span><input class="input mono" id="pfId" maxlength="6" autocapitalize="characters" required placeholder="XXXXXX"></label>
+        <label class="field"><span class="label">รหัสผู้ใช้สิทธิ์</span><input class="input mono" id="pfId" maxlength="6" autocapitalize="characters" required placeholder="XXXXXX" aria-describedby="pfIdHint"><small class="hint" id="pfIdHint" hidden></small></label>
         <label class="field"><span class="label">ชื่อ-สกุล</span><input class="input" id="pfName" maxlength="120" required></label>
         <label class="field"><span class="label">การใช้สิทธิ์</span><input class="input" id="pfStatus" maxlength="120" placeholder="เช่น ใช้สิทธิ์ปี 2569"></label>
         <label class="field"><span class="label">เบอร์โทร</span><input class="input" id="pfPhone" inputmode="tel" maxlength="40"></label>
@@ -284,6 +284,10 @@
         </div>
         <label class="field span-2"><span class="label">หมายเหตุ</span><textarea class="input textarea" id="pfNote" rows="2" maxlength="500"></textarea></label>
         <label class="check span-2"><input type="checkbox" id="pfActive" checked><span>เปิดใช้งาน (ปิดแล้วผู้ใช้สิทธิ์จะเข้าสู่ระบบไม่ได้)</span></label>
+        <div class="field span-2 danger-zone" id="pfDangerZone" hidden>
+          <button type="button" class="btn-text btn-text-bad" id="pfDelete"><svg class="ic ic-16" aria-hidden="true"><use href="#i-trash"/></svg> ลบบัญชีผู้ใช้สิทธิ์</button>
+          <small class="muted-text">ถ้าหยุดใช้ชั่วคราว ให้เอาเครื่องหมาย "เปิดใช้งาน" ออกแทน</small>
+        </div>
       </div>
       <div class="sheet-foot foot-row">
         <button type="button" class="btn btn-outline" data-close>ยกเลิก</button>
@@ -620,14 +624,14 @@
 
   <div id="pdfStage" class="pdf-stage" aria-hidden="true"></div>
 
-  <script src="js/config.js?v=3.7.0"></script>
-  <script src="js/utils.js?v=3.7.0"></script>
-  <script src="js/api.js?v=3.7.0"></script>
-  <script src="js/staff/core.js?v=3.7.0"></script>
-  <script src="js/staff/overview.js?v=3.7.0"></script>
-  <script src="js/staff/records.js?v=3.7.0"></script>
-  <script src="js/staff/participants.js?v=3.7.0"></script>
-  <script src="js/staff/admin.js?v=3.7.0"></script>
-  <script src="js/staff/export.js?v=3.7.0"></script>
+  <script src="js/config.js?v=3.8.0"></script>
+  <script src="js/utils.js?v=3.8.0"></script>
+  <script src="js/api.js?v=3.8.0"></script>
+  <script src="js/staff/core.js?v=3.8.0"></script>
+  <script src="js/staff/overview.js?v=3.8.0"></script>
+  <script src="js/staff/records.js?v=3.8.0"></script>
+  <script src="js/staff/participants.js?v=3.8.0"></script>
+  <script src="js/staff/admin.js?v=3.8.0"></script>
+  <script src="js/staff/export.js?v=3.8.0"></script>
 </body>
 </html>
