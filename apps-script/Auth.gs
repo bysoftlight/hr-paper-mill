@@ -31,7 +31,7 @@ function verifyGoogle_(credential) {
 function verifyLine_(code, codeVerifier, redirectUri) {
   const channelId = prop_('LINE_CHANNEL_ID'), channelSecret = prop_('LINE_CHANNEL_SECRET');
   if (!channelId || !channelSecret) fail_('CONFIG', 'ระบบยังไม่ได้ตั้งค่า LINE_CHANNEL_ID / LINE_CHANNEL_SECRET');
-  const allowed = prop_('LINE_REDIRECT_URIS', 'https://bysoftlight.github.io/staff.html').split(',').map(s => s.trim());
+  const allowed = prop_('LINE_REDIRECT_URIS', 'https://bysoftlight.github.io/hr-paper-mill/staff.html').split(',').map(s => s.trim());
   if (allowed.indexOf(redirectUri) === -1) fail_('AUTH', 'Redirect URI ไม่ได้รับอนุญาต');
   if (!code || !codeVerifier) fail_('INVALID', 'ไม่พบข้อมูลการเข้าสู่ระบบจาก LINE');
 
