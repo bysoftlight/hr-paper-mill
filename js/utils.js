@@ -1,9 +1,8 @@
 // js/utils.js
 
 // ฟังก์ชันย่อรูป: คืนค่า base64 (ไม่มี prefix) และขนาดไฟล์หลังย่อเป็น byte
-function compressImage(file) {
+function compressImage(file, maxWidth = 1024, quality = 0.6) {
     return new Promise((resolve, reject) => {
-        const maxWidth = 1024; const quality = 0.6;
         const reader = new FileReader(); reader.readAsDataURL(file);
         reader.onload = event => {
             const img = new Image(); img.src = event.target.result;

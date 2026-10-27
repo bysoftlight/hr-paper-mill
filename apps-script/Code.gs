@@ -48,14 +48,16 @@ function doPost(e) {
         const user = findUser_(req.userId, true);
         if (user && !user.active) return json_({ success: false, message: 'บัญชีนี้ถูกปิดใช้งาน กรุณาติดต่อเจ้าหน้าที่' });
         if (!user) log_({ id: '', name: 'ผู้ใช้สิทธิ์', role: 'participant' }, 'participant.login_failed', String(req.userId || '').slice(0, 20), '', '');
-        return json_(user ? { success: true, data: user } : { success: false, message: 'ไม่พบรหัสผู้ใช้สิทธิ์นี้ กรุณาตรวจสอบอีกครั้ง' });
+        if (!user) return json_({ success: false, message: 'ไม่พบรหัสผู้ใช้สิทธิ์นี้ กรุณาตรวจสอบอีกครั้ง' });
+        // ส่งประวัติมาพร้อมกัน ลดการเรียก API จาก 2 ครั้งเหลือ 1 ครั้งตอนเปิดแอป
+        return json_(req.withHistory ? { success: true, data: user, history: getUserHistory(user.id) } : { success: true, data: user });
       }
       case 'history':
         return json_({ success: true, history: getUserHistory(req.userId) });
       case 'submit':
         return json_(submitSalesData(Object.assign({}, req.formData, { userId: req.userId })));
       case 'image':
-        return json_(getImageData_(req.userId, req.fileId));
+        return json_(getImageData_(req.userId, req.fileId, req.thumb));
       default:
         return json_({ success: false, message: 'ไม่รู้จักคำสั่ง: ' + req.action });
     }
@@ -206,8 +208,8 @@ function toRecord_(ts, type, imageUrl, lat, lng) {
   lat = parseFloat(lat); lng = parseFloat(lng);
   const hasLoc = isFinite(lat) && isFinite(lng);
   return {
-    date: Utilities.formatDate(ts, TZ, 'yyyy-MM-dd'),
-    time: Utilities.formatDate(ts, TZ, 'HH:mm'),
+    date: fmtDate_(ts),
+    time: fmtDate_(ts, 'HH:mm'),
     type: String(type),
     image: toImageUrl_(imageUrl),
     fileId: toFileId_(imageUrl),
@@ -238,19 +240,25 @@ function getUserHistory(userId) {
 }
 
 // 4. ส่งรูปหลักฐานเป็น data URL (ใช้เมื่อรูปไม่ได้แชร์สาธารณะ) — เฉพาะรูปของผู้ใช้คนนั้นเท่านั้น
-function getImageData_(userId, fileId) {
+function getImageData_(userId, fileId, thumb) {
   const id = String(userId || '').trim().toUpperCase();
   fileId = String(fileId || '');
   if (!id || !/^[\w-]{20,}$/.test(fileId)) return { success: false, message: 'คำขอไม่ถูกต้อง' };
 
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Records');
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return { success: false, message: 'ไม่พบรูป' };
-  const data = sheet.getRange(2, 4, lastRow - 1, 4).getValues(); // D: รหัส ... G: ลิงก์รูป
-  const owns = data.some(r => String(r[0]).trim().toUpperCase() === id && toFileId_(r[3]) === fileId);
+  const user = findUser_(id, true);
+  let owns = !!user && toFileId_(user.pic) === fileId; // รูปโปรไฟล์ของตัวเอง
+  if (!owns) {
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Records');
+    const lastRow = sheet.getLastRow();
+    const data = lastRow < 2 ? [] : sheet.getRange(2, 4, lastRow - 1, 4).getValues(); // D: รหัส ... G: ลิงก์รูป
+    owns = data.some(r => String(r[0]).trim().toUpperCase() === id && toFileId_(r[3]) === fileId);
+  }
   if (!owns) return { success: false, message: 'ไม่พบรูป' };
 
-  const blob = DriveApp.getFileById(fileId).getBlob();
+  const file = DriveApp.getFileById(fileId);
+  let blob = null;
+  if (thumb) { try { blob = file.getThumbnail(); } catch (e) { blob = null; } }
+  if (!blob) blob = file.getBlob();
   return { success: true, dataUrl: 'data:' + blob.getContentType() + ';base64,' + Utilities.base64Encode(blob.getBytes()) };
 }
 

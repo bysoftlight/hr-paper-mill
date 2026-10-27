@@ -10,6 +10,7 @@ let FILTER_MONTH_IDX = new Date().getMonth();
 let FILTER_YEAR_VAL = new Date().getFullYear();
 
 const USER_KEY = 'SALES_APP_USER_ID';
+const CACHE_KEY = 'SALES_APP_CACHE'; // ข้อมูลผู้ใช้ + ประวัติล่าสุด: เปิดแอปได้ทันทีแล้วค่อยอัปเดตเบื้องหลัง
 const SELF_TYPE = 'ทำการขายด้วยตัวเอง';
 const AGENT_TYPE = 'ทำการขายโดยตัวแทน';
 const AGENT_LIMIT = 10;     // ข้อ 1.3: ให้ผู้อื่นขายแทนได้ไม่เกินเดือนละ 10 ครั้ง
@@ -31,7 +32,14 @@ window.addEventListener('DOMContentLoaded', () => {
 
     const savedId = store.get(USER_KEY);
     if (savedId && savedId !== "null" && savedId !== "undefined") {
-        performLogin(savedId, true);
+        const cached = readCache(savedId);
+        if (cached) {
+            CURRENT_USER = cached.user;
+            setupApp(cached.history, cached.at);
+            performLogin(savedId, true, true);
+        } else {
+            performLogin(savedId, true);
+        }
     } else {
         showRulesModal(true);
     }
@@ -128,15 +136,36 @@ function setLoginBusy(busy) {
     $('loginId').readOnly = busy;
 }
 
-async function performLogin(userId, isAuto) {
-    if (isAuto) showAppSkeleton(); else setLoginBusy(true);
-    const res = await callApi('login', { userId: userId });
+function readCache(id) {
+    try {
+        const c = JSON.parse(store.get(CACHE_KEY) || 'null');
+        return c && c.id === id && c.user && Array.isArray(c.history) ? c : null;
+    } catch (e) { return null; }
+}
+
+function writeCache() {
+    if (!CURRENT_USER.id || !HISTORY_LOADED) return;
+    store.set(CACHE_KEY, JSON.stringify({ id: CURRENT_USER.id, user: CURRENT_USER, history: ALL_HISTORY, at: Date.now() }));
+}
+
+// background = แสดงข้อมูลจากเครื่องอยู่แล้ว ตรวจสอบกับเซิร์ฟเวอร์เบื้องหลัง
+async function performLogin(userId, isAuto, background = false) {
+    if (background) $('histRefresh').disabled = true;
+    else if (isAuto) showAppSkeleton();
+    else setLoginBusy(true);
+    const res = await callApi('login', { userId: userId, withHistory: true });
     if (!isAuto) setLoginBusy(false);
 
     if (res.success) {
         store.set(USER_KEY, res.data.id);
         CURRENT_USER = res.data;
-        setupApp();
+        if (!background) return setupApp(res.history);
+        renderUser();
+        if (Array.isArray(res.history)) applyHistory(res.history); else loadHistoryData(true);
+    } else if (res.networkError && background) {
+        // ออฟไลน์: ใช้ข้อมูลที่บันทึกไว้ในเครื่องต่อ
+        $('histRefresh').disabled = false;
+        $('histUpdated').textContent = 'เชื่อมต่อไม่ได้ · แสดงข้อมูลที่บันทึกไว้';
     } else if (res.networkError) {
         // เน็ตหลุด ไม่ใช่รหัสผิด: เก็บรหัสที่จำไว้ และให้ลองใหม่
         if (isAuto) {
@@ -149,6 +178,7 @@ async function performLogin(userId, isAuto) {
         setLoginError(res.message);
     } else {
         store.remove(USER_KEY);
+        store.remove(CACHE_KEY);
         if (isAuto) backToLogin();
         $('loginId').value = isAuto ? '' : $('loginId').value;
         setLoginError(res.message || 'ไม่พบรหัสผู้ใช้สิทธิ์นี้ กรุณาตรวจสอบอีกครั้ง');
@@ -163,26 +193,33 @@ async function logout() {
     });
     if (ok) {
         store.remove(USER_KEY);
+        store.remove(CACHE_KEY);
         history.replaceState(null, '', location.pathname);
         location.reload();
     }
 }
 
 // --- APP NAVIGATION & SETUP ---
-function setupApp() {
+// history: ประวัติที่ได้มาพร้อมการเข้าสู่ระบบ หรือจากเครื่อง (cachedAt) — ถ้าไม่มีจะโหลดแยก
+function setupApp(history, cachedAt) {
     $('loginView').hidden = true;
     $('appContainer').hidden = false;
     $('appContainer').classList.remove('is-booting');
     $('salesForm').inert = false;
 
+    renderUser();
+    getLocation();
+    // ใส่ประวัติก่อนเปิดแท็บ ไม่ให้แท็บประวัติขอข้อมูลซ้ำ
+    if (Array.isArray(history)) applyHistory(history, cachedAt);
+    switchTab(tabFromHash(), false);
+    if (!Array.isArray(history)) loadHistoryData();
+}
+
+function renderUser() {
     document.querySelectorAll('[data-user="name"]').forEach(el => el.textContent = CURRENT_USER.name || '-');
     document.querySelectorAll('[data-user="id"]').forEach(el => el.textContent = CURRENT_USER.id || '-');
     document.querySelectorAll('[data-user="status"]').forEach(el => el.textContent = CURRENT_USER.status || '-');
     document.querySelectorAll('[data-user="avatar"]').forEach(renderAvatar);
-
-    getLocation();
-    switchTab(tabFromHash(), false);
-    loadHistoryData();
 }
 
 function renderAvatar(el) {
@@ -192,7 +229,13 @@ function renderAvatar(el) {
         const img = document.createElement('img');
         img.alt = '';
         img.onload = () => { el.textContent = ''; el.appendChild(img); };
-        img.src = CURRENT_USER.pic;
+        // รูปใน Drive ที่ไม่ได้แชร์สาธารณะ: ขอรูปย่อผ่าน API แทน
+        img.onerror = () => {
+            img.onerror = null;
+            const m = String(CURRENT_USER.pic).match(/[?&]id=([\w-]{20,})/);
+            if (m) callApi('image', { userId: CURRENT_USER.id, fileId: m[1], thumb: true }).then(r => { if (r.success && r.dataUrl) img.src = r.dataUrl; });
+        };
+        img.src = String(CURRENT_USER.pic).replace(/([?&]sz=)w\d+/, '$1w240');
     }
 }
 
@@ -442,6 +485,20 @@ function historySkeleton(rows) {
     return `<div class="hist-list" aria-hidden="true">${Array.from({ length: rows }, (_, i) => row([46, 38, 52, 42, 48, 36][i % 6])).join('')}</div><span class="sr-only" role="status">กำลังโหลดประวัติการส่งงาน</span>`;
 }
 
+// cachedAt: ข้อมูลจากเครื่อง (กำลังอัปเดตจากเซิร์ฟเวอร์) — ไม่ใช่ข้อมูลล่าสุด
+function applyHistory(list, cachedAt) {
+    ALL_HISTORY = list.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    HISTORY_LOADED = true;
+    setHistoryLoading(false);
+    $('histUpdated').textContent = cachedAt ? 'กำลังอัปเดต…'
+        : 'อัปเดตล่าสุด ' + new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+    if (!cachedAt) { $('histRefresh').disabled = false; writeCache(); }
+    updateTodayStatus();
+    renderYearOptions();
+    $('exportOpen').disabled = false;
+    renderFilteredHistory();
+}
+
 function loadHistoryData(force = false) {
     if (!CURRENT_USER.id) return Promise.resolve();
     if (historyReq && !force) return historyReq;
@@ -455,14 +512,7 @@ function loadHistoryData(force = false) {
         historyReq = null;
         $('histRefresh').disabled = false;
         if (res.success) {
-            ALL_HISTORY = (res.history || []).slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-            HISTORY_LOADED = true;
-            setHistoryLoading(false);
-            $('histUpdated').textContent = 'อัปเดตล่าสุด ' + new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
-            updateTodayStatus();
-            renderYearOptions();
-            $('exportOpen').disabled = false;
-            renderFilteredHistory();
+            applyHistory(res.history || []);
         } else {
             $('histUpdated').textContent = res.message || 'โหลดข้อมูลไม่สำเร็จ';
             if (!HISTORY_LOADED) {
@@ -720,11 +770,16 @@ function openPhotoViewer(item) {
         $('photoMap').href = url;
         $('photoLoc').replaceWith(Object.assign(locationLink(item), { id: 'photoLoc' }));
     }
-    // ภาพใหญ่: ใช้ไฟล์จริงจาก API ถ้าได้ (คมกว่า thumbnail)
-    fetchImageData(item).then(dataUrl => {
+    // แสดงรูปจาก Drive ทันที แล้วเปลี่ยนเป็นไฟล์จริงจาก API (คมกว่า) เมื่อโหลดเสร็จ
+    loadImageInto(img, item, () => {
         if (VIEWER_ITEM !== item) return;
-        if (dataUrl) img.src = dataUrl;
-        else loadImageInto(img, item, () => { stage.classList.remove('is-loading'); img.hidden = true; $('photoLargeEmpty').hidden = false; });
+        stage.classList.remove('is-loading'); img.hidden = true; $('photoLargeEmpty').hidden = false;
+    });
+    fetchImageData(item).then(dataUrl => {
+        if (VIEWER_ITEM !== item || !dataUrl) return;
+        img.hidden = false; $('photoLargeEmpty').hidden = true;
+        img.onerror = null;
+        img.src = dataUrl;
     });
     showModal('photoModal');
 }
