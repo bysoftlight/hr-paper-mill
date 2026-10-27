@@ -14,7 +14,8 @@ VIEWS.participants = {
             if (!p || p.lastLat === null || p.lastLat === undefined) return toast('ยังไม่มีพิกัดจากรายงานล่าสุด');
             $('pfLat').value = p.lastLat; $('pfLng').value = p.lastLng;
         });
-        $('pfId').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6); this.updatePicInfo(); });
+        $('pfId').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6); this.updatePicInfo(); this.checkId(); });
+        $('pfDelete').addEventListener('click', () => this.remove());
         $('pfName').addEventListener('input', debounce(() => this.previewPic(), 300));
         $('pfPic').addEventListener('input', debounce(() => this.previewPic(), 300));
         $('pfPicFile').addEventListener('change', e => this.pickPic(e.target.files[0]));
@@ -170,7 +171,8 @@ VIEWS.participants = {
         this.editing = p || null;
         $('pfTitle').textContent = p ? 'แก้ไขผู้ใช้สิทธิ์' : 'เพิ่มผู้ใช้สิทธิ์';
         $('pfId').value = p ? p.id : '';
-        $('pfId').readOnly = !!p;
+        $('pfDangerZone').hidden = !p;
+        this.checkId();
         $('pfName').value = p ? p.name : '';
         $('pfStatus').value = p ? p.status : `ใช้สิทธิ์ปี ${bkkParts().y + 543}`;
         $('pfPhone').value = p ? p.phone : '';
@@ -187,6 +189,36 @@ VIEWS.participants = {
         $('pfUseLast').hidden = !p;
         showModal('participantFormModal');
         (p ? $('pfName') : $('pfId')).focus();
+    },
+
+    // รหัส: ห้ามซ้ำกับคนอื่น และเตือนเมื่อเปลี่ยนรหัสของคนเดิม
+    checkId() {
+        const id = $('pfId').value, p = this.editing, hint = $('pfIdHint');
+        const taken = id.length === 6 && (ST.participants || []).some(x => x.id === id && (!p || x.id !== p.id));
+        const renamed = p && id !== p.id;
+        hint.hidden = !taken && !renamed;
+        hint.className = 'hint ' + (taken ? 'is-error' : 'is-warn');
+        hint.textContent = taken ? `รหัส ${id} มีผู้ใช้สิทธิ์คนอื่นใช้อยู่แล้ว` : renamed ? `ประวัติรายงานจะย้ายไปรหัสใหม่ และต้องเข้าสู่ระบบด้วยรหัสใหม่` : '';
+        $('pfId').setAttribute('aria-invalid', String(!!taken));
+        return !taken;
+    },
+
+    async remove() {
+        const p = this.editing;
+        if (!p) return;
+        const reason = await VIEWS.records.askReason({
+            title: `ลบบัญชี ${p.name}?`,
+            text: `รหัส ${p.id} จะเข้าสู่ระบบไม่ได้อีก ประวัติรายงานเดิมยังเก็บไว้ในรายงาน รูปโปรไฟล์ IMG_${p.id} (ถ้ามี) จะย้ายไปถังขยะ และบันทึกเหตุผลไว้ใน Log`,
+            okText: 'ลบบัญชี'
+        });
+        if (!reason) return;
+        showLoading(true, 'กำลังลบ…');
+        const r = await api('staff.participants.delete', { id: p.id, reason });
+        showLoading(false);
+        if (!r.success) return showMessage({ title: 'ลบไม่สำเร็จ', text: r.message, tone: 'bad' });
+        $('participantFormModal').close();
+        toast(`ลบบัญชี ${p.id} แล้ว`);
+        this.load(true);
     },
 
     // ---------- รูปโปรไฟล์: วางลิงก์ หรืออัปโหลดไฟล์ (ส่งไปพร้อมการบันทึก) ----------
@@ -242,7 +274,12 @@ VIEWS.participants = {
             picRaw: $('pfPic').value.trim(), note: $('pfNote').value.trim(), active: $('pfActive').checked
         };
         if (!/^[A-Z0-9]{6}$/.test(data.id)) { $('pfId').focus(); return toast('รหัสต้องเป็นตัวอักษรอังกฤษหรือตัวเลข 6 หลัก'); }
+        if (!this.checkId()) { $('pfId').focus(); return toast(`รหัส ${data.id} มีผู้ใช้สิทธิ์คนอื่นใช้อยู่แล้ว`); }
         if (!data.name) { $('pfName').focus(); return toast('กรุณากรอกชื่อ-สกุล'); }
+        if (p && data.id !== p.id) {
+            const ok = await showMessage({ title: `เปลี่ยนรหัส ${p.id} → ${data.id}?`, text: `ประวัติรายงานทั้งหมดของ ${p.name} จะย้ายไปรหัสใหม่ ผู้ใช้สิทธิ์ต้องเข้าสู่ระบบด้วยรหัส ${data.id} แทน`, tone: 'warn', okText: 'เปลี่ยนรหัส', cancelText: 'ยกเลิก' });
+            if (!ok) return;
+        }
         if (p && p.active && !data.active) {
             const ok = await showMessage({ title: 'ปิดใช้งานผู้ใช้สิทธิ์?', text: `${data.name} จะเข้าสู่ระบบส่งรายงานไม่ได้ ข้อมูลเดิมยังอยู่ครบ`, tone: 'warn', okText: 'ปิดใช้งาน', cancelText: 'ยกเลิก' });
             if (!ok) return;
@@ -253,7 +290,7 @@ VIEWS.participants = {
         showLoading(false);
         if (!r.success) return showMessage({ title: 'บันทึกไม่สำเร็จ', text: r.message, tone: 'bad' });
         $('participantFormModal').close();
-        toast(p ? 'บันทึกการแก้ไขแล้ว' : 'เพิ่มผู้ใช้สิทธิ์แล้ว');
+        toast(!p ? 'เพิ่มผู้ใช้สิทธิ์แล้ว' : data.id !== p.id ? `เปลี่ยนรหัสเป็น ${data.id} แล้ว · ย้ายประวัติ ${r.recordsMoved || 0} รายการ` : 'บันทึกการแก้ไขแล้ว');
         this.load(true);
     }
 };

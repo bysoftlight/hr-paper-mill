@@ -50,6 +50,9 @@ function handleStaffRequest_(req) {
     case 'staff.participants.save':
       requirePerm_(staff, 'participants.edit');
       return staffParticipantSave_(req, staff, ua);
+    case 'staff.participants.delete':
+      requirePerm_(staff, 'participants.edit');
+      return staffParticipantDelete_(req, staff, ua);
     case 'staff.image':
       requirePerm_(staff, 'records.view');
       return staffImage_(req.fileId, req.thumb);
@@ -397,19 +400,27 @@ function staffParticipantSave_(req, staff, ua) {
   try {
     const sh = sheet_(SHEET.USERS);
     const all = readParticipants_();
-    const existing = all.filter(x => x.id === id)[0];
     const isNew = !req.originalId;
-    if (isNew && existing) fail_('INVALID', 'รหัส ' + id + ' มีอยู่แล้ว');
-    if (!isNew && String(req.originalId).toUpperCase() !== id) fail_('INVALID', 'ไม่สามารถเปลี่ยนรหัสผู้ใช้สิทธิ์ได้ (ประวัติจะไม่ตรงกัน)');
-    if (!isNew && !existing) fail_('INVALID', 'ไม่พบผู้ใช้สิทธิ์นี้');
+    const oldId = isNew ? id : String(req.originalId).trim().toUpperCase();
+    const existing = isNew ? null : all.filter(x => x.id === oldId)[0];
+    if (!isNew && !existing) fail_('INVALID', 'ไม่พบผู้ใช้สิทธิ์นี้ (อาจถูกลบหรือเปลี่ยนรหัสไปแล้ว) กรุณารีเฟรชข้อมูล');
+    // รหัสห้ามซ้ำกับผู้ใช้สิทธิ์คนอื่น
+    if (all.some(x => x.id === id && x !== existing)) fail_('INVALID', 'รหัส ' + id + ' มีผู้ใช้สิทธิ์คนอื่นใช้อยู่แล้ว');
+    const renaming = !isNew && oldId !== id;
+    // กันประวัติปนกัน: รหัสใหม่ต้องไม่เคยมีรายงาน (เช่น รหัสของผู้ใช้สิทธิ์ที่ถูกลบไปแล้ว)
+    if (renaming && countRecordsOf_(id) > 0) fail_('INVALID', 'รหัส ' + id + ' มีประวัติรายงานของผู้ใช้สิทธิ์เดิมอยู่ กรุณาใช้รหัสอื่น');
 
+    let picRaw = clean_(p.picRaw, 500);
+    if (renaming) renameProfilePhoto_(picRaw, oldId, id);
     // อัปโหลดรูปใหม่ (ถ้ามี) ไปโฟลเดอร์รูปโปรไฟล์ แล้วใช้ลิงก์ Drive แทนลิงก์ที่กรอก
-    const picRaw = req.photo ? saveProfilePhoto_(id, req.photo) : clean_(p.picRaw, 500);
+    if (req.photo) picRaw = saveProfilePhoto_(id, req.photo);
     const values = [id, clean_(p.name, 120), clean_(p.status, 120), picRaw, clean_(p.site, 120),
       siteLat === null ? '' : siteLat, siteLng === null ? '' : siteLng, clean_(p.phone, 40), p.active === false ? false : true,
       clean_(p.note, 500), new Date(), staff.email || staff.name];
     if (isNew) sh.appendRow(values);
     else sh.getRange(existing.row, 1, 1, values.length).setValues([values]);
+    // เปลี่ยนรหัส: ย้ายประวัติรายงานทั้งหมดไปรหัสใหม่
+    const moved = renaming ? renameRecordsUser_(oldId, id) : 0;
 
     const changes = {};
     if (existing) {
@@ -419,8 +430,47 @@ function staffParticipantSave_(req, staff, ua) {
       });
     }
     if (existing && existing.picRaw !== picRaw) changes.pic = req.photo ? 'อัปโหลดรูปใหม่' : 'เปลี่ยนลิงก์รูป';
-    log_(staff, isNew ? 'participants.create' : 'participants.update', id + ' ' + p.name, isNew ? { site: p.site, pic: req.photo ? 'อัปโหลดรูป' : '' } : changes, ua);
-    return { success: true, picRaw: picRaw };
+    if (renaming) { changes.id = [oldId, id]; changes.recordsMoved = moved; }
+    log_(staff, isNew ? 'participants.create' : renaming ? 'participants.rename' : 'participants.update', id + ' ' + p.name,
+      isNew ? { site: p.site, pic: req.photo ? 'อัปโหลดรูป' : '' } : changes, ua);
+    return { success: true, picRaw: picRaw, id: id, recordsMoved: moved };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function countRecordsOf_(id) {
+  return readRows_(SHEET.RECORDS, RCOL.USER_ID + 1).filter(r => String(r[RCOL.USER_ID]).trim().toUpperCase() === id).length;
+}
+
+// เปลี่ยนรหัสในคอลัมน์รหัสของแผ่น Records ทั้งคอลัมน์ในครั้งเดียว
+function renameRecordsUser_(oldId, newId) {
+  const sh = sheet_(SHEET.RECORDS);
+  const last = sh.getLastRow();
+  if (last < 2) return 0;
+  const range = sh.getRange(2, RCOL.USER_ID + 1, last - 1, 1);
+  const values = range.getValues();
+  let n = 0;
+  values.forEach(v => { if (String(v[0]).trim().toUpperCase() === oldId) { v[0] = newId; n++; } });
+  if (n) range.setValues(values);
+  return n;
+}
+
+// ลบบัญชีผู้ใช้สิทธิ์: ลบแถวใน Users (เข้าสู่ระบบไม่ได้อีก) — ประวัติรายงานยังอยู่ครบและแสดงชื่อเดิมในรายงาน
+function staffParticipantDelete_(req, staff, ua) {
+  const id = String(req.id || '').trim().toUpperCase();
+  const reason = clean_(req.reason, 300);
+  if (!reason) fail_('INVALID', 'กรุณาระบุเหตุผล');
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    const p = readParticipants_().filter(x => x.id === id)[0];
+    if (!p) fail_('INVALID', 'ไม่พบผู้ใช้สิทธิ์นี้ (อาจถูกลบไปแล้ว)');
+    sheet_(SHEET.USERS).deleteRow(p.row);
+    const photoTrashed = trashProfilePhoto_(p.picRaw, id);
+    const records = countRecordsOf_(id);
+    log_(staff, 'participants.delete', id + ' ' + p.name, { reason: reason, site: p.site, records: records, photoTrashed: photoTrashed }, ua);
+    return { success: true, records: records };
   } finally {
     lock.releaseLock();
   }
@@ -447,6 +497,25 @@ function saveProfilePhoto_(id, photo) {
     while (old.hasNext()) { const f = old.next(); if (f.getId() !== file.getId()) f.setTrashed(true); }
   } catch (e) { console.warn('ย้ายรูปเก่าไปถังขยะไม่สำเร็จ: ' + e); }
   return 'https://drive.google.com/file/d/' + file.getId() + '/view?usp=drive_link';
+}
+
+// ไฟล์รูปที่ระบบตั้งชื่อไว้ (IMG_<รหัสเดิม>) เท่านั้นที่ถูกเปลี่ยนชื่อ/ลบ — ลิงก์รูปอื่นที่วางเองไม่ถูกแตะ
+function ownedProfilePhoto_(picRaw, id) {
+  const fileId = toFileId_(picRaw);
+  if (!fileId) return null;
+  try {
+    const f = DriveApp.getFileById(fileId);
+    return f.getName() === 'IMG_' + id ? f : null;
+  } catch (e) { return null; }
+}
+function renameProfilePhoto_(picRaw, oldId, newId) {
+  const f = ownedProfilePhoto_(picRaw, oldId);
+  if (f) { try { f.setName('IMG_' + newId); } catch (e) { console.warn('เปลี่ยนชื่อรูปโปรไฟล์ไม่สำเร็จ: ' + e); } }
+}
+function trashProfilePhoto_(picRaw, id) {
+  const f = ownedProfilePhoto_(picRaw, id);
+  if (!f) return false;
+  try { f.setTrashed(true); return true; } catch (e) { console.warn('ลบรูปโปรไฟล์ไม่สำเร็จ: ' + e); return false; }
 }
 
 // รูปหลักฐาน: อนุญาตเฉพาะไฟล์ที่อ้างอิงอยู่ในระบบ (กันการเปิดไฟล์อื่นใน Drive)

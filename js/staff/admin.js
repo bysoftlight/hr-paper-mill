@@ -5,12 +5,12 @@ const ACTION_LABELS = {
     'admin.staff.approve': 'อนุมัติบัญชี', 'admin.staff.reject': 'ปฏิเสธบัญชี', 'admin.staff.suspend': 'ระงับบัญชี', 'admin.staff.update': 'แก้ไขสิทธิ์',
     'admin.staff.revoke': 'บังคับออกจากระบบ', 'admin.staff.delete': 'ลบบัญชีเจ้าหน้าที่',
     'records.create': 'เพิ่มรายงาน', 'records.update': 'แก้ไขรายงาน', 'records.delete': 'ลบรายงาน', 'records.restore': 'กู้คืนรายงาน',
-    'participants.create': 'เพิ่มผู้ใช้สิทธิ์', 'participants.update': 'แก้ไขผู้ใช้สิทธิ์',
+    'participants.create': 'เพิ่มผู้ใช้สิทธิ์', 'participants.update': 'แก้ไขผู้ใช้สิทธิ์', 'participants.rename': 'เปลี่ยนรหัสผู้ใช้สิทธิ์', 'participants.delete': 'ลบบัญชีผู้ใช้สิทธิ์',
     'participant.submit': 'ส่งรายงาน (ผู้ใช้สิทธิ์)', 'participant.login_failed': 'เข้าสู่ระบบไม่สำเร็จ (ผู้ใช้สิทธิ์)',
     'export.xlsx': 'ส่งออก Excel', 'export.pdf': 'ส่งออก PDF', 'export.gsheet': 'ส่งออก Google Sheets', 'export.logs': 'ส่งออก Log',
     'system.daily_summary': 'ส่งสรุปรายวันทางอีเมล'
 };
-const ACTION_TONE = { delete: 'is-bad', reject: 'is-bad', suspend: 'is-bad', revoke: 'is-warn', login_failed: 'is-warn', approve: 'is-ok', create: 'is-ok', signup: 'is-accent', signup_admin: 'is-accent', restore: 'is-ok' };
+const ACTION_TONE = { delete: 'is-bad', reject: 'is-bad', suspend: 'is-bad', revoke: 'is-warn', rename: 'is-warn', login_failed: 'is-warn', approve: 'is-ok', create: 'is-ok', signup: 'is-accent', signup_admin: 'is-accent', restore: 'is-ok' };
 
 VIEWS.admin = {
     tab: 'staff', staff: [], meta: null, logPage: 1, logReq: 0,
