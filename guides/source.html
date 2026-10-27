@@ -1,0 +1,236 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ground:#F3F1EC;--surface:#fff;--field:#FAF9F6;--line:#E2DED5;--ink:#16191D;--ink2:#3A3F46;--muted:#5B616B;--accent:#1847C2;--accent-soft:#E7EDFB;--ok:#17663B;--ok-soft:#E3F1E8;--warn:#8A5A00;--warn-soft:#FDF3DC;--bad:#B42318;--bad-soft:#FBEAE8;--line-g:#06C755}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#ccc;font-family:'IBM Plex Sans Thai',sans-serif;color:var(--ink)}
+.mono{font-family:'IBM Plex Mono',monospace}
+.card{width:1080px;height:1350px;background:var(--ground);padding:84px 88px;display:flex;flex-direction:column;position:relative;overflow:hidden;margin-bottom:20px}
+.top{display:flex;align-items:center;justify-content:space-between;font-size:30px;font-weight:600}
+.brand{display:flex;align-items:center;gap:16px}
+.logo{width:56px;height:56px;border-radius:14px;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:700;font-size:30px}
+.count{font-size:28px;color:var(--muted);letter-spacing:.04em}
+.tag{display:inline-block;align-self:flex-start;margin-top:64px;font-size:28px;font-weight:600;padding:10px 22px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.tag.staff{background:var(--ink);color:#fff}
+h1{font-size:92px;line-height:1.32;font-weight:700;margin-top:28px;letter-spacing:-.01em}
+h1 em{font-style:normal;color:var(--accent)}
+.sub{font-size:38px;line-height:1.5;color:var(--ink2);margin-top:28px;max-width:860px}
+.stepno{width:112px;height:112px;border-radius:28px;background:var(--ok);color:#fff;display:grid;place-items:center;font-size:60px;font-weight:600;margin-top:64px}
+.stepno.blue{background:var(--accent)}
+.mock{margin-top:auto;background:var(--surface);border:2px solid var(--line);border-radius:32px;padding:44px;display:flex;flex-direction:column;gap:22px;box-shadow:0 2px 0 var(--line)}
+.label{font-size:28px;color:var(--muted);font-weight:500}
+.input{height:112px;border:2px solid var(--line);background:var(--field);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:54px;letter-spacing:.3em;color:var(--ink)}
+.btn{height:108px;border-radius:22px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;gap:16px;font-size:38px;font-weight:600}
+.btn.line{background:var(--line-g)}
+.btn.out{background:#fff;color:var(--ink);border:2px solid var(--line)}
+.row{display:flex;gap:22px}
+.choice{flex:1;border:2px solid var(--line);border-radius:22px;padding:30px;display:flex;flex-direction:column;gap:8px;font-size:36px;font-weight:600}
+.choice small{font-size:28px;color:var(--muted);font-weight:400}
+.choice.on{border:4px solid var(--accent);background:var(--accent-soft)}
+.pill{display:inline-flex;align-items:center;gap:12px;padding:14px 26px;border-radius:999px;font-size:30px;font-weight:600;background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.blue{background:var(--accent-soft);color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:16px}
+.chip{padding:16px 28px;border-radius:999px;border:2px solid var(--line);font-size:32px;font-weight:500;background:#fff}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.list{display:flex;flex-direction:column;gap:0}
+.li{display:flex;align-items:center;gap:26px;padding:26px 0;border-bottom:2px solid var(--line);font-size:34px}
+.li:last-child{border-bottom:0}
+.li b{font-weight:600}
+.li .r{margin-left:auto}
+.dot{width:20px;height:20px;border-radius:50%;background:var(--ok);flex:none}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.kpi{border:2px solid var(--line);border-radius:22px;padding:28px 30px;background:#fff}
+.kpi .n{font-size:72px;font-weight:600;line-height:1.1}
+.kpi .t{font-size:28px;color:var(--muted)}
+.photo{height:360px;border-radius:22px;background:repeating-linear-gradient(135deg,#E8E4DA 0 22px,#EEEAE1 22px 44px);display:grid;place-items:center;font-size:34px;color:var(--muted);border:2px dashed #B9B3A6}
+.foot{margin-top:40px;display:flex;justify-content:space-between;font-size:28px;color:var(--muted)}
+.cover h1{font-size:96px;margin-top:32px;line-height:1.3} .cover .mock{margin-top:auto} .cover .sub{margin-bottom:40px}
+.big{font-size:240px;line-height:1;font-weight:700;color:var(--accent);margin-top:auto}
+.tips{margin-top:56px;display:flex;flex-direction:column;gap:30px}
+.tip{display:flex;gap:30px;align-items:flex-start;background:#fff;border:2px solid var(--line);border-radius:26px;padding:34px 36px}
+.tip .i{width:76px;height:76px;border-radius:20px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:40px;font-weight:700;flex:none}
+.tip b{display:block;font-size:40px;font-weight:600}
+.tip span{font-size:32px;color:var(--ink2);line-height:1.45}
+.flow{display:flex;align-items:center;gap:18px;font-size:32px;font-weight:600}
+.flow .arr{color:var(--muted);font-size:40px}
+svg{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+</style></head><body>
+
+<!-- ===================== ผู้ใช้สิทธิ์ ===================== -->
+<section class="card cover" id="p1">
+  <div class="top"><div class="brand"><span class="logo">H</span>HR Paper Mill</div><span class="count mono">01/07</span></div>
+  <span class="tag">วิธีใช้งาน · ผู้ใช้สิทธิ์</span>
+  <h1>ส่งรายงาน<br>การขายประจำวัน<br><em>ใน 3 ขั้นตอน</em></h1>
+  <p class="sub">ใช้ได้ทั้งมือถือ แท็บเล็ต และคอมพิวเตอร์</p>
+  <div class="mock" style="gap:26px">
+    <div class="flow"><span class="stepno" style="width:84px;height:84px;font-size:42px;margin:0;border-radius:22px">1</span>ยืนยันตำแหน่ง</div>
+    <div class="flow"><span class="stepno" style="width:84px;height:84px;font-size:42px;margin:0;border-radius:22px">2</span>เลือกประเภทการขาย</div>
+    <div class="flow"><span class="stepno" style="width:84px;height:84px;font-size:42px;margin:0;border-radius:22px">3</span>ถ่ายภาพหลักฐาน</div>
+  </div>
+  <div class="foot"><span class="mono">bysoftlight.github.io</span><span>ปัดเพื่อดูต่อ →</span></div>
+</section>
+
+<section class="card" id="p2">
+  <div class="top"><div class="brand"><span class="logo">H</span>HR Paper Mill</div><span class="count mono">02/07</span></div>
+  <span class="tag">ก่อนเริ่ม</span>
+  <h1>เข้าสู่ระบบ<br>ด้วย<em>รหัส 6 หลัก</em></h1>
+  <p class="sub">รหัสที่ได้รับจากบริษัท ระบบจำไว้ในเครื่อง ครั้งต่อไปไม่ต้องกรอกใหม่</p>
+  <div class="mock">
+    <span class="label">รหัสผู้ใช้สิทธิ์ (6 หลัก)</span>
+    <div class="input mono">A1B2C3</div>
+    <div class="btn">เข้าสู่ระบบ →</div>
+  </div>
+</section>
+
+<section class="card" id="p3">
+  <div class="top"><div class="brand"><span class="logo">H</span>HR Paper Mill</div><span class="count mono">03/07</span></div>
+  <span class="stepno mono">1</span>
+  <h1>ยืนยันตำแหน่ง</h1>
+  <p class="sub">กด <b>“อนุญาต”</b> เมื่อเบราว์เซอร์ขอใช้ตำแหน่ง <br>ส่งจากมือถือที่จุดขายจะแม่นที่สุด</p>
+  <div class="mock">
+    <div class="li" style="border:0;padding:0"><svg style="font-size:52px;color:var(--accent)" viewBox="0 0 24 24"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg><div><b>ได้รับพิกัดแล้ว</b><div class="label mono">13.7563, 100.5018</div></div><span class="r pill">✓ พร้อม</span></div>
+  </div>
+</section>
+
+<section class="card" id="p4">
+  <div class="top"><div class="brand"><span class="logo">H</span>HR Paper Mill</div><span class="count mono">04/07</span></div>
+  <span class="stepno mono">2</span>
+  <h1>เลือก<br>ประเภทการขาย</h1>
+  <p class="sub">ขายโดยตัวแทนได้ไม่เกิน <b>10 ครั้งต่อเดือน</b> <br>ระบบนับให้อัตโนมัติ</p>
+  <div class="mock">
+    <div class="row">
+      <div class="choice on">ขายด้วยตัวเอง<small>ผู้ใช้สิทธิ์อยู่ที่ร้าน</small></div>
+      <div class="choice">ขายโดยตัวแทน<small>เดือนนี้ใช้ไป <span class="mono">3/10</span></small></div>
+    </div>
+  </div>
+</section>
+
+<section class="card" id="p5">
+  <div class="top"><div class="brand"><span class="logo">H</span>HR Paper Mill</div><span class="count mono">05/07</span></div>
+  <span class="stepno mono">3</span>
+  <h1>ถ่ายภาพหลักฐาน<br>แล้ว<em>กดบันทึก</em></h1>
+  <p class="sub">ในภาพต้องเห็น บัตรร้านค้า · ล็อคที่ขาย · ผู้ขาย</p>
+  <div class="mock">
+    <div class="photo">บัตรร้านค้า + ล็อคที่ขาย + ผู้ขาย</div>
+    <div class="btn">บันทึกรายงานวันนี้</div>
+  </div>
+</section>
+
+<section class="card" id="p6">
+  <div class="top"><div class="brand"><span class="logo">H</span>HR Paper Mill</div><span class="count mono">06/07</span></div>
+  <span class="tag">หลังส่งงาน</span>
+  <h1>ดูประวัติ<br>และ<em>รายงาน PDF</em></h1>
+  <p class="sub">ดูยอดรายสัปดาห์ เดือน ปี กดรายการเพื่อขยายภาพ ดาวน์โหลดภาพ และเปิดแผนที่</p>
+  <div class="mock" style="gap:6px">
+    <div class="li"><span class="dot"></span><div><b>ขายด้วยตัวเอง</b><div class="label mono">27 ต.ค. · 09:12</div></div><span class="r pill blue">ดูภาพ</span></div>
+    <div class="li"><span class="dot"></span><div><b>ขายโดยตัวแทน</b><div class="label mono">26 ต.ค. · 08:47</div></div><span class="r pill blue">ดูภาพ</span></div>
+    <div class="btn out" style="margin-top:22px">⤓ ดาวน์โหลดรายงานประจำเดือน (PDF)</div>
+  </div>
+</section>
+
+<section class="card" id="p7">
+  <div class="top"><div class="brand"><span class="logo">H</span>HR Paper Mill</div><span class="count mono">07/07</span></div>
+  <span class="tag">เคล็ดลับ</span>
+  <h1>ใช้งานให้<em>ลื่นขึ้น</em></h1>
+  <div class="tips">
+    <div class="tip"><span class="i">⌂</span><div><b>เพิ่มไปยังหน้าจอหลัก</b><span>เปิดเมนูเบราว์เซอร์ แล้วเลือก “เพิ่มไปยังหน้าจอหลัก” เปิดได้เหมือนแอป</span></div></div>
+    <div class="tip"><span class="i">⌖</span><div><b>เปิด GPS ก่อนส่ง</b><span>บนคอมพิวเตอร์พิกัดอาจคลาดเคลื่อน ควรส่งจากมือถือที่จุดขาย</span></div></div>
+    <div class="tip"><span class="i">i</span><div><b>อ่านข้อปฏิบัติ</b><span>กด “อ่านข้อปฏิบัติ” ที่หน้าเข้าสู่ระบบ</span></div></div>
+  </div>
+  <div class="foot" style="margin-top:auto"><span class="mono">bysoftlight.github.io</span><span>HR Paper Mill</span></div>
+</section>
+
+<!-- ===================== Staff ===================== -->
+<section class="card cover" id="s1">
+  <div class="top"><div class="brand"><span class="logo">H</span>HR Paper Mill</div><span class="count mono">01/07</span></div>
+  <span class="tag staff">วิธีใช้งาน · เจ้าหน้าที่ (HR)</span>
+  <h1>ติดตามรายงาน<br>ของผู้ใช้สิทธิ์<br><em>ทุกคนในที่เดียว</em></h1>
+  <p class="sub">ดู กรอง แก้ไข และส่งออกข้อมูล อัปเดตเกือบเรียลไทม์</p>
+  <div class="mock">
+    <div class="kpis">
+      <div class="kpi"><div class="n mono" style="color:var(--ok)">42</div><div class="t">ส่งแล้ววันนี้</div></div>
+      <div class="kpi"><div class="n mono" style="color:var(--warn)">6</div><div class="t">ยังไม่ส่ง</div></div>
+    </div>
+  </div>
+  <div class="foot"><span class="mono">bysoftlight.github.io/staff.html</span><span>ปัดเพื่อดูต่อ →</span></div>
+</section>
+
+<section class="card" id="s2">
+  <div class="top"><div class="brand"><span class="logo">H</span>HR Paper Mill</div><span class="count mono">02/07</span></div>
+  <span class="stepno blue mono">1</span>
+  <h1>เข้าสู่ระบบ<br>ด้วย <em>Google</em> หรือ <span style="color:var(--line-g)">LINE</span></h1>
+  <p class="sub">บัญชีใหม่ยังไม่เห็นข้อมูล ต้อง<b>รอ Admin อนุมัติ</b>ก่อน<br>เมื่ออนุมัติแล้วระบบจะเปิดให้ใช้งานเอง</p>
+  <div class="mock">
+    <div class="btn out">G &nbsp;เข้าสู่ระบบด้วย Google</div>
+    <div class="btn line">เข้าสู่ระบบด้วย LINE</div>
+    <div class="flow" style="justify-content:center;margin-top:8px"><span class="pill warn">รออนุมัติ</span><span class="arr">→</span><span class="pill">ใช้งานได้</span></div>
+  </div>
+</section>
+
+<section class="card" id="s3">
+  <div class="top"><div class="brand"><span class="logo">H</span>HR Paper Mill</div><span class="count mono">03/07</span></div>
+  <span class="stepno blue mono">2</span>
+  <h1>ภาพรวมวันนี้</h1>
+  <p class="sub">ดูว่าใครส่งแล้ว ใครยังไม่ส่ง กดโทรหาได้ทันที<br>พร้อมแจ้งตำแหน่งผิดปกติ</p>
+  <div class="mock" style="gap:6px">
+    <div class="li"><span class="dot" style="background:var(--warn)"></span><div><b>สมชาย ใจดี</b><div class="label">ยังไม่ส่งวันนี้</div></div><span class="r pill blue">☎ โทร</span></div>
+    <div class="li"><span class="dot" style="background:var(--bad)"></span><div><b>สมหญิง รักงาน</b><div class="label">ห่างจากจุดขาย 820 ม.</div></div><span class="r pill bad">ผิดปกติ</span></div>
+  </div>
+</section>
+
+<section class="card" id="s4">
+  <div class="top"><div class="brand"><span class="logo">H</span>HR Paper Mill</div><span class="count mono">04/07</span></div>
+  <span class="stepno blue mono">3</span>
+  <h1>กรองรายงาน<br><em>ได้ทุกมุม</em></h1>
+  <p class="sub">เลือกได้หลายรายการ<br>มีข้อมูลใหม่ ระบบแจ้งเตือนให้กดโหลด</p>
+  <div class="mock">
+    <div class="chips">
+      <span class="chip on">บุคคล</span><span class="chip">วัน</span><span class="chip on">เดือน</span><span class="chip">ปี</span><span class="chip on">ประเภทการขาย</span><span class="chip">จุดขาย</span>
+    </div>
+    <div class="pill blue" style="align-self:flex-start;margin-top:8px">● มีรายงานใหม่ 2 รายการ · กดเพื่อโหลด</div>
+  </div>
+</section>
+
+<section class="card" id="s5">
+  <div class="top"><div class="brand"><span class="logo">H</span>HR Paper Mill</div><span class="count mono">05/07</span></div>
+  <span class="stepno blue mono">4</span>
+  <h1>เพิ่ม แก้ไข<br>หรือลบรายการ</h1>
+  <p class="sub">การลบต้องใส่เหตุผล และกู้คืนได้<br>ทุกการแก้ไขถูกบันทึกใน Log</p>
+  <div class="mock">
+    <div class="row">
+      <div class="btn" style="flex:1">+ เพิ่ม</div>
+      <div class="btn out" style="flex:1">แก้ไข</div>
+      <div class="btn out" style="flex:1;color:var(--bad);border-color:#F0C9C4">ลบ</div>
+    </div>
+    <div class="input" style="font-size:32px;letter-spacing:0;justify-content:flex-start;padding:0 30px;color:var(--muted)">เหตุผลการลบ เช่น ส่งซ้ำ</div>
+  </div>
+</section>
+
+<section class="card" id="s6">
+  <div class="top"><div class="brand"><span class="logo">H</span>HR Paper Mill</div><span class="count mono">06/07</span></div>
+  <span class="stepno blue mono">5</span>
+  <h1>ส่งออกข้อมูล<br><em>3 รูปแบบ</em></h1>
+  <p class="sub">ส่งออกตามตัวกรองที่เลือกอยู่</p>
+  <div class="mock">
+    <div class="row">
+      <div class="choice" style="align-items:center;text-align:center"><span style="font-size:52px;color:var(--bad)">PDF</span><small>พร้อมพิมพ์</small></div>
+      <div class="choice" style="align-items:center;text-align:center"><span style="font-size:52px;color:var(--ok)">Excel</span><small>ไฟล์ .xlsx</small></div>
+      <div class="choice" style="align-items:center;text-align:center"><span style="font-size:52px;color:var(--accent)">Sheets</span><small>Google Sheets</small></div>
+    </div>
+  </div>
+</section>
+
+<section class="card" id="s7">
+  <div class="top"><div class="brand"><span class="logo">H</span>HR Paper Mill</div><span class="count mono">07/07</span></div>
+  <span class="tag staff">สำหรับ Admin</span>
+  <h1>อนุมัติบัญชี<br>และ<em>กำหนดสิทธิ์</em></h1>
+  <div class="tips">
+    <div class="tip"><span class="i">V</span><div><b>Viewer</b><span>ดูข้อมูลอย่างเดียว</span></div></div>
+    <div class="tip"><span class="i">E</span><div><b>Editor</b><span>ดู เพิ่ม แก้ ลบ จัดการผู้ใช้สิทธิ์ และส่งออก</span></div></div>
+    <div class="tip"><span class="i">A</span><div><b>Admin</b><span>ทุกสิทธิ์ จัดการบัญชีเจ้าหน้าที่ และดู Log</span></div></div>
+  </div>
+  <div class="foot" style="margin-top:auto"><span class="mono">bysoftlight.github.io/staff.html</span><span>HR Paper Mill</span></div>
+</section>
+</body></html>
