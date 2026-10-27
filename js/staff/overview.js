@@ -31,7 +31,9 @@ VIEWS.overview = {
         if (this.loading) return;
         this.loading = true;
         if (manual) $('ovRefresh').disabled = true;
-        const r = await api('staff.overview');
+        const pre = !manual && ST.prefetch && ST.prefetch.overview;
+        if (ST.prefetch) ST.prefetch.overview = null;
+        const r = await (pre || api('staff.overview'));
         this.loading = false;
         $('ovRefresh').disabled = false;
         if (!r.success) {

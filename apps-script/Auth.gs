@@ -72,6 +72,38 @@ function findStaffById_(id) {
   return readStaff_().filter(s => s.id === id)[0] || null;
 }
 
+// ใช้ตอนตรวจ token ทุกคำขอ: เก็บแถวของบัญชีไว้ใน Cache 2 นาที ไม่ต้องเปิดแผ่นงาน Staff ทุกครั้ง
+// ทุกครั้งที่แก้แผ่นงาน Staff ผ่านระบบ ให้เรียก clearStaffCache_() (สิทธิ์/การระงับจึงมีผลทันที)
+const STAFF_CACHE_TTL_ = 120;
+function staffCacheGen_() {
+  const cache = CacheService.getScriptCache();
+  let gen = cache.get('staff:gen');
+  if (!gen) { gen = String(Date.now()); cache.put('staff:gen', gen, 21600); }
+  return gen;
+}
+function clearStaffCache_() {
+  try { CacheService.getScriptCache().put('staff:gen', String(Date.now()) + Math.random().toString(36).slice(2, 6), 21600); } catch (e) { console.warn('ล้าง cache ไม่สำเร็จ: ' + e); }
+}
+function findStaffByIdCached_(id) {
+  let cache, key;
+  try {
+    cache = CacheService.getScriptCache();
+    key = 'staff:' + staffCacheGen_() + ':' + id;
+    const hit = cache.get(key);
+    if (hit) { const c = JSON.parse(hit); return rowToStaff_(c.r, c.row); }
+  } catch (e) { cache = null; }
+  const sh = sheet_(SHEET.STAFF);
+  const last = sh.getLastRow();
+  if (last < 2) return null;
+  const rows = sh.getRange(2, 1, last - 1, S_HEADERS.length).getValues();
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i][SCOL.ID] !== id) continue;
+    if (cache) { try { cache.put(key, JSON.stringify({ r: rows[i], row: i + 2 }), STAFF_CACHE_TTL_); } catch (e) {} }
+    return rowToStaff_(rows[i], i + 2);
+  }
+  return null;
+}
+
 // สิทธิ์ที่ใช้งานได้จริง: ต้องเป็นบัญชี active เท่านั้น, Admin ได้ทุกสิทธิ์
 function effectivePerms_(staff) {
   if (!staff || staff.status !== 'active' || staff.role === 'pending') return [];
@@ -126,6 +158,7 @@ function loginStaff_(identity, userAgent) {
       sh.getRange(staff.row, SCOL.EMAIL + 1, 1, 3).setValues([[clean_(identity.email || staff.email, 200), clean_(identity.name, 120), clean_(identity.picture, 500)]]);
       sh.getRange(staff.row, SCOL.LAST_LOGIN + 1).setValue(now);
       staff.email = identity.email || staff.email; staff.name = identity.name; staff.picture = identity.picture; staff.lastLoginAt = now;
+      clearStaffCache_();
       log_(staff, 'staff.login', staff.email || staff.name, { provider: identity.provider, status: staff.status }, userAgent);
     }
     return { success: true, token: signToken_(staff), staff: staffDto_(staff) };
@@ -166,7 +199,7 @@ function staffFromToken_(token) {
   let payload;
   try { payload = JSON.parse(b64urlDecode_(parts[0])); } catch (e) { fail_('AUTH', 'Session ไม่ถูกต้อง'); }
   if (!payload.exp || payload.exp < Date.now()) fail_('AUTH', 'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่');
-  const staff = findStaffById_(payload.sid);
+  const staff = findStaffByIdCached_(payload.sid);
   if (!staff) fail_('AUTH', 'ไม่พบบัญชีนี้แล้ว กรุณาเข้าสู่ระบบใหม่');
   if (staff.tokenVersion !== payload.tv) fail_('AUTH', 'Session ถูกยกเลิก กรุณาเข้าสู่ระบบใหม่');
   return staff;

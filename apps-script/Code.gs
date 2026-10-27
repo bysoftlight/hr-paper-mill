@@ -48,7 +48,9 @@ function doPost(e) {
         const user = findUser_(req.userId, true);
         if (user && !user.active) return json_({ success: false, message: 'บัญชีนี้ถูกปิดใช้งาน กรุณาติดต่อเจ้าหน้าที่' });
         if (!user) log_({ id: '', name: 'ผู้ใช้สิทธิ์', role: 'participant' }, 'participant.login_failed', String(req.userId || '').slice(0, 20), '', '');
-        return json_(user ? { success: true, data: user } : { success: false, message: 'ไม่พบรหัสผู้ใช้สิทธิ์นี้ กรุณาตรวจสอบอีกครั้ง' });
+        if (!user) return json_({ success: false, message: 'ไม่พบรหัสผู้ใช้สิทธิ์นี้ กรุณาตรวจสอบอีกครั้ง' });
+        // ส่งประวัติมาพร้อมกัน ลดการเรียก API จาก 2 ครั้งเหลือ 1 ครั้งตอนเปิดแอป
+        return json_(req.withHistory ? { success: true, data: user, history: getUserHistory(user.id) } : { success: true, data: user });
       }
       case 'history':
         return json_({ success: true, history: getUserHistory(req.userId) });
@@ -206,8 +208,8 @@ function toRecord_(ts, type, imageUrl, lat, lng) {
   lat = parseFloat(lat); lng = parseFloat(lng);
   const hasLoc = isFinite(lat) && isFinite(lng);
   return {
-    date: Utilities.formatDate(ts, TZ, 'yyyy-MM-dd'),
-    time: Utilities.formatDate(ts, TZ, 'HH:mm'),
+    date: fmtDate_(ts),
+    time: fmtDate_(ts, 'HH:mm'),
     type: String(type),
     image: toImageUrl_(imageUrl),
     fileId: toFileId_(imageUrl),

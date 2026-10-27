@@ -39,6 +39,7 @@ function adminStaffUpdate_(req, actor, ua) {
     const approving = target.status !== 'active' && status === 'active';
     if (approving) sh.getRange(target.row, SCOL.APPROVED_BY + 1, 1, 2).setValues([[actor.email || actor.name, new Date()]]);
     if (req.note !== undefined) sh.getRange(target.row, SCOL.NOTE + 1).setValue(clean_(req.note, 300));
+    clearStaffCache_();
 
     const action = approving && target.status === 'pending' ? 'admin.staff.approve'
       : status === 'rejected' && target.status !== 'rejected' ? 'admin.staff.reject'
@@ -60,6 +61,7 @@ function adminStaffRevoke_(req, actor, ua) {
   const target = findStaffById_(req.id);
   if (!target) fail_('INVALID', 'ไม่พบบัญชีนี้');
   sheet_(SHEET.STAFF).getRange(target.row, SCOL.TOKEN_VER + 1).setValue(target.tokenVersion + 1);
+  clearStaffCache_();
   log_(actor, 'admin.staff.revoke', target.email || target.name, '', ua);
   return { success: true };
 }
@@ -74,6 +76,7 @@ function adminStaffDelete_(req, actor, ua) {
     if (target.id === actor.id) fail_('INVALID', 'ไม่สามารถลบบัญชีของตัวเองได้');
     if (target.role === 'admin' && target.status === 'active' && activeAdmins_(all).length <= 1) fail_('INVALID', 'ต้องมีผู้ดูแลระบบอย่างน้อย 1 คน');
     sheet_(SHEET.STAFF).deleteRow(target.row);
+    clearStaffCache_();
     log_(actor, 'admin.staff.delete', target.email || target.name, { provider: target.provider, role: target.role }, ua);
     return { success: true };
   } finally {

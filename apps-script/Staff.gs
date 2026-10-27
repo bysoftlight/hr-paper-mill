@@ -52,7 +52,7 @@ function handleStaffRequest_(req) {
       return staffParticipantSave_(req, staff, ua);
     case 'staff.image':
       requirePerm_(staff, 'records.view');
-      return staffImage_(req.fileId);
+      return staffImage_(req.fileId, req.thumb);
     case 'staff.export.gsheet':
       requirePerm_(staff, 'export');
       return staffExportGsheet_(req, staff, ua);
@@ -97,10 +97,10 @@ function readParticipants_() {
   }).filter(Boolean);
 }
 
-function readRecords_() {
+function readRecords_(participants) {
   const radius = anomalyRadius_();
   const users = {};
-  readParticipants_().forEach(u => { users[u.id] = u; });
+  (participants || readParticipants_()).forEach(u => { users[u.id] = u; });
   return readRows_(SHEET.RECORDS, R_HEADERS.length).map((r, i) => {
     const ts = toDate_(r[RCOL.TS], r[RCOL.DATE]);
     if (!ts) return null;
@@ -211,8 +211,9 @@ function staffOverview_() {
   const now = new Date();
   const today = fmtDate_(now);
   const month = today.slice(0, 7);
-  const participants = readParticipants_().filter(p => p.active);
-  const records = readRecords_().filter(r => r.status === 'active');
+  const allParticipants = readParticipants_();
+  const participants = allParticipants.filter(p => p.active);
+  const records = readRecords_(allParticipants).filter(r => r.status === 'active');
 
   const todayRecs = records.filter(r => r.date === today);
   const reported = {};
@@ -227,11 +228,16 @@ function staffOverview_() {
     .map(id => ({ id: id, name: pMap[id] ? pMap[id].name : id, site: pMap[id] ? pMap[id].site : '', used: agentMonth[id], limit: AGENT_LIMIT_PER_MONTH }))
     .sort((a, b) => b.used - a.used);
 
+  const byDate = {};
+  records.forEach(r => {
+    const t = byDate[r.date] || (byDate[r.date] = { count: 0, agent: 0 });
+    t.count++;
+    if (r.type === SALES_TYPES[1]) t.agent++;
+  });
   const trend = [];
   for (let i = 29; i >= 0; i--) {
     const d = fmtDate_(new Date(now.getTime() - i * 86400000));
-    const recs = records.filter(r => r.date === d);
-    trend.push({ date: d, count: recs.length, agent: recs.filter(r => r.type === SALES_TYPES[1]).length });
+    trend.push({ date: d, count: byDate[d] ? byDate[d].count : 0, agent: byDate[d] ? byDate[d].agent : 0 });
   }
 
   const monthRecs = records.filter(r => r.date.slice(0, 7) === month);
@@ -357,7 +363,8 @@ function staffParticipantsList_() {
   const now = new Date();
   const today = fmtDate_(now), month = today.slice(0, 7), year = today.slice(0, 4);
   const stats = {};
-  readRecords_().forEach(r => {
+  const participants = readParticipants_();
+  readRecords_(participants).forEach(r => {
     if (r.status !== 'active') return;
     const s = stats[r.userId] || (stats[r.userId] = { month: 0, monthAgent: 0, year: 0, last: null, today: false, anomalies: 0, lastLat: null, lastLng: null });
     if (r.date.slice(0, 4) === year) s.year++;
@@ -365,7 +372,7 @@ function staffParticipantsList_() {
     if (r.date === today) s.today = true;
     if (!s.last || r.ts > s.last) { s.last = r.ts; if (r.hasGps) { s.lastLat = r.lat; s.lastLng = r.lng; } }
   });
-  const list = readParticipants_().map(p => {
+  const list = participants.map(p => {
     const s = stats[p.id] || {};
     return {
       id: p.id, name: p.name, status: p.status, pic: p.pic, picRaw: p.picRaw, site: p.site, siteLat: p.siteLat, siteLng: p.siteLng,
@@ -417,12 +424,16 @@ function staffParticipantSave_(req, staff, ua) {
 }
 
 // รูปหลักฐาน: อนุญาตเฉพาะไฟล์ที่อ้างอิงอยู่ในระบบ (กันการเปิดไฟล์อื่นใน Drive)
-function staffImage_(fileId) {
+// thumb = ใช้รูปย่อของ Drive (เล็กกว่าไฟล์จริงหลายเท่า) สำหรับตาราง
+function staffImage_(fileId, thumb) {
   fileId = String(fileId || '');
   if (!/^[\w-]{20,}$/.test(fileId)) fail_('INVALID', 'คำขอไม่ถูกต้อง');
   const known = readRows_(SHEET.RECORDS, RCOL.IMAGE + 1).some(r => toFileId_(r[RCOL.IMAGE]) === fileId) ||
     readRows_(SHEET.USERS, UCOL.PIC + 1).some(r => toFileId_(r[UCOL.PIC]) === fileId);
   if (!known) fail_('INVALID', 'ไม่พบรูป');
-  const blob = DriveApp.getFileById(fileId).getBlob();
+  const file = DriveApp.getFileById(fileId);
+  let blob = null;
+  if (thumb) { try { blob = file.getThumbnail(); } catch (e) { blob = null; } }
+  if (!blob) blob = file.getBlob();
   return { success: true, dataUrl: 'data:' + blob.getContentType() + ';base64,' + Utilities.base64Encode(blob.getBytes()) };
 }

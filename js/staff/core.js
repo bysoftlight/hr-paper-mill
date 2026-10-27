@@ -122,6 +122,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (ST.token) {
         $('appContainer').hidden = false;
         $('appContainer').classList.add('is-booting');
+        // โหลดภาพรวมไปพร้อมกับตรวจ session (ไม่ต้องรอทีละคำขอ) — ถ้า session ใช้ไม่ได้ ผลนี้จะถูกทิ้ง
+        const tab = location.hash.replace('#', '').split('?')[0];
+        if (!tab || tab === 'overview') ST.prefetch = { overview: callApi('staff.overview', { token: ST.token, userAgent: navigator.userAgent.slice(0, 200) }) };
         // ตอนเปิดหน้า: session หมดอายุ/ใช้ไม่ได้ ให้ไปหน้าเข้าสู่ระบบเงียบๆ (ไม่ต้องขึ้นกล่องแจ้งเตือน)
         const r = await callApi('staff.me', { token: ST.token });
         if (r.success) return enter(r.staff);
@@ -346,24 +349,41 @@ function loadParticipants(force) {
 
 // รูปหลักฐาน: thumbnail ก่อน ถ้าไม่ได้แชร์สาธารณะให้ขอผ่าน API (แคชไว้)
 const IMG_CACHE = new Map();
-function imageData(fileId) {
-    if (!fileId) return Promise.resolve(null);
-    if (!IMG_CACHE.has(fileId)) {
-        const p = api('staff.image', { fileId }).then(r => (r.success ? r.dataUrl : null));
-        p.then(v => { if (!v) IMG_CACHE.delete(fileId); });
-        IMG_CACHE.set(fileId, p);
-    }
-    return IMG_CACHE.get(fileId);
+// คำขอรูปผ่าน Apps Script ช้าและกินโควตาการทำงานพร้อมกัน: จำกัดครั้งละ 3 คำขอ
+const IMG_QUEUE = { running: 0, waiting: [] };
+function queueImage(task) {
+    return new Promise(resolve => {
+        const run = () => {
+            IMG_QUEUE.running++;
+            task().then(resolve, () => resolve(null)).finally(() => {
+                IMG_QUEUE.running--;
+                if (IMG_QUEUE.waiting.length) IMG_QUEUE.waiting.shift()();
+            });
+        };
+        if (IMG_QUEUE.running < 3) run(); else IMG_QUEUE.waiting.push(run);
+    });
 }
-function loadImg(img, rec, onDone) {
+// thumb = รูปย่อจาก Drive (เล็กกว่าไฟล์จริงมาก) สำหรับตาราง
+function imageData(fileId, thumb = false) {
+    if (!fileId) return Promise.resolve(null);
+    const key = fileId + (thumb ? ':t' : '');
+    if (!IMG_CACHE.has(key)) {
+        const p = queueImage(() => api('staff.image', { fileId, thumb }).then(r => (r.success ? r.dataUrl : null)));
+        p.then(v => { if (!v) IMG_CACHE.delete(key); });
+        IMG_CACHE.set(key, p);
+    }
+    return IMG_CACHE.get(key);
+}
+function loadImg(img, rec, onDone, thumb = false) {
     const finish = ok => { img.classList.remove('is-loading'); if (onDone) onDone(ok); };
     img.classList.add('is-loading');
     img.onload = () => finish(true);
     img.onerror = () => {
         img.onerror = null;
-        imageData(rec.fileId).then(u => { if (u) img.src = u; else finish(false); });
+        imageData(rec.fileId, thumb).then(u => { if (u) img.src = u; else finish(false); });
     };
-    if (rec.image) img.src = rec.image; else img.onerror();
+    // รูปในตารางขอขนาดเล็ก (Drive thumbnail รองรับ sz=w…)
+    if (rec.image) img.src = thumb ? rec.image.replace(/([?&]sz=)w\d+/, '$1w200') : rec.image; else img.onerror();
 }
 
 // ---------- Live updates ----------

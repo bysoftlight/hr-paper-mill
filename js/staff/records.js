@@ -185,13 +185,13 @@ VIEWS.records = {
               <td data-label="จุดขาย">${esc(r.site || '-')}</td>
               <td data-label="ประเภท">${typeChip(r.type)}${r.status === 'deleted' ? ' <span class="badge is-bad">ลบแล้ว</span>' : ''}${r.note ? ` <span class="badge" title="${esc(r.note)}">หมายเหตุ</span>` : ''}</td>
               <td data-label="ตำแหน่ง">${this.locCell(r)}</td>
-              <td class="td-thumb">${r.image || r.fileId ? `<img class="thumb" alt="" data-thumb="${i}">` : ''}</td>
+              <td class="td-thumb">${r.image || r.fileId ? `<img class="thumb" alt="" loading="lazy" decoding="async" data-thumb="${i}">` : ''}</td>
               ${editable ? `<td class="td-actions"><div class="row-btns"><button type="button" class="icon-btn" data-edit="${i}" aria-label="แก้ไข">${icon('edit')}</button></div></td>` : ''}
             </tr>`).join('')}</tbody></table>`;
         const tbl = $('recTable');
         tbl.querySelectorAll('img[data-thumb]').forEach(img => loadImg(img, rows[img.dataset.thumb], ok => {
             if (!ok) img.outerHTML = `<span class="thumb-empty" title="โหลดรูปไม่ได้">${icon('image')}</span>`;
-        }));
+        }, true));
         tbl.querySelectorAll('tbody tr').forEach(tr => {
             const open = () => this.openDetail(rows[tr.dataset.i]);
             tr.addEventListener('click', e => { if (!e.target.closest('[data-edit]')) open(); });

@@ -87,8 +87,15 @@ function num_(v) {
   return isFinite(n) ? n : null;
 }
 
+// Asia/Bangkok = UTC+7 ไม่มีเวลาออมแสง: คำนวณเองเร็วกว่า Utilities.formatDate มาก (เรียกหลายพันครั้งต่อคำขอ)
+const BKK_OFFSET_MS_ = 7 * 3600000;
 function fmtDate_(d, pattern) {
-  return Utilities.formatDate(d, TZ, pattern || 'yyyy-MM-dd');
+  pattern = pattern || 'yyyy-MM-dd';
+  if (pattern !== 'yyyy-MM-dd' && pattern !== 'HH:mm') return Utilities.formatDate(d, TZ, pattern);
+  const b = new Date(d.getTime() + BKK_OFFSET_MS_);
+  const p2 = n => (n < 10 ? '0' : '') + n;
+  return pattern === 'HH:mm' ? p2(b.getUTCHours()) + ':' + p2(b.getUTCMinutes())
+    : b.getUTCFullYear() + '-' + p2(b.getUTCMonth() + 1) + '-' + p2(b.getUTCDate());
 }
 
 function toDate_(v, fallbackDateStr) {
