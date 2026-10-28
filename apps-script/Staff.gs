@@ -24,6 +24,7 @@ function handleStaffRequest_(req) {
     case 'staff.me':
       return { success: true, staff: staffDto_(staff), token: renewedToken_(staff) };
     case 'staff.logout':
+      if (req.everywhere) return staffLogoutEverywhere_(staff, ua);
       log_(staff, 'staff.logout', staff.email || staff.name, '', ua);
       return { success: true };
     case 'staff.overview':
@@ -532,4 +533,14 @@ function staffImage_(fileId, thumb) {
   if (thumb) { try { blob = file.getThumbnail(); } catch (e) { blob = null; } }
   if (!blob) blob = file.getBlob();
   return { success: true, dataUrl: 'data:' + blob.getContentType() + ';base64,' + Utilities.base64Encode(blob.getBytes()) };
+}
+
+// ออกจากระบบทุกอุปกรณ์ (จากหน้าตั้งค่าของตัวเอง): เพิ่ม token version ให้ token เดิมทุกเครื่องใช้ไม่ได้ทันที
+function staffLogoutEverywhere_(staff, ua) {
+  const me = findStaffById_(staff.id); // อ่านใหม่จากชีต (แถวและ token version ล่าสุด)
+  if (!me) fail_('INVALID', 'ไม่พบบัญชีนี้');
+  sheet_(SHEET.STAFF).getRange(me.row, SCOL.TOKEN_VER + 1).setValue(me.tokenVersion + 1);
+  clearStaffCache_();
+  log_(staff, 'staff.logout_all', staff.email || staff.name, '', ua);
+  return { success: true, everywhere: true };
 }

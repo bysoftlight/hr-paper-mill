@@ -1,8 +1,8 @@
 /* HR Paper Mill — Google Blog design system (see DESIGN.md)
    Mobile-first. Breakpoints: 768px (tablet / iPad, side rail) · 1100px (laptop / desktop, full sidebar + 2 columns) */
 
-:root {
-    /* Google Blog look: white canvas, Material 3 surfaces, Google Blue */
+:root, .pdf-stage {
+    /* Google Blog look: white canvas, Material 3 surfaces, brand blue (.pdf-stage stays light in dark mode) */
     --ground: #FFFFFF;
     --surface: #FFFFFF;
     --field: #F8FAFD;
@@ -24,6 +24,12 @@
     --scrim: rgba(31, 31, 31, .45);
     --veil: rgba(255, 255, 255, .85);
     --container: #F0F4F9;
+    --outline: var(--outline);
+    --hover: var(--hover);
+    --topbar: rgba(255, 255, 255, .92);
+    --on-accent: #FFFFFF; --on-accent-soft: var(--on-accent-soft);
+    --on-ok: #FFFFFF; --on-warn: #FFFFFF; --on-bad: #FFFFFF;
+    color-scheme: light;
 
     --font: 'Google Sans', 'Noto Sans Thai', system-ui, sans-serif;
     --mono: 'Google Sans Code', 'Google Sans', ui-monospace, monospace;
@@ -34,6 +40,34 @@
     --content: 480px;
     --nav-h: 64px;
     --side-w: 0px;
+}
+
+/* โหมดมืด: เลือกเองในหน้า "ตั้งค่า" หรือ "ตามระบบ" (ค่าเริ่มต้น) */
+:root[data-theme="dark"] {
+    --ground: #131314; --surface: #1B1C1D; --field: #1F2022; --container: #2A2B2E;
+    --line: #3C4043; --line-soft: #2D2F31; --outline: #5F6368; --hover: #2A2B2E;
+    --ink: #E3E3E3; --ink-2: var(--outline); --muted: #A9ADB1;
+    --accent: #A8C7FA; --accent-hover: #D3E3FD; --accent-soft: #0B3B8C; --on-accent: #062E6F; --on-accent-soft: #D3E3FD;
+    --ok: #6DD58C; --ok-soft: #0F3D1E; --on-ok: #0A3818;
+    --warn: #F5C451; --warn-soft: #3D2E00; --on-warn: #3D2E00;
+    --bad: #F2B8B5; --bad-soft: #5C1B17; --bad-line: #8C1D18; --on-bad: #601410;
+    --rail: #2A2B2E; --not-ready: #3C4043; --dash: #5E7FB8;
+    --scrim: rgba(0, 0, 0, .6); --veil: rgba(19, 19, 20, .85); --topbar: rgba(19, 19, 20, .9);
+    color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]):not([data-theme="dark"]) {
+        --ground: #131314; --surface: #1B1C1D; --field: #1F2022; --container: #2A2B2E;
+        --line: #3C4043; --line-soft: #2D2F31; --outline: #5F6368; --hover: #2A2B2E;
+        --ink: #E3E3E3; --ink-2: var(--outline); --muted: #A9ADB1;
+        --accent: #A8C7FA; --accent-hover: #D3E3FD; --accent-soft: #0B3B8C; --on-accent: #062E6F; --on-accent-soft: #D3E3FD;
+        --ok: #6DD58C; --ok-soft: #0F3D1E; --on-ok: #0A3818;
+        --warn: #F5C451; --warn-soft: #3D2E00; --on-warn: #3D2E00;
+        --bad: #F2B8B5; --bad-soft: #5C1B17; --bad-line: #8C1D18; --on-bad: #601410;
+        --rail: #2A2B2E; --not-ready: #3C4043; --dash: #5E7FB8;
+        --scrim: rgba(0, 0, 0, .6); --veil: rgba(19, 19, 20, .85); --topbar: rgba(19, 19, 20, .9);
+        color-scheme: dark;
+}
 }
 
 /* --- Base --- */
@@ -310,7 +344,7 @@ b { font-weight: 600; }
     background: var(--line-soft); color: var(--ink-2); font-size: 13px;
 }
 /* ขั้นตอนที่เสร็จแล้ว: คงตัวเลขไว้ เปลี่ยนพื้นเป็นสีเขียว (ขาวบน ok = 7.0:1) */
-.step.is-done .step-num { background: var(--ok); color: #fff; }
+.step.is-done .step-num { background: var(--ok); color: var(--on-ok); }
 
 .status-box { display: flex; align-items: center; gap: 12px; }
 .status-box b { display: block; font-size: 14px; font-weight: 500; }
@@ -493,7 +527,7 @@ dialog::backdrop { background: var(--scrim); }
 .alert p { margin-top: 6px; font-size: 14px; color: var(--muted); }
 .alert-actions { display: flex; gap: 10px; margin-top: 20px; }
 .alert-actions .btn { min-height: 48px; }
-.alert-actions .btn-bad { background: var(--bad); color: #fff; border: 0; }
+.alert-actions .btn-bad { background: var(--bad); color: var(--on-bad); border: 0; }
 
 /* --- Loading --- */
 .loading {
@@ -851,27 +885,27 @@ h1, h2, h3 { font-weight: 500; letter-spacing: -.01em; }
 .btn, .btn-chip, .btn-outline, .btn-danger { border-radius: 999px; font-weight: 500; }
 /* ปุ่มหลักไล่สีน้ำเงินตามโลโก้ Double A (#126EE4 → #0850D1) */
 .btn-primary, .btn-submit.is-ready { background: linear-gradient(135deg, #126EE4, #0850D1); }
-.btn-outline { border-color: #C4C7C5; color: var(--accent); }
-.btn-chip { border-color: #C4C7C5; }
+.btn-outline { border-color: var(--outline); color: var(--accent); }
+.btn-chip { border-color: var(--outline); }
 .btn-text { font-weight: 500; }
 @media (hover: hover) {
     .btn-primary:not(:disabled):hover, .btn-submit.is-ready:hover { box-shadow: 0 1px 3px rgba(60, 64, 67, .3), 0 4px 8px 3px rgba(60, 64, 67, .15); }
-    .btn-outline:hover, .btn-chip:not(:disabled):hover { background: #F2F6FC; border-color: #C4C7C5; }
+    .btn-outline:hover, .btn-chip:not(:disabled):hover { background: var(--hover); border-color: var(--outline); }
 }
 
 .card, .tile, .hist-list { background: var(--field); border-color: transparent; }
 .card .card, .card .tile { background: var(--surface); }
-.input { background: var(--surface); border: 1px solid #C4C7C5; border-radius: var(--r-sm); }
+.input { background: var(--surface); border: 1px solid var(--outline); border-radius: var(--r-sm); }
 .input:focus { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-.select { border-color: #C4C7C5; border-radius: 999px; padding-left: 16px; }
+.select { border-color: var(--outline); border-radius: 999px; padding-left: 16px; }
 .contact, .loc-link { background: var(--surface); border-color: var(--line); }
 .upload { background: var(--surface); border-color: var(--dash); border-radius: var(--r-lg); }
-.choice { border-width: 1px; border-color: #C4C7C5; background: var(--surface); border-radius: var(--r-lg); }
+.choice { border-width: 1px; border-color: var(--outline); background: var(--surface); border-radius: var(--r-lg); }
 .choice:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .icon-box { background: var(--container); }
 .step-num { background: var(--container); }
 .segmented { background: var(--container); border-radius: 999px; }
-.segmented button[aria-selected="true"] { background: var(--accent-soft); color: #041E49; }
+.segmented button[aria-selected="true"] { background: var(--accent-soft); color: var(--on-accent-soft); }
 .chip { background: var(--container); }
 .bars span { background: var(--accent-soft); }
 .photo img, .hist-body img, .photo-btn { background: var(--container); border-color: transparent; }
@@ -880,9 +914,9 @@ h1, h2, h3 { font-weight: 500; letter-spacing: -.01em; }
 /* Header: white bar with the Double A Paper Mill mark */
 .logo { width: 36px; height: 36px; border-radius: 50%; background: none; object-fit: contain; }
 .brand { font-weight: 500; font-size: 18px; letter-spacing: -.01em; color: #444746; }
-.topbar { background: rgba(255, 255, 255, .92); backdrop-filter: saturate(180%) blur(12px); -webkit-backdrop-filter: saturate(180%) blur(12px); border-bottom-color: var(--line-soft); }
+.topbar { background: var(--topbar); backdrop-filter: saturate(180%) blur(12px); -webkit-backdrop-filter: saturate(180%) blur(12px); border-bottom-color: var(--line-soft); }
 .bottomnav { border-top-color: var(--line-soft); }
-.nav-item[aria-current="page"] { color: #041E49; }
+.nav-item[aria-current="page"] { color: var(--on-accent-soft); }
 .nav-item[aria-current="page"] .ic { background: var(--accent-soft); border-radius: 999px; padding: 4px 18px; box-sizing: content-box; }
 .bottomnav .nav-item { gap: 4px; }
 
@@ -913,3 +947,73 @@ h1, h2, h3 { font-weight: 500; letter-spacing: -.01em; }
 }
 
 .pdf-brand .logo { width: 36px; height: 36px; }
+
+/* ปุ่มหลักตอนชี้: เข้มขึ้นแต่ยังเป็นสีโลโก้ (ตัวอักษรขาวอ่านได้ทั้งโหมดสว่างและมืด) */
+@media (hover: hover) {
+    .btn-primary:not(:disabled):hover, .btn-submit.is-ready:hover { background: linear-gradient(135deg, #0F63D0, #0640AA); }
+}
+
+/* =====================================================
+   การตั้งค่า (Settings) — ขนาดตัวอักษร · ลดภาพเคลื่อนไหว · หน้าตั้งค่า
+   ===================================================== */
+/* ขยายเฉพาะเนื้อหา (แถบเมนูคงขนาดเดิม) — zoom คำนวณความกว้างใหม่ ไม่ทำให้ล้นจอ */
+:root[data-text="l"] :is(.view, .login, .sheet-body, .sheet-head, .sheet-foot, .alert, .pending-page) { zoom: 1.12; }
+:root[data-text="xl"] :is(.view, .login, .sheet-body, .sheet-head, .sheet-foot, .alert, .pending-page) { zoom: 1.25; }
+:root[data-text="l"] .pdf-stage *, :root[data-text="xl"] .pdf-stage * { zoom: 1; }
+
+:root[data-motion="reduce"] *, :root[data-motion="reduce"] *::before, :root[data-motion="reduce"] *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important;
+}
+
+.set-groups { display: flex; flex-direction: column; gap: 22px; }
+.set-title { margin: 0 4px 8px; font-size: 13px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.set-list { list-style: none; padding: 0; margin: 0; background: var(--field); border-radius: var(--r-lg); overflow: hidden; }
+.set-row { display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 12px 16px; flex-wrap: wrap; }
+.set-row + .set-row { border-top: 1px solid var(--line-soft); }
+.set-icon { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 12px; color: #fff; }
+.set-icon .ic { width: 22px; height: 22px; }
+.tone-blue { background: #1A73E8; } .tone-purple { background: #8E44D9; } .tone-teal { background: #12A4A4; }
+.tone-green { background: #1E8E3E; } .tone-red { background: #E8453C; } .tone-amber { background: #E37400; }
+.tone-gray { background: #5F6368; } .tone-indigo { background: #3F51B5; }
+.set-text { flex: 1 1 10em; min-width: 0; display: flex; flex-direction: column; line-height: 1.4; }
+.set-text b { font-size: 15px; font-weight: 500; }
+.set-text small { font-size: 13px; color: var(--muted); }
+.set-text small b { font-size: 13px; color: var(--ink-2); }
+.set-ctrl { flex: none; display: flex; align-items: center; }
+.set-info { flex: 1 1 100%; padding-left: 54px; font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 8px; }
+.set-info .row-actions { margin-top: 0; }
+/* ตัวเลือกแบบแคปซูล: บนมือถือลงบรรทัดใหม่ใต้ชื่อ */
+.set-row.is-wide .set-ctrl { flex: 1 1 100%; }
+.set-row.is-wide .set-seg { display: flex; width: 100%; flex-wrap: nowrap; }
+.set-row.is-wide .set-seg button { flex: 1 1 0; min-width: 0; padding: 0 6px; white-space: nowrap; }
+.set-seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 999px; background: var(--container); max-width: 100%; }
+.set-seg button {
+    min-height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent;
+    color: var(--muted); font-size: 14px; font-weight: 500; cursor: pointer;
+}
+.set-seg button[aria-checked="true"] { background: var(--accent-soft); color: var(--on-accent-soft); }
+.set-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.set-select { width: auto; min-width: 140px; height: 40px; }
+.set-switch { position: relative; display: inline-flex; cursor: pointer; }
+.set-switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.set-switch span {
+    width: 52px; height: 32px; border-radius: 999px; background: var(--container); border: 2px solid var(--muted);
+    position: relative; transition: background-color .15s, border-color .15s;
+}
+.set-switch span::after {
+    content: ""; position: absolute; top: 6px; left: 6px; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--muted); transition: transform .15s, width .15s, height .15s, top .15s, left .15s;
+}
+.set-switch input:checked + span { background: var(--accent-fill, #0850D1); border-color: var(--accent-fill, #0850D1); }
+.set-switch input:checked + span::after { top: 2px; left: 2px; width: 24px; height: 24px; background: #fff; transform: translateX(20px); }
+.set-switch input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.set-note { font-size: 12px; color: var(--muted); text-align: center; }
+.set-status { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+.set-status.is-ok { color: var(--ok); } .set-status.is-warn { color: var(--warn); } .set-status.is-bad { color: var(--bad); }
+
+@media (min-width: 768px) {
+    .set-row.is-wide .set-ctrl { flex: none; }
+    .set-row.is-wide .set-seg { display: inline-flex; width: auto; }
+    .set-row.is-wide .set-seg button { flex: none; padding: 0 14px; }
+    .set-row.is-wide { flex-wrap: nowrap; }
+}

@@ -122,6 +122,7 @@ async function api(action, payload = {}) {
 document.addEventListener('DOMContentLoaded', async () => {
     initDialogs();
     initShell();
+    initSettings();
     Object.values(VIEWS).forEach(v => v.init && v.init());
 
     const params = new URLSearchParams(location.search);
@@ -355,6 +356,8 @@ function tabAllowed(t) { return !TAB_PERM[t] || can(TAB_PERM[t]); }
 function tabFromHash() {
     const t = location.hash.replace('#', '').split('?')[0];
     if (TAB_ORDER.includes(t) && tabAllowed(t)) return t;
+    const start = Prefs.get('startTab');
+    if (TAB_ORDER.includes(start) && tabAllowed(start)) return start;
     return TAB_ORDER.find(tabAllowed);
 }
 
@@ -444,7 +447,8 @@ function loadImg(img, rec, onDone, thumb = false) {
 let liveTimer = null, liveTextTimer = null;
 function startLive() {
     clearInterval(liveTimer); clearInterval(liveTextTimer);
-    liveTimer = setInterval(pollLive, 20000);
+    const sec = Number(Prefs.get('live')) || 0;
+    if (sec) liveTimer = setInterval(pollLive, sec * 1000);
     liveTextTimer = setInterval(updateLiveText, 5000);
     updateLiveText();
 }
@@ -452,7 +456,7 @@ function startLive() {
 document.addEventListener('visibilitychange', () => {
     if (!ST.me || $('appContainer').hidden) return;
     updateLiveText();
-    if (!document.hidden) pollLive();
+    if (!document.hidden && Number(Prefs.get('live'))) pollLive();
 });
 // ออกจากระบบจากอีกแท็บ หรือกลับมาด้วยปุ่มย้อนกลับหลังออกจากระบบ → กลับหน้าเข้าสู่ระบบ
 window.addEventListener('storage', e => {
@@ -476,15 +480,61 @@ async function pollLive() {
     if (can('admin') && VIEWS.admin && VIEWS.admin.refreshBadge) VIEWS.admin.refreshBadge();
 }
 
+const LIVE_LABELS = { 20: '20 วินาที', 60: '1 นาที', 300: '5 นาที' };
 function updateLiveText() {
-    const paused = document.hidden;
+    const every = Number(Prefs.get('live')) || 0;
+    const paused = document.hidden || !every;
     const sec = Math.round((Date.now() - (ST.lastSync || Date.now())) / 1000);
-    const text = paused ? 'หยุดชั่วคราว' : sec < 10 ? 'อัปเดตสด' : `อัปเดตสด · ${sec < 60 ? sec + ' วิ' : Math.round(sec / 60) + ' นาที'}`;
+    const ago = sec < 60 ? sec + ' วิ' : Math.round(sec / 60) + ' นาที';
+    const text = !every ? 'ปิดอัปเดตอัตโนมัติ' : document.hidden ? 'หยุดชั่วคราว' : sec < 10 ? 'อัปเดตสด' : `อัปเดตสด · ${ago}`;
     document.querySelectorAll('[data-live]').forEach(el => {
         el.classList.toggle('is-paused', paused);
         el.querySelector('[data-live-text]').textContent = text;
-        el.title = 'ตรวจสอบรายการใหม่ทุก 20 วินาที';
+        el.title = every ? `ตรวจสอบรายการใหม่ทุก ${LIVE_LABELS[every] || every + ' วินาที'}` : 'เปิดได้ที่ บัญชี › ตั้งค่า';
     });
+}
+
+// ---------- Settings ----------
+function initSettings() {
+    document.addEventListener('click', e => {
+        if (e.target.closest('[data-settings]')) openSettings();
+        if (e.target.closest('[data-action="logout-all"]')) logoutEverywhere();
+    });
+    document.addEventListener('prefchange', e => {
+        const key = e.detail.key;
+        if (!ST.me || $('appContainer').hidden) return;
+        if (key === 'live' || key === null) startLive();
+        if ((key === 'pageSize' || key === 'thumbs' || key === null) && VIEWS.records.loaded) { VIEWS.records.page = 1; VIEWS.records.load(); }
+    });
+}
+
+function openSettings() {
+    const signedIn = ST.me && !$('appContainer').hidden;
+    const tabs = [['auto', 'อัตโนมัติ (หน้าแรกที่มีสิทธิ์)']].concat(
+        [['overview', 'ภาพรวม'], ['records', 'รายงาน'], ['participants', 'ผู้ใช้สิทธิ์'], ['admin', 'ผู้ดูแลระบบ'], ['account', 'บัญชี']].filter(([t]) => !signedIn || tabAllowed(t)));
+    const work = !signedIn ? [] : [
+        { icon: 'home', tone: 'blue', label: 'หน้าแรกหลังเข้าสู่ระบบ', desc: 'หน้าที่เปิดทุกครั้งเมื่อเข้าเว็บนี้', control: { type: 'select', key: 'startTab', options: tabs } },
+        can('records.view') && { icon: 'refresh', tone: 'green', label: 'อัปเดตรายการใหม่อัตโนมัติ', desc: 'ถี่ = เห็นรายงานใหม่เร็ว · ห่าง/ปิด = ประหยัดเน็ตและโควตาระบบ', control: { type: 'seg', key: 'live', options: [[20, '20 วิ'], [60, '1 นาที'], [300, '5 นาที'], [0, 'ปิด']] } },
+        can('records.view') && { icon: 'list', tone: 'purple', label: 'จำนวนรายการต่อหน้า', desc: 'หน้ารายงาน · มากขึ้น = เลื่อนดูได้ยาว แต่โหลดนานขึ้น', control: { type: 'seg', key: 'pageSize', options: [['auto', 'อัตโนมัติ'], ['20', '20'], ['50', '50'], ['100', '100']] } },
+        can('records.view') && { icon: 'image', tone: 'teal', label: 'แสดงรูปย่อในตาราง', desc: 'ปิดเพื่อให้หน้ารายงานโหลดเร็วขึ้น (ยังเปิดดูรูปเต็มได้)', control: { type: 'switch', key: 'thumbs' } }
+    ].filter(Boolean);
+    renderSettings($('settingsBody'), [displaySettings(), { title: 'การทำงาน', rows: work }]);
+    showModal('settingsModal');
+}
+
+async function logoutEverywhere() {
+    const ok = await showMessage({ title: 'ออกจากระบบทุกอุปกรณ์?', text: 'ทุกเครื่องที่เคยเข้าสู่ระบบด้วยบัญชีนี้ (รวมเครื่องนี้) จะต้องเข้าสู่ระบบใหม่ ใช้เมื่อลืมออกจากระบบในเครื่องอื่น หรือสงสัยว่ามีคนอื่นใช้บัญชี', tone: 'bad', okText: 'ออกจากทุกอุปกรณ์', cancelText: 'ยกเลิก' });
+    if (!ok) return;
+    showLoading(true, 'กำลังออกจากระบบทุกอุปกรณ์…');
+    const r = await api('staff.logout', { everywhere: true });
+    showLoading(false);
+    if (!r.success) return toast(r.message || 'ทำรายการไม่สำเร็จ กรุณาลองใหม่');
+    if (!r.everywhere) {
+        // Apps Script รุ่นก่อนยังไม่รองรับ: แจ้งให้ผู้ดูแลอัปเดต แทนการบอกว่าสำเร็จ
+        return showMessage({ title: 'ระบบหลังบ้านยังไม่รองรับ', text: 'กรุณาให้ผู้ดูแลอัปเดตไฟล์ Staff.gs ใน Apps Script ก่อน ระหว่างนี้ผู้ดูแลสามารถ "บังคับออกจากระบบ" บัญชีนี้ได้จากหน้าผู้ดูแลระบบ', tone: 'warn' });
+    }
+    try { window.google && google.accounts.id.disableAutoSelect(); } catch (e) {}
+    endSession('ออกจากระบบทุกอุปกรณ์แล้ว');
 }
 
 // ---------- Account ----------

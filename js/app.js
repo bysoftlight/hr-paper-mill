@@ -11,6 +11,20 @@ let FILTER_YEAR_VAL = new Date().getFullYear();
 
 const USER_KEY = 'SALES_APP_USER_ID';
 const CACHE_KEY = 'SALES_APP_CACHE'; // ข้อมูลผู้ใช้ + ประวัติล่าสุด: เปิดแอปได้ทันทีแล้วค่อยอัปเดตเบื้องหลัง
+// ตั้งค่า "จดจำการเข้าสู่ระบบ": ปิด = เก็บไว้เฉพาะแท็บนี้ (sessionStorage) ปิดเบราว์เซอร์แล้วต้องเข้าใหม่
+const tabStore = {
+    get(key) { try { return sessionStorage.getItem(key); } catch (e) { return null; } },
+    set(key, val) { try { sessionStorage.setItem(key, val); } catch (e) {} },
+    remove(key) { try { sessionStorage.removeItem(key); } catch (e) {} }
+};
+const userStore = {
+    get(key) { return store.get(key) || tabStore.get(key); },
+    set(key, val) {
+        if (Prefs.get('remember')) { store.set(key, val); tabStore.remove(key); }
+        else { tabStore.set(key, val); store.remove(key); }
+    },
+    remove(key) { store.remove(key); tabStore.remove(key); }
+};
 const SELF_TYPE = 'ทำการขายด้วยตัวเอง';
 const AGENT_TYPE = 'ทำการขายโดยตัวแทน';
 const AGENT_LIMIT = 10;     // ข้อ 1.3: ให้ผู้อื่นขายแทนได้ไม่เกินเดือนละ 10 ครั้ง
@@ -30,8 +44,9 @@ window.addEventListener('DOMContentLoaded', () => {
     initHistory();
     initNav();
     document.querySelectorAll('[data-action="logout"]').forEach(btn => btn.addEventListener('click', logout));
+    initSettings();
 
-    const savedId = store.get(USER_KEY);
+    const savedId = userStore.get(USER_KEY);
     if (savedId && savedId !== "null" && savedId !== "undefined") {
         const cached = readCache(savedId);
         if (cached) {
@@ -47,10 +62,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // ออกจากระบบจากอีกแท็บ หรือกลับมาหน้านี้ด้วยปุ่มย้อนกลับหลังออกจากระบบ → กลับหน้าเข้าสู่ระบบ
     window.addEventListener('storage', (e) => {
-        if ((e.key === USER_KEY || e.key === null) && !store.get(USER_KEY) && CURRENT_USER.id) endSession();
+        if ((e.key === USER_KEY || e.key === null) && !userStore.get(USER_KEY) && CURRENT_USER.id) endSession();
     });
     window.addEventListener('pageshow', (e) => {
-        if (e.persisted && !store.get(USER_KEY) && !$('appContainer').hidden) endSession();
+        if (e.persisted && !userStore.get(USER_KEY) && !$('appContainer').hidden) endSession();
     });
 });
 
@@ -154,14 +169,14 @@ function isAccountGone(res) {
 
 function readCache(id) {
     try {
-        const c = JSON.parse(store.get(CACHE_KEY) || 'null');
+        const c = JSON.parse(userStore.get(CACHE_KEY) || 'null');
         return c && c.id === id && c.user && Array.isArray(c.history) ? c : null;
     } catch (e) { return null; }
 }
 
 function writeCache() {
     if (!CURRENT_USER.id || !HISTORY_LOADED) return;
-    store.set(CACHE_KEY, JSON.stringify({ id: CURRENT_USER.id, user: CURRENT_USER, history: ALL_HISTORY, at: Date.now() }));
+    userStore.set(CACHE_KEY, JSON.stringify({ id: CURRENT_USER.id, user: CURRENT_USER, history: ALL_HISTORY, at: Date.now() }));
 }
 
 // background = แสดงข้อมูลจากเครื่องอยู่แล้ว ตรวจสอบกับเซิร์ฟเวอร์เบื้องหลัง
@@ -175,7 +190,7 @@ async function performLogin(userId, isAuto, background = false) {
     if (!isAuto) setLoginBusy(false);
 
     if (res.success) {
-        store.set(USER_KEY, res.data.id);
+        userStore.set(USER_KEY, res.data.id);
         CURRENT_USER = res.data;
         if (!background) return setupApp(res.history);
         renderUser();
@@ -195,8 +210,8 @@ async function performLogin(userId, isAuto, background = false) {
         }
         setLoginError(res.message);
     } else {
-        store.remove(USER_KEY);
-        store.remove(CACHE_KEY);
+        userStore.remove(USER_KEY);
+        userStore.remove(CACHE_KEY);
         if (isAuto) backToLogin();
         $('loginId').value = isAuto ? '' : $('loginId').value;
         setLoginError(res.message || 'ไม่พบรหัสผู้ใช้สิทธิ์นี้ กรุณาตรวจสอบอีกครั้ง');
@@ -218,8 +233,8 @@ function endSession() {
     SESSION++;
     historySeq++;
     historyReq = null;
-    store.remove(USER_KEY);
-    store.remove(CACHE_KEY);
+    userStore.remove(USER_KEY);
+    userStore.remove(CACHE_KEY);
     CURRENT_USER = {};
     ALL_HISTORY = [];
     HISTORY_LOADED = false;
@@ -375,7 +390,7 @@ async function updateFileName(input) {
     $('stepPhoto').classList.remove('is-error');
     $('fileNameDisplay').textContent = `${file.name} · ${formatBytes(file.size)} · กำลังย่อขนาด…`;
     try {
-        const result = await compressImage(file);
+        const result = await compressImage(file, ...photoSize());
         if (token !== compressToken) return;
         COMPRESSED = result;
         $('fileNameDisplay').textContent = `${file.name} · ${formatBytes(file.size)} → ${formatBytes(result.bytes)} (ย่อขนาดแล้ว)`;
@@ -451,7 +466,7 @@ async function handleFormSubmit(e) {
     showLoading(true, 'กำลังบันทึกข้อมูล…');
     try {
         const file = $('evidenceImg').files[0];
-        const image = COMPRESSED || await compressImage(file);
+        const image = COMPRESSED || await compressImage(file, ...photoSize());
         const formData = {
             userName: CURRENT_USER.name, salesType: selectedSalesType,
             lat: $('lat').value, long: $('long').value,
@@ -859,3 +874,102 @@ async function downloadPhoto() {
 document.addEventListener('DOMContentLoaded', () => {
     $('photoDownload').addEventListener('click', downloadPhoto);
 });
+
+// --- SETTINGS ---
+const PHOTO_SIZES = { save: [800, 0.5], std: [1024, 0.6], hi: [1600, 0.72] };
+function photoSize() { return PHOTO_SIZES[Prefs.get('photo')] || PHOTO_SIZES.std; }
+
+function initSettings() {
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('[data-settings]')) openSettings();
+    });
+    document.addEventListener('prefchange', (e) => {
+        const key = e.detail.key;
+        if (key === 'remember') {
+            // ย้ายข้อมูลที่จำไว้ไปที่เก็บใหม่ทันที
+            [USER_KEY, CACHE_KEY].forEach(k => { const v = userStore.get(k); if (v) userStore.set(k, v); });
+        }
+        if ($('settingsModal').open && (key === 'remember' || key === null)) renderParticipantSettings();
+    });
+}
+
+function openSettings() {
+    renderParticipantSettings();
+    showModal('settingsModal');
+    checkGeoPermission();
+}
+
+function cacheInfo() {
+    const raw = userStore.get(CACHE_KEY);
+    if (!raw) return 'ยังไม่มีข้อมูลที่เก็บไว้';
+    let n = 0;
+    try { n = (JSON.parse(raw).history || []).length; } catch (e) {}
+    return `ประวัติ ${n} รายการ · ${formatBytes(raw.length * 2)}`;
+}
+
+function renderParticipantSettings() {
+    const signedIn = !!CURRENT_USER.id;
+    const sections = [displaySettings(), {
+        title: 'การส่งรายงาน',
+        rows: [
+            { id: 'geo', icon: 'pin', tone: 'green', label: 'สิทธิ์ใช้ตำแหน่ง (GPS)', desc: 'ใช้ยืนยันตำแหน่งตอนส่งรายงาน', control: { type: 'info', html: '<span class="set-status" id="geoStatus">กำลังตรวจสอบ…</span><span id="geoHelp"></span><div class="row-actions"><button type="button" class="btn-chip" id="geoTest">ทดสอบตำแหน่ง</button></div>' } },
+            { icon: 'image', tone: 'blue', label: 'คุณภาพรูปหลักฐาน', desc: 'ประหยัดเน็ต ส่งได้เร็ว · คมชัด เห็นรายละเอียดบัตรชัดขึ้นแต่ใช้เน็ตมากกว่า', control: { type: 'seg', key: 'photo', options: [['save', 'ประหยัดเน็ต'], ['std', 'มาตรฐาน'], ['hi', 'คมชัด']] } }
+        ]
+    }, {
+        title: 'บัญชีและความเป็นส่วนตัว',
+        rows: [
+            { icon: 'lock', tone: 'indigo', label: 'จดจำการเข้าสู่ระบบ', desc: 'ปิดเมื่อใช้เครื่องร่วมกับผู้อื่น — ปิดเบราว์เซอร์แล้วต้องกรอกรหัสใหม่', control: { type: 'switch', key: 'remember' } }
+        ].concat(signedIn ? [
+            { id: 'clearCache', icon: 'database', tone: 'amber', label: 'ข้อมูลที่เก็บในเครื่อง', desc: settingsEsc(cacheInfo()) + ' · ช่วยให้เปิดแอปได้ทันที', control: { type: 'button', label: 'ล้างข้อมูล', tone: 'bad', onClick: clearLocalData } }
+        ] : [])
+    }];
+    renderSettings($('settingsBody'), sections);
+    $('geoTest').addEventListener('click', testGeo);
+}
+
+async function clearLocalData() {
+    const ok = await showMessage({ title: 'ล้างข้อมูลในเครื่อง?', text: 'ลบประวัติที่เก็บไว้ในเครื่องนี้ (ข้อมูลในระบบไม่หาย) ครั้งหน้าจะโหลดใหม่จากระบบ', tone: 'warn', okText: 'ล้างข้อมูล', cancelText: 'ยกเลิก' });
+    if (!ok) return;
+    userStore.remove(CACHE_KEY);
+    showModal('settingsModal');
+    renderParticipantSettings();
+    checkGeoPermission();
+}
+
+const GEO_HELP = 'iPhone: การตั้งค่า › ความเป็นส่วนตัว › บริการหาตำแหน่ง › Safari/Chrome › "ขณะใช้แอป" · Android: แตะรูปแม่กุญแจข้างที่อยู่เว็บ › สิทธิ์ › ตำแหน่ง › อนุญาต';
+function setGeoStatus(tone, text, help) {
+    const el = $('geoStatus');
+    if (!el) return;
+    el.className = 'set-status ' + (tone ? 'is-' + tone : '');
+    el.innerHTML = icon(tone === 'ok' ? 'check-circle' : tone === 'bad' ? 'x-circle' : 'pin', 'ic-16') + settingsEsc(text);
+    $('geoHelp').textContent = help || '';
+}
+async function checkGeoPermission() {
+    if (!navigator.geolocation) return setGeoStatus('bad', 'เบราว์เซอร์นี้ไม่รองรับ GPS', 'กรุณาเปิดด้วย Chrome หรือ Safari');
+    try {
+        const st = await navigator.permissions.query({ name: 'geolocation' });
+        const show = () => {
+            if (st.state === 'granted') setGeoStatus('ok', 'อนุญาตแล้ว');
+            else if (st.state === 'denied') setGeoStatus('bad', 'ถูกปิดอยู่ — ส่งรายงานไม่ได้', GEO_HELP);
+            else setGeoStatus('warn', 'ยังไม่ได้อนุญาต', 'กด "ทดสอบตำแหน่ง" แล้วเลือก "อนุญาต"');
+        };
+        show();
+        st.onchange = show;
+    } catch (e) {
+        setGeoStatus('', 'กด "ทดสอบตำแหน่ง" เพื่อตรวจสอบ'); // Safari รุ่นเก่าไม่มี permissions API
+    }
+}
+function testGeo() {
+    if (!navigator.geolocation) return;
+    $('geoTest').disabled = true;
+    setGeoStatus('warn', 'กำลังค้นหาพิกัด…');
+    navigator.geolocation.getCurrentPosition(
+        (pos) => { $('geoTest').disabled = false; setGeoStatus('ok', `ใช้งานได้ · แม่นยำ ±${Math.round(pos.coords.accuracy)} ม.`); },
+        (err) => {
+            $('geoTest').disabled = false;
+            if (err && err.code === 1) setGeoStatus('bad', 'ถูกปิดอยู่ — ส่งรายงานไม่ได้', GEO_HELP);
+            else setGeoStatus('warn', 'ยังหาพิกัดไม่ได้', 'เปิด GPS ของเครื่อง และอยู่ในที่โล่ง แล้วลองอีกครั้ง');
+        },
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+    );
+}
