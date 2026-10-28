@@ -39,6 +39,8 @@ Project Settings (รูปเฟือง) → **Script properties** → Add sc
 | `SUMMARY_EMAILS` | – | อีเมลรับสรุปรายวัน (คั่นด้วย `,`) |
 | `PROFILE_FOLDER_ID` | – | โฟลเดอร์ Drive เก็บรูปโปรไฟล์ที่อัปโหลดจาก Dashboard (ค่าเริ่มต้น `1-GZAWmJ0daUrM6R9HuiayZzRBQwu_-HE`) |
 
+| `SESSION_DAYS` | – | จดจำการเข้าสู่ระบบของเจ้าหน้าที่กี่วันนับจากการเปิดเว็บครั้งล่าสุด (ค่าเริ่มต้น 90, สูงสุด 365) |
+
 `SESSION_SECRET` ถูกสร้างให้อัตโนมัติ — ถ้าเปลี่ยนค่า ทุกคนจะต้องเข้าสู่ระบบใหม่
 
 ## 3. Google Sign-In (Google Cloud Console)

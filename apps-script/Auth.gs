@@ -2,7 +2,13 @@
 // บัญชีใหม่ทุกบัญชีมีสถานะ "pending" (ยังไม่มีสิทธิ์) จนกว่า Admin จะอนุมัติ
 // ยกเว้นอีเมลที่อยู่ใน Script Property ADMIN_EMAILS ซึ่งจะเป็น Admin ตั้งแต่ครั้งแรก (ใช้ตั้งต้นระบบ)
 
-const SESSION_HOURS = 12;
+// จดจำการเข้าสู่ระบบ: token มีอายุ SESSION_DAYS วัน (ตั้งได้ด้วย Script Property) และต่ออายุให้อัตโนมัติทุกครั้งที่เปิดเว็บ
+// จึงไม่ต้องเข้าสู่ระบบใหม่ เว้นแต่กดออกจากระบบเอง ไม่ได้เปิดใช้นานเกินกำหนด หรือ Admin บังคับออก/ระงับบัญชี (มีผลทันที)
+const DEFAULT_SESSION_DAYS = 90;
+function sessionMs_() {
+  const days = Number(prop_('SESSION_DAYS', DEFAULT_SESSION_DAYS));
+  return (days > 0 ? Math.min(days, 365) : DEFAULT_SESSION_DAYS) * 86400000;
+}
 
 const PERMS = ['records.view', 'records.edit', 'participants.view', 'participants.edit', 'export', 'admin'];
 const ROLE_PRESETS = {
@@ -185,7 +191,7 @@ function b64urlDecode_(s) {
 }
 
 function signToken_(staff) {
-  const payload = b64url_(JSON.stringify({ sid: staff.id, tv: staff.tokenVersion, exp: Date.now() + SESSION_HOURS * 3600 * 1000 }));
+  const payload = b64url_(JSON.stringify({ sid: staff.id, tv: staff.tokenVersion, exp: Date.now() + sessionMs_() }));
   const sig = b64url_(Utilities.computeHmacSha256Signature(payload, sessionSecret_()));
   return payload + '.' + sig;
 }
@@ -202,5 +208,11 @@ function staffFromToken_(token) {
   const staff = findStaffByIdCached_(payload.sid);
   if (!staff) fail_('AUTH', 'ไม่พบบัญชีนี้แล้ว กรุณาเข้าสู่ระบบใหม่');
   if (staff.tokenVersion !== payload.tv) fail_('AUTH', 'Session ถูกยกเลิก กรุณาเข้าสู่ระบบใหม่');
+  staff.tokenExp = payload.exp;
   return staff;
+}
+
+// token ใหม่ (ต่ออายุ) ถ้า token เดิมออกมานานกว่า 1 วันแล้ว — ใช้ตอนเปิดเว็บ (staff.me)
+function renewedToken_(staff) {
+  return staff.tokenExp - Date.now() < sessionMs_() - 86400000 ? signToken_(staff) : undefined;
 }
