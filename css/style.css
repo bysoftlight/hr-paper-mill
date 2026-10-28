@@ -24,10 +24,10 @@
     --scrim: rgba(31, 31, 31, .45);
     --veil: rgba(255, 255, 255, .85);
     --container: #F0F4F9;
-    --outline: var(--outline);
-    --hover: var(--hover);
+    --outline: #ABB0B6;
+    --hover: #F2F6FC;
     --topbar: rgba(255, 255, 255, .92);
-    --on-accent: #FFFFFF; --on-accent-soft: var(--on-accent-soft);
+    --on-accent: #FFFFFF; --on-accent-soft: #041E49;
     --on-ok: #FFFFFF; --on-warn: #FFFFFF; --on-bad: #FFFFFF;
     color-scheme: light;
 
@@ -895,7 +895,7 @@ h1, h2, h3 { font-weight: 500; letter-spacing: -.01em; }
 
 .card, .tile, .hist-list { background: var(--field); border-color: transparent; }
 .card .card, .card .tile { background: var(--surface); }
-.input { background: var(--surface); border: 1px solid var(--outline); border-radius: var(--r-sm); }
+.input { background: var(--surface); border: 1.5px solid var(--outline); border-radius: var(--r-sm); }
 .input:focus { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .select { border-color: var(--outline); border-radius: 999px; padding-left: 16px; }
 .contact, .loc-link { background: var(--surface); border-color: var(--line); }
@@ -935,8 +935,9 @@ h1, h2, h3 { font-weight: 500; letter-spacing: -.01em; }
 @media (min-width: 1024px) {
     .login-intro { background: var(--field); border-right: 0; }
     .login-intro h1 { font-size: 48px; font-weight: 400; line-height: 1.15; letter-spacing: -.025em; }
-    .intro-steps .mono { background: var(--surface); }
-    .login-card { background: var(--surface); border: 1px solid var(--line-soft); }
+    .login-intro h1 { font-size: clamp(32px, 3.3vw, 48px); text-wrap: balance; }
+    .intro-steps .mono { background: linear-gradient(135deg, #126EE4, #0850D1); color: #fff; font-weight: 600; }
+    .login-card { background: var(--surface); border: 1px solid var(--line); box-shadow: 0 1px 2px rgba(60, 64, 67, .08), 0 4px 16px rgba(60, 64, 67, .08); }
 }
 @media (min-width: 1100px) {
     .sidenav .nav-item { min-height: 52px; padding: 0 18px; }
