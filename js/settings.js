@@ -6,6 +6,7 @@ const PREF_DEFAULTS = {
     theme: 'system',   // system | light | dark
     text: 'm',         // m | l | xl
     motion: false,     // true = ลดภาพเคลื่อนไหว
+    haptic: true,      // สั่นเบาๆ เมื่อแตะเมนู
     // หน้าผู้ใช้สิทธิ์
     photo: 'std',      // save | std | hi
     remember: true,
@@ -124,7 +125,37 @@ function displaySettings() {
         rows: [
             { icon: 'contrast', tone: 'gray', label: 'ธีม', desc: 'โหมดมืดช่วยถนอมสายตาเวลากลางคืน', control: { type: 'seg', key: 'theme', options: [['system', 'ตามเครื่อง'], ['light', 'สว่าง'], ['dark', 'มืด']] } },
             { icon: 'type', tone: 'purple', label: 'ขนาดตัวอักษร', desc: 'ขยายตัวอักษรและปุ่มให้อ่านและกดง่ายขึ้น', control: { type: 'seg', key: 'text', options: [['m', 'ปกติ'], ['l', 'ใหญ่'], ['xl', 'ใหญ่มาก']] } },
+            { icon: 'haptic', tone: 'amber', label: 'สั่นเมื่อแตะเมนู', desc: 'สั่นเบาๆ เมื่อเปลี่ยนหน้า (Android และ iPhone iOS 18 ขึ้นไป)', control: { type: 'switch', key: 'haptic' } },
             { icon: 'motion', tone: 'teal', label: 'ลดภาพเคลื่อนไหว', desc: 'ปิดแอนิเมชัน เหมาะกับเครื่องรุ่นเก่าหรือผู้ที่เวียนหัวง่าย', control: { type: 'switch', key: 'motion' } }
         ]
     };
 }
+
+// สั่นเบาๆ: Android ใช้ navigator.vibrate · iPhone (iOS 18+) ไม่มี vibrate แต่สวิตช์ <input switch> สั่นให้เมื่อถูกแตะ
+let HAPTIC_EL_ = null;
+function haptic() {
+    if (!Prefs.get('haptic')) return;
+    try {
+        if (navigator.vibrate && navigator.vibrate(8)) return;
+        if (!HAPTIC_EL_) {
+            HAPTIC_EL_ = document.createElement('label');
+            HAPTIC_EL_.setAttribute('aria-hidden', 'true');
+            HAPTIC_EL_.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;left:-10px;top:0';
+            HAPTIC_EL_.innerHTML = '<input type="checkbox" switch tabindex="-1">';
+            document.body.appendChild(HAPTIC_EL_);
+        }
+        HAPTIC_EL_.click();
+    } catch (e) {}
+}
+
+// แถบบนและเมนูล่างโปร่งแสงขึ้นเมื่อเลื่อนหน้า (มองเห็นเนื้อหาด้านหลังแบบเบลอ)
+function watchScrollGlass() {
+    let on = null;
+    const update = () => {
+        const v = window.scrollY > 8;
+        if (v !== on) { on = v; document.documentElement.classList.toggle('is-scrolled', v); }
+    };
+    window.addEventListener('scroll', update, { passive: true });
+    update();
+}
+document.addEventListener('DOMContentLoaded', watchScrollGlass);

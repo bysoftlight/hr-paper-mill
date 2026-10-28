@@ -374,7 +374,7 @@ function switchTab(tab, push = true) {
 }
 
 function initShell() {
-    document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+    document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => { haptic(); switchTab(b.dataset.tab); }));
     document.addEventListener('click', e => {
         const go = e.target.closest('[data-goto]');
         if (go) switchTab(go.dataset.goto);

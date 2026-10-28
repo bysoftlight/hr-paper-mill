@@ -24,9 +24,9 @@
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <!-- เปลี่ยนเลข ?v= ทุกครั้งที่แก้ CSS/JS -->
-  <script src="js/settings.js?v=3.16.1"></script>
-  <link rel="stylesheet" href="css/style.css?v=3.16.1">
-  <link rel="stylesheet" href="css/staff.css?v=3.16.1">
+  <script src="js/settings.js?v=3.18.0"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.18.0">
+  <link rel="stylesheet" href="css/staff.css?v=3.18.0">
 </head>
 <body class="staff">
 
@@ -87,6 +87,7 @@
       <symbol id="i-pause" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M10 15V9M14 15V9"/></symbol>
       <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></symbol>
       <symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></symbol>
+      <symbol id="i-haptic" viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M3 8v8M21 8v8M11 18h2"/></symbol>
   </svg>
 
   <!-- ===== Alert dialog (ใช้ร่วมกับ utils.js) ===== -->
@@ -366,7 +367,7 @@
   <!-- ===== Sign in ===== -->
   <div id="authView" class="login" hidden>
     <section class="login-intro" aria-labelledby="authTitle">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.16.1" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.18.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <p class="eyebrow">สำหรับเจ้าหน้าที่ HR และผู้ดูแลระบบ</p>
       <h1 id="authTitle">ติดตามรายงานการขาย<br>ของผู้ใช้สิทธิ์ทุกคนในที่เดียว</h1>
       <ol class="intro-steps">
@@ -416,12 +417,12 @@
   <!-- ===== App ===== -->
   <div id="appContainer" class="app" hidden>
     <header class="topbar">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.16.1" alt="" width="36" height="36"><span>HR Staff</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.18.0" alt="" width="36" height="36"><span>HR Staff</span></div>
       <span class="live" data-live><span class="live-dot"></span><span data-live-text>อัปเดตสด</span></span>
     </header>
 
     <nav class="sidenav" aria-label="เมนูหลัก">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.16.1" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.18.0" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></div>
       <div class="nav-items">
         <button type="button" class="nav-item" data-tab="overview" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-grid"/></svg><span>ภาพรวม</span></button>
         <button type="button" class="nav-item" data-tab="records" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-list"/></svg><span>รายงาน</span></button>
@@ -450,8 +451,26 @@
         <div class="stack">
           <section class="card" aria-labelledby="trendTitle">
             <div class="card-head"><h3 class="card-title" id="trendTitle">แนวโน้ม 30 วัน</h3><span class="legend"><i class="lg lg-self"></i>ขายเอง <i class="lg lg-agent"></i>โดยตัวแทน</span></div>
-            <div class="trend" id="ovTrend" role="img" aria-label="กราฟจำนวนรายงานย้อนหลัง 30 วัน"></div>
-            <div class="trend-axis" id="ovTrendAxis" aria-hidden="true"></div>
+            <div id="ovTrend" class="chart-box"></div>
+            <p class="chart-hint">ชี้หรือแตะแท่งเพื่อดูตัวเลขรายวัน · แตะสองครั้งเพื่อเปิดรายการของวันนั้น</p>
+          </section>
+          <section class="card" aria-labelledby="cmpTitle">
+            <div class="card-head">
+              <h3 class="card-title" id="cmpTitle">เทียบเดือนนี้กับเดือนก่อน</h3>
+              <div class="set-seg seg-sm" role="radiogroup" aria-label="รูปแบบกราฟ" id="cmpMode">
+                <button type="button" role="radio" aria-checked="true" data-mode="cum">สะสม</button>
+                <button type="button" role="radio" aria-checked="false" data-mode="daily">รายวัน</button>
+              </div>
+            </div>
+            <div class="cmp-stats" id="cmpStats"></div>
+            <div id="ovCompare" class="chart-box"></div>
+            <div class="legend legend-row" id="cmpLegend"></div>
+          </section>
+          <section class="card" aria-labelledby="mapTitle">
+            <div class="card-head"><h3 class="card-title" id="mapTitle">แผนที่จุดขาย</h3><span class="legend"><i class="lg" style="background:var(--ok)"></i>ส่งครบวันนี้ <i class="lg" style="background:var(--warn)"></i>ส่งบางส่วน <i class="lg" style="background:var(--bad)"></i>ยังไม่ส่ง</span></div>
+            <div class="ov-map" id="ovMap" role="region" aria-label="แผนที่จุดขาย ขนาดวงตามจำนวนรายงานเดือนนี้"></div>
+            <p class="chart-hint">ขนาดวง = จำนวนรายงานเดือนนี้ · ชี้/แตะวงเพื่อดูข้อมูล · แตะ "ดูรายการ" เพื่อเปิดรายงานของจุดขายนั้น</p>
+            <div class="site-rank" id="ovSites"></div>
           </section>
           <section class="card" aria-labelledby="latestTitle">
             <div class="card-head"><h3 class="card-title" id="latestTitle">รายการล่าสุด</h3><button type="button" class="btn-text" data-goto="records">ดูทั้งหมด</button></div>
@@ -459,6 +478,15 @@
           </section>
         </div>
         <div class="stack">
+          <section class="card gauge-card" aria-labelledby="gaugeTitle">
+            <div class="card-head"><h3 class="card-title" id="gaugeTitle">อัตราการส่งเดือนนี้</h3><span class="delta" id="gaugeDelta"></span></div>
+            <div id="ovGauge" class="chart-box gauge-box"></div>
+            <div class="split-stats" id="gaugeSplit"></div>
+          </section>
+          <section class="card" aria-labelledby="hourTitle">
+            <div class="card-head"><h3 class="card-title" id="hourTitle">ช่วงเวลาที่ส่งรายงาน</h3><span class="muted-text">เดือนนี้</span></div>
+            <div id="ovHours" class="chart-box"></div>
+          </section>
           <section class="card" aria-labelledby="missTitle">
             <div class="card-head"><h3 class="card-title" id="missTitle">ยังไม่ส่งวันนี้ <span class="count-pill" id="ovMissCount"></span></h3></div>
             <div id="ovMissing" class="people-list"></div>
@@ -528,6 +556,12 @@
         <nav class="pager" id="recPager" aria-label="เปลี่ยนหน้า"></nav>
       </div>
       <div id="recMapWrap" hidden>
+        <div class="map-tools">
+          <div class="set-seg seg-sm" role="radiogroup" aria-label="รูปแบบแผนที่" id="recMapMode">
+            <button type="button" role="radio" aria-checked="true" data-mode="points">จุดรายงาน</button>
+            <button type="button" role="radio" aria-checked="false" data-mode="heat">ความหนาแน่น</button>
+          </div>
+        </div>
         <div class="map-card"><div id="recMap" class="map" role="region" aria-label="แผนที่ตำแหน่งการขาย"></div></div>
         <p class="hint" id="recMapHint"></p>
       </div>
@@ -649,15 +683,16 @@
 
   <div id="pdfStage" class="pdf-stage" aria-hidden="true"></div>
 
-  <script src="js/config.js?v=3.16.1"></script>
-  <script src="js/utils.js?v=3.16.1"></script>
-  <script src="js/api.js?v=3.16.1"></script>
-  <script src="js/notify.js?v=3.16.1"></script>
-  <script src="js/staff/core.js?v=3.16.1"></script>
-  <script src="js/staff/overview.js?v=3.16.1"></script>
-  <script src="js/staff/records.js?v=3.16.1"></script>
-  <script src="js/staff/participants.js?v=3.16.1"></script>
-  <script src="js/staff/admin.js?v=3.16.1"></script>
-  <script src="js/staff/export.js?v=3.16.1"></script>
+  <script src="js/config.js?v=3.18.0"></script>
+  <script src="js/utils.js?v=3.18.0"></script>
+  <script src="js/api.js?v=3.18.0"></script>
+  <script src="js/charts.js?v=3.18.0"></script>
+  <script src="js/notify.js?v=3.18.0"></script>
+  <script src="js/staff/core.js?v=3.18.0"></script>
+  <script src="js/staff/overview.js?v=3.18.0"></script>
+  <script src="js/staff/records.js?v=3.18.0"></script>
+  <script src="js/staff/participants.js?v=3.18.0"></script>
+  <script src="js/staff/admin.js?v=3.18.0"></script>
+  <script src="js/staff/export.js?v=3.18.0"></script>
 </body>
 </html>
