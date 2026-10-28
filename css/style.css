@@ -27,6 +27,7 @@
     --outline: #ABB0B6;
     --hover: #F2F6FC;
     --topbar: rgba(255, 255, 255, .92);
+    --glass: rgba(255, 255, 255, .72);
     --on-accent: #FFFFFF; --on-accent-soft: #041E49;
     --on-ok: #FFFFFF; --on-warn: #FFFFFF; --on-bad: #FFFFFF;
     color-scheme: light;
@@ -52,7 +53,7 @@
     --warn: #F5C451; --warn-soft: #3D2E00; --on-warn: #3D2E00;
     --bad: #F2B8B5; --bad-soft: #5C1B17; --bad-line: #8C1D18; --on-bad: #601410;
     --rail: #2A2B2E; --not-ready: #3C4043; --dash: #5E7FB8;
-    --scrim: rgba(0, 0, 0, .6); --veil: rgba(19, 19, 20, .85); --topbar: rgba(19, 19, 20, .9);
+    --scrim: rgba(0, 0, 0, .6); --veil: rgba(19, 19, 20, .85); --topbar: rgba(19, 19, 20, .9); --glass: rgba(27, 28, 29, .7);
     color-scheme: dark;
 }
 @media (prefers-color-scheme: dark) {
@@ -65,7 +66,7 @@
         --warn: #F5C451; --warn-soft: #3D2E00; --on-warn: #3D2E00;
         --bad: #F2B8B5; --bad-soft: #5C1B17; --bad-line: #8C1D18; --on-bad: #601410;
         --rail: #2A2B2E; --not-ready: #3C4043; --dash: #5E7FB8;
-        --scrim: rgba(0, 0, 0, .6); --veil: rgba(19, 19, 20, .85); --topbar: rgba(19, 19, 20, .9);
+        --scrim: rgba(0, 0, 0, .6); --veil: rgba(19, 19, 20, .85); --topbar: rgba(19, 19, 20, .9); --glass: rgba(27, 28, 29, .7);
         color-scheme: dark;
 }
 }
@@ -441,7 +442,11 @@ b { font-weight: 600; }
 .hist-when .mono { font-size: 12px; color: var(--muted); }
 .hist-head > .ic { color: var(--muted); transition: transform .2s; }
 .hist-head[aria-expanded="true"] > .ic { transform: rotate(180deg); }
-.hist-body { padding: 0 16px 14px; }
+.hist-panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .28s cubic-bezier(.2, 0, 0, 1); }
+.hist-panel.is-open { grid-template-rows: 1fr; }
+.hist-body { min-height: 0; overflow: hidden; }
+.hist-inner { padding: 0 16px 14px; opacity: 0; transition: opacity .2s; }
+.hist-panel.is-open .hist-inner { opacity: 1; }
 .hist-body img {
     width: 100%; max-height: 360px; object-fit: contain;
     background: var(--field); border: 1px solid var(--line); border-radius: var(--r-sm);
@@ -1022,3 +1027,94 @@ h1, h2, h3 { font-weight: 500; letter-spacing: -.01em; }
 }
 .set-steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; color: var(--ink-2); }
 .set-info b { color: var(--ink); font-weight: 500; }
+
+/* --- ช่องรหัส 6 ช่อง (OTP) --- */
+.otp { position: relative; }
+.otp-input {
+    position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%;
+    opacity: 0; border: 0; font-size: 16px; /* 16px: iOS ไม่ซูมหน้าเมื่อแตะ */
+    color: transparent; caret-color: transparent; background: transparent; cursor: text;
+}
+.otp-boxes { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.otp-boxes span {
+    position: relative; display: grid; place-items: center; height: 58px;
+    border: 1.5px solid var(--outline); border-radius: 14px; background: var(--surface);
+    font-family: var(--mono); font-size: 24px; font-weight: 500; color: var(--ink);
+    transition: border-color .15s, box-shadow .15s, transform .15s;
+}
+.otp-boxes span.is-filled { border-color: var(--ink-2); }
+.otp-boxes span.is-active { border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
+.otp-boxes span.is-active:not(.is-filled)::after {
+    content: ""; width: 2px; height: 26px; border-radius: 1px; background: var(--accent);
+    animation: otp-caret 1s steps(1) infinite;
+}
+@keyframes otp-caret { 50% { opacity: 0; } }
+.otp.is-error .otp-boxes span { border-color: var(--bad); }
+.otp.is-error .otp-boxes { animation: otp-shake .3s; }
+@keyframes otp-shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+@media (max-width: 359px) { .otp-boxes { gap: 5px; } .otp-boxes span { height: 50px; font-size: 20px; border-radius: 12px; } }
+
+/* --- แถบขั้นตอน (Stepper) + เลื่อนแบบ snap นุ่มนวลระหว่างขั้นตอน --- */
+.stepper {
+    position: sticky; top: calc(56px + env(safe-area-inset-top)); z-index: 10;
+    margin: -4px calc(-1 * var(--gutter)) 16px; padding: 10px var(--gutter) 8px;
+    background: var(--topbar); backdrop-filter: saturate(180%) blur(14px); -webkit-backdrop-filter: saturate(180%) blur(14px);
+}
+.stepper ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.stepper button {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 6px; width: 100%;
+    padding: 8px 0 0; border: 0; border-top: 3px solid var(--line); background: none; text-align: left; cursor: pointer;
+    transition: border-color .25s;
+}
+.st-dot { display: none; }
+.st-text { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+.st-text small { font-size: 11px; color: var(--muted); }
+.st-text b { font-size: 13px; font-weight: 500; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stepper li.is-done button { border-top-color: var(--ok); }
+.stepper li.is-done .st-text small { color: var(--ok); }
+.stepper li.is-current button { border-top-color: var(--accent); }
+.stepper li.is-current .st-text small, .stepper li.is-current .st-text b { color: var(--accent); }
+.stepper-note { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+.step, .submit-card { scroll-margin-top: calc(56px + 92px + env(safe-area-inset-top)); }
+html:has(#formView:not([hidden])) { scroll-snap-type: y proximity; }
+#formView .step, #formView .submit-card { scroll-snap-align: start; }
+:root:not([data-motion="reduce"]) { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { :root { scroll-behavior: auto; } }
+
+@media (min-width: 768px) {
+    .stepper { top: 0; margin: 0 0 20px; padding: 12px 16px 10px; border-radius: var(--r-lg); background: var(--field); backdrop-filter: none; }
+    .stepper button { flex-direction: row; align-items: center; gap: 10px; border-top: 0; padding: 0; }
+    .st-dot {
+        display: grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 50%;
+        border: 1.5px solid var(--outline); background: var(--surface); color: var(--ink-2); font-size: 14px;
+        transition: background-color .25s, border-color .25s, color .25s;
+    }
+    .stepper li.is-done .st-dot { background: var(--ok); border-color: var(--ok); color: var(--on-ok); }
+    .stepper li.is-current .st-dot { background: linear-gradient(135deg, #126EE4, #0850D1); border-color: transparent; color: #fff; }
+    .step, .submit-card { scroll-margin-top: 24px; }
+}
+@media (min-width: 1024px) { .stepper { position: static; } }
+
+/* --- แถบบน/เมนูล่างแบบกระจก: เลื่อนหน้าแล้วโปร่งแสงขึ้น --- */
+.topbar, .bottomnav {
+    background: var(--topbar);
+    backdrop-filter: saturate(180%) blur(16px); -webkit-backdrop-filter: saturate(180%) blur(16px);
+    transition: background-color .25s, box-shadow .25s, border-color .25s;
+}
+.is-scrolled .topbar, .is-scrolled .bottomnav, .is-scrolled .stepper { background: var(--glass); }
+.is-scrolled .topbar { box-shadow: 0 1px 0 var(--line-soft), 0 6px 16px rgba(0, 0, 0, .06); border-bottom-color: transparent; }
+.nav-item .ic { transition: background-color .2s, padding .2s, transform .2s; }
+.nav-item:active .ic { transform: scale(.9); }
+
+/* --- Responsive: ช่องวันที่/เวลาบน iPhone ไม่ล้นขอบ, ตัวเลขย่อยใน KPI, ข้อความช่วยเหลือในหน้าตั้งค่า --- */
+input[type="date"], input[type="time"], input[type="datetime-local"], input[type="month"] {
+    min-width: 0; max-width: 100%; -webkit-appearance: none; appearance: none; display: block;
+}
+input[type="date"].input, input[type="time"].input, input[type="datetime-local"].input { width: 100%; line-height: 1.2; }
+input::-webkit-date-and-time-value { text-align: left; margin: 0; }
+input::-webkit-datetime-edit { padding: 0; }
+.kpi span b, .kpi small b { font-size: inherit; line-height: inherit; }
+@media (max-width: 479px) {
+    .set-info { padding-left: 0; }
+    .set-row { gap: 12px; padding: 12px 14px; }
+}

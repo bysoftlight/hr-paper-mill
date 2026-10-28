@@ -59,7 +59,7 @@ const NotifyUI = {
         if (!cfg || !cfg.publicKey) return { success: false, message: 'ระบบแจ้งเตือนยังไม่พร้อม' };
         let sub;
         try {
-            await navigator.serviceWorker.register('sw.js?v=3.16.1');
+            await navigator.serviceWorker.register('sw.js?v=3.17.0');
             const reg = await navigator.serviceWorker.ready;
             sub = await reg.pushManager.getSubscription();
             // กุญแจของระบบเปลี่ยน → ต้องสมัครใหม่
@@ -176,7 +176,8 @@ const NotifyUI = {
     async runTest(btn) {
         btn.disabled = true;
         btn.textContent = 'กำลังส่ง…';
-        const res = await this.test();
+        // ระบบหลังบ้านตอบช้า/ค้าง: ไม่ให้ปุ่มค้างที่ "กำลังส่ง…"
+        const res = await Promise.race([this.test(), new Promise(r => setTimeout(() => r({ success: false, message: 'ระบบตอบช้า — ถ้าการแจ้งเตือนยังไม่เด้งภายใน 1 นาที ลองกดอีกครั้ง' }), 25000))]);
         this.render(res.success ? { tone: 'ok', text: 'ส่งแล้ว — ควรเห็นการแจ้งเตือนภายในไม่กี่วินาที' } : { tone: 'bad', text: res.message || 'ส่งไม่สำเร็จ' });
     },
 

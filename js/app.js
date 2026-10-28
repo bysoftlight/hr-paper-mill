@@ -117,9 +117,25 @@ function initLogin() {
         if (clean !== input.value) input.value = clean;
         $('loginBtn').disabled = clean.length !== 6;
         setLoginError(null);
+        syncOtp();
     });
+    ['focus', 'blur', 'keyup', 'click', 'select'].forEach(ev => input.addEventListener(ev, syncOtp));
+    syncOtp();
     $('loginForm').addEventListener('submit', (e) => { e.preventDefault(); manualLogin(); });
 }
+
+// ช่องรหัสแบบ 6 ช่อง (OTP): ช่องจริงคือ #loginId ที่โปร่งใสทับอยู่ — วาง/กรอกอัตโนมัติได้ตามปกติ
+function syncOtp() {
+    const input = $('loginId'), v = input.value, focused = document.activeElement === input;
+    const cur = Math.min(v.length, 5);
+    $('loginOtp').querySelectorAll('.otp-boxes span').forEach((box, i) => {
+        box.textContent = v[i] || '';
+        box.classList.toggle('is-filled', !!v[i]);
+        box.classList.toggle('is-active', focused && i === cur && !input.readOnly);
+    });
+    $('loginOtp').classList.toggle('is-error', input.getAttribute('aria-invalid') === 'true');
+}
+function setLoginId(v) { $('loginId').value = v; syncOtp(); }
 
 function setLoginError(message) {
     const hint = $('loginHint');
@@ -128,6 +144,7 @@ function setLoginError(message) {
     hint.setAttribute('role', message ? 'alert' : 'note');
     hint.innerHTML = message ? icon('alert', 'ic-16') : '';
     hint.append(message || 'ตัวอักษรภาษาอังกฤษหรือตัวเลข ระบบจะจำรหัสไว้ในเครื่องนี้');
+    syncOtp();
 }
 
 function manualLogin() {
@@ -205,7 +222,7 @@ async function performLogin(userId, isAuto, background = false) {
             const retry = await showMessage({ title: res.networkError ? 'เชื่อมต่อไม่ได้' : 'ระบบขัดข้องชั่วคราว', text: res.message || 'กรุณาลองใหม่อีกครั้ง', tone: 'warn', okText: 'ลองอีกครั้ง', cancelText: 'ปิด' });
             if (retry) return performLogin(userId, true);
             backToLogin();
-            $('loginId').value = userId;
+            setLoginId(userId);
             $('loginBtn').disabled = false;
         }
         setLoginError(res.message);
@@ -213,7 +230,7 @@ async function performLogin(userId, isAuto, background = false) {
         userStore.remove(USER_KEY);
         userStore.remove(CACHE_KEY);
         if (isAuto) backToLogin();
-        $('loginId').value = isAuto ? '' : $('loginId').value;
+        setLoginId(isAuto ? '' : $('loginId').value);
         setLoginError(res.message || 'ไม่พบรหัสผู้ใช้สิทธิ์นี้ กรุณาตรวจสอบอีกครั้ง');
         if (isAuto) showRulesModal(true);
     }
@@ -242,7 +259,7 @@ function endSession() {
     // สลับไปหน้าเข้าสู่ระบบก่อนเสมอ แล้วจึงเก็บกวาด — ขั้นใดผิดพลาดในบางเบราว์เซอร์ (เช่น Safari แบบแอป) ก็ไม่ค้างหน้าเดิม
     backToLogin();
     runSteps([
-        () => { $('loginId').value = ''; $('loginId').readOnly = false; $('loginBtn').disabled = true; setLoginError(null); },
+        () => { setLoginId(''); $('loginId').readOnly = false; $('loginBtn').disabled = true; setLoginError(null); },
         () => IMAGE_CACHE.clear(),
         () => document.querySelectorAll('dialog[open]').forEach(d => { delete d.dataset.locked; d.close(); }),
         () => showLoading(false),
@@ -303,7 +320,7 @@ function tabFromHash() {
 }
 
 function initNav() {
-    document.querySelectorAll('[data-tab]').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+    document.querySelectorAll('[data-tab]').forEach(btn => btn.addEventListener('click', () => { haptic(); switchTab(btn.dataset.tab); }));
     window.addEventListener('hashchange', () => { if (!$('appContainer').hidden) switchTab(tabFromHash(), false); });
 }
 
@@ -328,6 +345,10 @@ function initForm() {
     $('locRefresh').addEventListener('click', getLocation);
     $('evidenceImg').addEventListener('change', (e) => updateFileName(e.target));
     $('photoRemove').addEventListener('click', () => { $('evidenceImg').value = ''; updateFileName($('evidenceImg')); });
+    // แถบขั้นตอน: แตะเพื่อเลื่อนไปขั้นนั้นอย่างนุ่มนวล
+    document.querySelectorAll('#stepper li').forEach(li => li.querySelector('button').addEventListener('click', () => scrollToStep(li.dataset.target)));
+    // ทำขั้นตอนเสร็จ → เลื่อนไปขั้นถัดไปที่ยังไม่เสร็จ
+    document.querySelectorAll('input[name="salesTypeRadio"]').forEach(r => r.addEventListener('change', () => advanceStep('stepType')));
     updateChecklist();
 }
 
@@ -389,6 +410,7 @@ async function updateFileName(input) {
     $('photoPreview').src = previewUrl;
     $('stepPhoto').classList.remove('is-error');
     $('fileNameDisplay').textContent = `${file.name} · ${formatBytes(file.size)} · กำลังย่อขนาด…`;
+    advanceStep('stepPhoto');
     try {
         const result = await compressImage(file, ...photoSize());
         if (token !== compressToken) return;
@@ -420,8 +442,38 @@ function updateChecklist() {
     $('checklist').innerHTML = items.map(([ok, done, missing]) =>
         `<li class="${ok ? 'is-ok' : ''}">${icon(ok ? 'check-circle' : 'x-circle')}<span>${ok ? done : missing}</span></li>`).join('');
     $('submitBtn').classList.toggle('is-ready', s.location && s.photo && !TODAY_RECORD);
+    updateStepper(s);
     $('todayBanner').hidden = !TODAY_RECORD;
     if (TODAY_RECORD) $('todayTime').textContent = `${TODAY_RECORD.time} น.`;
+}
+
+// แถบขั้นตอนด้านบน: บอกว่าเหลืออีกกี่ขั้นตอน
+const STEP_ORDER = ['stepLocation', 'stepType', 'stepPhoto', 'submitCard'];
+function stepsDone(s) {
+    if (TODAY_RECORD) return { stepLocation: true, stepType: true, stepPhoto: true, submitCard: true };
+    return { stepLocation: s.location, stepType: true, stepPhoto: s.photo, submitCard: false };
+}
+function updateStepper(s) {
+    const done = stepsDone(s);
+    const current = STEP_ORDER.find(id => !done[id]);
+    document.querySelectorAll('#stepper li').forEach(li => {
+        const id = li.dataset.target;
+        li.classList.toggle('is-done', !!done[id]);
+        li.classList.toggle('is-current', id === current);
+        li.querySelector('.st-dot').innerHTML = done[id] ? icon('check', 'ic-16') : String(STEP_ORDER.indexOf(id) + 1);
+        li.querySelector('button').setAttribute('aria-current', id === current ? 'step' : 'false');
+    });
+    const left = STEP_ORDER.filter(id => !done[id]).length;
+    $('stepperNote').textContent = TODAY_RECORD ? 'ส่งรายงานของวันนี้แล้ว' : left === 1 ? 'เหลือขั้นตอนสุดท้าย — กดบันทึกรายงาน' : `เหลืออีก ${left} ขั้นตอน`;
+}
+function scrollToStep(id) {
+    const el = $(id);
+    if (el) el.scrollIntoView({ behavior: Prefs.get('motion') ? 'auto' : 'smooth', block: 'start' });
+}
+function advanceStep(fromId) {
+    const done = stepsDone(formState());
+    const next = STEP_ORDER.slice(STEP_ORDER.indexOf(fromId) + 1).find(id => !done[id]);
+    if (next) setTimeout(() => scrollToStep(next), 250);
 }
 
 // สถานะขั้นตอน: เลขขั้นตอนเป็นพื้นเขียวเมื่อเสร็จ + ข้อความสำหรับโปรแกรมอ่านหน้าจอ (ไม่สื่อด้วยสีอย่างเดียว)
@@ -722,22 +774,31 @@ function appendItems(count) {
             <span class="chip ${isSelf ? 'chip-self' : 'chip-agent'}">${isSelf ? 'ขายเอง' : 'โดยตัวแทน'}</span>
             ${icon('chevron-down')}
           </button>
-          <div class="hist-body" id="${id}" hidden></div>`;
+          <div class="hist-panel" id="${id}" inert><div class="hist-body"><div class="hist-inner"></div></div></div>`;
         row.querySelector('.hist-when b').textContent = formatThaiDate(item.timestamp);
         row.querySelector('.hist-when .mono').textContent = `${item.time} น.`;
         const head = row.querySelector('.hist-head');
-        const body = row.querySelector('.hist-body');
+        const body = row.querySelector('.hist-inner');
         head.addEventListener('click', () => {
             const open = head.getAttribute('aria-expanded') !== 'true';
-            head.setAttribute('aria-expanded', String(open));
-            body.hidden = !open;
+            // เปิดได้ทีละรายการ: ปิดรายการอื่นที่เปิดค้างไว้
+            if (open) st.list.querySelectorAll('.hist-head[aria-expanded="true"]').forEach(h => { if (h !== head) setHistOpen(h, false); });
             // สร้างเนื้อหาเมื่อเปิดครั้งแรกเท่านั้น
             if (open && !body.childElementCount) renderHistoryBody(body, item);
+            setHistOpen(head, open);
+            if (open) setTimeout(() => row.scrollIntoView({ block: 'nearest', behavior: Prefs.get('motion') ? 'auto' : 'smooth' }), 300);
         });
         st.list.appendChild(row);
         st.shown++;
     });
     $('loadMoreBtn').hidden = st.shown >= FILTERED.length;
+}
+
+function setHistOpen(head, open) {
+    const panel = document.getElementById(head.getAttribute('aria-controls'));
+    head.setAttribute('aria-expanded', String(open));
+    panel.classList.toggle('is-open', open);
+    panel.inert = !open;
 }
 
 // --- History row detail: photo (tap to enlarge) + location ---
