@@ -44,6 +44,11 @@ VIEWS.records = {
         $('rfPhoto').addEventListener('change', e => this.pickPhoto(e.target.files[0]));
     },
 
+    reset() {
+        Object.assign(this, { F: DEFAULT_FILTER(), page: 1, data: null, loaded: false, knownUsers: [], stale: false });
+        this.reqSeq++;
+    },
+
     show() {
         if (!this.loaded) { this.loaded = true; this.syncControls(); this.load(); }
         else if (this.stale) { this.stale = false; this.load(); }

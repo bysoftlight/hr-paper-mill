@@ -13,6 +13,8 @@ VIEWS.overview = {
         this.load();
     },
 
+    reset() { this.data = null; this.loading = false; this.stale = false; },
+
     onLive() {
         if (ST.view === 'overview' && !document.querySelector('dialog[open]')) this.load();
         else this.stale = true;

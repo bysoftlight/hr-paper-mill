@@ -106,12 +106,12 @@ function emptyState(text, iconName = 'inbox') { return `<div class="empty table-
 
 // ---------- API ----------
 async function api(action, payload = {}) {
-    const res = await callApi(action, Object.assign({ token: ST.token, userAgent: navigator.userAgent.slice(0, 200) }, payload));
+    const token = ST.token;
+    const res = await callApi(action, Object.assign({ token, userAgent: navigator.userAgent.slice(0, 200) }, payload));
+    // ออกจากระบบไปแล้วระหว่างรอ: ไม่ใช้ผลของ session เก่า
+    if (token && token !== ST.token && !/^staff\.auth/.test(action)) return { success: false, code: 'ENDED', message: '' };
     if (!res.success && res.code === 'AUTH' && ST.token && !/^staff\.auth/.test(action)) {
-        store.remove(TOKEN_KEY);
-        ST.token = null;
-        await showMessage({ title: 'กรุณาเข้าสู่ระบบอีกครั้ง', text: res.message, tone: 'warn' });
-        location.replace(location.pathname);
+        endSession(res.message);
     } else if (!res.success && (res.code === 'PENDING' || res.code === 'FORBIDDEN') && ST.me) {
         refreshMe();
     }
@@ -241,9 +241,24 @@ async function logout() {
     const ok = await showMessage({ title: 'ออกจากระบบ?', text: 'ครั้งต่อไปต้องเข้าสู่ระบบด้วย Google หรือ LINE อีกครั้ง', tone: 'bad', okText: 'ออกจากระบบ', cancelText: 'ยกเลิก' });
     if (!ok) return;
     api('staff.logout');
-    store.remove(TOKEN_KEY);
     try { window.google && google.accounts.id.disableAutoSelect(); } catch (e) {}
-    location.replace(location.pathname);
+    endSession();
+}
+
+// ออกจากระบบ / session ใช้ไม่ได้: ล้างข้อมูลแล้วสลับไปหน้าเข้าสู่ระบบทันทีในหน้าเดิม
+// (ไม่พึ่ง location.replace() เพราะบางเบราว์เซอร์/แอปบนหน้าจอหลักไม่โหลดหน้าใหม่ให้ จนต้องกด F5)
+function endSession(message) {
+    store.remove(TOKEN_KEY);
+    Object.assign(ST, { token: null, me: null, perms: new Set(), participants: null, participantsReq: null, participantMeta: null, prefetch: null, lastSeen: 0, view: null });
+    clearInterval(liveTimer); clearInterval(liveTextTimer); clearInterval(pendingTimer);
+    IMG_CACHE.clear();
+    document.querySelectorAll('dialog[open]').forEach(d => d.close());
+    showLoading(false);
+    Object.values(VIEWS).forEach(v => v.reset && v.reset());
+    history.replaceState(null, '', location.pathname);
+    window.scrollTo(0, 0);
+    $('appContainer').classList.remove('is-booting');
+    showAuth(message || '');
 }
 
 // ---------- After sign in ----------
@@ -405,9 +420,21 @@ function startLive() {
     clearInterval(liveTimer); clearInterval(liveTextTimer);
     liveTimer = setInterval(pollLive, 20000);
     liveTextTimer = setInterval(updateLiveText, 5000);
-    document.addEventListener('visibilitychange', () => { updateLiveText(); if (!document.hidden) pollLive(); });
     updateLiveText();
 }
+// ผูกครั้งเดียว (เดิมผูกซ้ำทุกครั้งที่สิทธิ์เปลี่ยน ทำให้ยิงคำขอซ้ำหลายรอบ)
+document.addEventListener('visibilitychange', () => {
+    if (!ST.me || $('appContainer').hidden) return;
+    updateLiveText();
+    if (!document.hidden) pollLive();
+});
+// ออกจากระบบจากอีกแท็บ หรือกลับมาด้วยปุ่มย้อนกลับหลังออกจากระบบ → กลับหน้าเข้าสู่ระบบ
+window.addEventListener('storage', e => {
+    if ((e.key === TOKEN_KEY || e.key === null) && !store.get(TOKEN_KEY) && ST.token) endSession('ออกจากระบบจากหน้าต่างอื่นแล้ว');
+});
+window.addEventListener('pageshow', e => {
+    if (e.persisted && !store.get(TOKEN_KEY) && ST.token) endSession();
+});
 
 async function pollLive() {
     if (document.hidden || !ST.me || !can('records.view')) return;

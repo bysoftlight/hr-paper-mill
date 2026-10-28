@@ -25,6 +25,7 @@ VIEWS.participants = {
     },
 
     show() { this.load(!this.loaded || this.stale); },
+    reset() { this.loaded = false; this.stale = false; this.editing = null; },
 
     onLive() { this.stale = true; if (ST.view === 'participants' && !document.querySelector('dialog[open]')) this.load(true); },
 

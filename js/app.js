@@ -15,6 +15,7 @@ const SELF_TYPE = 'ทำการขายด้วยตัวเอง';
 const AGENT_TYPE = 'ทำการขายโดยตัวแทน';
 const AGENT_LIMIT = 10;     // ข้อ 1.3: ให้ผู้อื่นขายแทนได้ไม่เกินเดือนละ 10 ครั้ง
 let TODAY_RECORD = null;    // รายการที่ส่งแล้ววันนี้ (ระบบรับวันละ 1 ครั้ง)
+let SESSION = 0;            // เพิ่มทุกครั้งที่ออกจากระบบ: ผลของคำขอที่ค้างจาก session เก่าจะถูกทิ้ง
 const MONTHS = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 const MONTHS_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 const DAYS_SHORT = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
@@ -43,6 +44,14 @@ window.addEventListener('DOMContentLoaded', () => {
     } else {
         showRulesModal(true);
     }
+
+    // ออกจากระบบจากอีกแท็บ หรือกลับมาหน้านี้ด้วยปุ่มย้อนกลับหลังออกจากระบบ → กลับหน้าเข้าสู่ระบบ
+    window.addEventListener('storage', (e) => {
+        if ((e.key === USER_KEY || e.key === null) && !store.get(USER_KEY) && CURRENT_USER.id) endSession();
+    });
+    window.addEventListener('pageshow', (e) => {
+        if (e.persisted && !store.get(USER_KEY) && !$('appContainer').hidden) endSession();
+    });
 });
 
 // Clock
@@ -153,7 +162,9 @@ async function performLogin(userId, isAuto, background = false) {
     if (background) $('histRefresh').disabled = true;
     else if (isAuto) showAppSkeleton();
     else setLoginBusy(true);
+    const session = SESSION;
     const res = await callApi('login', { userId: userId, withHistory: true });
+    if (session !== SESSION) return; // ออกจากระบบไปแล้วระหว่างรอ
     if (!isAuto) setLoginBusy(false);
 
     if (res.success) {
@@ -191,12 +202,36 @@ async function logout() {
         title: 'ออกจากระบบ?', text: 'ครั้งต่อไปต้องกรอกรหัสผู้ใช้สิทธิ์ใหม่อีกครั้ง',
         tone: 'bad', okText: 'ออกจากระบบ', cancelText: 'ยกเลิก'
     });
-    if (ok) {
-        store.remove(USER_KEY);
-        store.remove(CACHE_KEY);
-        history.replaceState(null, '', location.pathname);
-        location.reload();
-    }
+    if (ok) endSession();
+}
+
+// ออกจากระบบ: ล้างข้อมูลในเครื่องแล้วสลับไปหน้าเข้าสู่ระบบทันทีในหน้าเดิม
+// (ไม่พึ่ง location.reload() อย่างเดียว เพราะบางเบราว์เซอร์/แอปบนหน้าจอหลักไม่โหลดหน้าใหม่ให้)
+function endSession() {
+    SESSION++;
+    historySeq++;
+    historyReq = null;
+    store.remove(USER_KEY);
+    store.remove(CACHE_KEY);
+    CURRENT_USER = {};
+    ALL_HISTORY = [];
+    HISTORY_LOADED = false;
+    TODAY_RECORD = null;
+    IMAGE_CACHE.clear();
+    document.querySelectorAll('dialog[open]').forEach(d => { delete d.dataset.locked; d.close(); });
+    showLoading(false);
+    $('salesForm').reset();
+    updateFileName($('evidenceImg'));
+    $('historyList').innerHTML = '';
+    renderUser();
+    history.replaceState(null, '', location.pathname);
+    backToLogin();
+    $('loginId').value = '';
+    $('loginId').readOnly = false;
+    $('loginBtn').disabled = true;
+    setLoginError(null);
+    window.scrollTo(0, 0);
+    showRulesModal(true);
 }
 
 // --- APP NAVIGATION & SETUP ---
@@ -416,8 +451,10 @@ async function handleFormSubmit(e) {
             imageFile: { name: file.name, mimeType: "image/jpeg", data: image.base64 }
         };
 
+        const session = SESSION;
         const res = await callApi('submit', { userId: CURRENT_USER.id, formData: formData });
         showLoading(false);
+        if (session !== SESSION) return;
 
         if (res.success) {
             const time = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
