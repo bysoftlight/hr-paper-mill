@@ -6,9 +6,15 @@ const DEFAULT_FILTER = () => {
         userIds: [], types: [], sites: [], location: 'all', status: 'active', q: '', sort: 'ts_desc' };
 };
 
+// จำนวนรายการต่อหน้า: ตามการตั้งค่า หรืออัตโนมัติ (มือถือ 20 · จอใหญ่ 50)
+function recPageSize() {
+    const v = Number(Prefs.get('pageSize'));
+    return v || (window.matchMedia('(max-width: 767px)').matches ? 20 : 50);
+}
+
 VIEWS.records = {
     F: DEFAULT_FILTER(),
-    page: 1, pageSize: window.matchMedia('(max-width: 767px)').matches ? 20 : 50, data: null, mode: 'table', loaded: false, reqSeq: 0,
+    page: 1, data: null, mode: 'table', loaded: false, reqSeq: 0,
     map: null, mapLayer: null, knownUsers: [],
 
     init() {
@@ -145,7 +151,7 @@ VIEWS.records = {
         $('recTable').innerHTML = skeletonRows(6);
         $('recTable').setAttribute('aria-busy', 'true');
         if (!this.data) $('recSummary').innerHTML = Array.from({ length: 4 }, () => '<span class="stat"><span class="skel skel-text" style="width:80px"></span></span>').join('');
-        const r = await api('staff.records.list', { filters: this.filters(), page: this.page, pageSize: this.pageSize, sort: this.F.sort });
+        const r = await api('staff.records.list', { filters: this.filters(), page: this.page, pageSize: recPageSize(), sort: this.F.sort });
         if (seq !== this.reqSeq) return;
         $('recTable').setAttribute('aria-busy', 'false');
         if (!r.success) { $('recTable').innerHTML = emptyState(r.message || 'โหลดข้อมูลไม่สำเร็จ', 'wifi-off'); $('recPager').innerHTML = ''; return; }
@@ -180,7 +186,7 @@ VIEWS.records = {
 
     renderTable(rows) {
         if (!rows.length) { $('recTable').innerHTML = emptyState('ไม่พบรายการตามเงื่อนไขที่เลือก'); return; }
-        const editable = can('records.edit');
+        const editable = can('records.edit'), thumbs = Prefs.get('thumbs');
         $('recTable').innerHTML = `<table class="dtable">
           <thead><tr><th>วันที่ · เวลา</th><th>ผู้ใช้สิทธิ์</th><th>จุดขาย</th><th>ประเภท</th><th>ตำแหน่ง</th><th>รูป</th>${editable ? '<th><span class="sr-only">จัดการ</span></th>' : ''}</tr></thead>
           <tbody>${rows.map((r, i) => `
@@ -190,7 +196,7 @@ VIEWS.records = {
               <td data-label="จุดขาย">${esc(r.site || '-')}</td>
               <td data-label="ประเภท">${typeChip(r.type)}${r.status === 'deleted' ? ' <span class="badge is-bad">ลบแล้ว</span>' : ''}${r.note ? ` <span class="badge" title="${esc(r.note)}">หมายเหตุ</span>` : ''}</td>
               <td data-label="ตำแหน่ง">${this.locCell(r)}</td>
-              <td class="td-thumb">${r.image || r.fileId ? `<img class="thumb" alt="" loading="lazy" decoding="async" data-thumb="${i}">` : ''}</td>
+              <td class="td-thumb">${!(r.image || r.fileId) ? '' : thumbs ? `<img class="thumb" alt="" loading="lazy" decoding="async" data-thumb="${i}">` : `<span class="thumb-empty" title="ปิดรูปย่อไว้ในการตั้งค่า · แตะรายการเพื่อดูรูป">${icon('image')}</span>`}</td>
               ${editable ? `<td class="td-actions"><div class="row-btns"><button type="button" class="icon-btn" data-edit="${i}" aria-label="แก้ไข">${icon('edit')}</button></div></td>` : ''}
             </tr>`).join('')}</tbody></table>`;
         const tbl = $('recTable');

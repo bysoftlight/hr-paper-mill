@@ -1,7 +1,7 @@
 // js/staff/admin.js — ผู้ดูแลระบบ: อนุมัติ/จัดการบัญชีเจ้าหน้าที่ และดู Log
 
 const ACTION_LABELS = {
-    'staff.signup': 'สมัครบัญชี (รออนุมัติ)', 'staff.signup_admin': 'สมัคร (ผู้ดูแลตั้งต้น)', 'staff.login': 'เข้าสู่ระบบ', 'staff.logout': 'ออกจากระบบ',
+    'staff.signup': 'สมัครบัญชี (รออนุมัติ)', 'staff.signup_admin': 'สมัคร (ผู้ดูแลตั้งต้น)', 'staff.login': 'เข้าสู่ระบบ', 'staff.logout': 'ออกจากระบบ', 'staff.logout_all': 'ออกจากระบบทุกอุปกรณ์',
     'admin.staff.approve': 'อนุมัติบัญชี', 'admin.staff.reject': 'ปฏิเสธบัญชี', 'admin.staff.suspend': 'ระงับบัญชี', 'admin.staff.update': 'แก้ไขสิทธิ์',
     'admin.staff.revoke': 'บังคับออกจากระบบ', 'admin.staff.delete': 'ลบบัญชีเจ้าหน้าที่',
     'records.create': 'เพิ่มรายงาน', 'records.update': 'แก้ไขรายงาน', 'records.delete': 'ลบรายงาน', 'records.restore': 'กู้คืนรายงาน',
