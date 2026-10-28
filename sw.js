@@ -1,6 +1,6 @@
 // sw.js — Service worker สำหรับการแจ้งเตือน (Web Push) เท่านั้น ไม่แคชไฟล์เว็บ (อัปเดตเว็บแล้วเห็นทันทีเหมือนเดิม)
 // ระบบส่ง push แบบไม่มีเนื้อหา → ดึงข้อความล่าสุดของเครื่องนี้จาก Apps Script (notify.inbox) แล้วแสดง
-importScripts('js/config.js?v=3.17.0');
+importScripts('js/config.js?v=3.18.0');
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', event => event.waitUntil(self.clients.claim()));

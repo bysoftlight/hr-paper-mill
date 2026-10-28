@@ -314,11 +314,41 @@ VIEWS.records = {
         });
         const pts = [];
         const limit = 3000;
+        const heat = this.mapMode === 'heat';
+        $('recMapMode').querySelectorAll('button').forEach(b => {
+            b.setAttribute('aria-checked', String((b.dataset.mode === 'heat') === heat));
+            b.onclick = () => { if ((b.dataset.mode === 'heat') !== heat) { this.mapMode = b.dataset.mode; this.load(); } };
+        });
+        if (heat) {
+            // ความหนาแน่น: วงโปร่งใสซ้อนกัน ยิ่งซ้อนมากสียิ่งเข้ม + ชี้ดูจำนวนรายงานในบริเวณนั้น
+            const cells = new Map();
+            r.rows.filter(x => x.hasGps).forEach(x => {
+                const k = (Math.round(x.lat * 500) / 500) + ',' + (Math.round(x.lng * 500) / 500); // ช่องละ ~200 ม.
+                const c = cells.get(k) || cells.set(k, { lat: 0, lng: 0, n: 0, agent: 0, anomaly: 0, people: new Set() }).get(k);
+                c.lat += x.lat; c.lng += x.lng; c.n++; c.people.add(x.userName);
+                if (x.type === AGENT_TYPE) c.agent++;
+                if (x.anomaly) c.anomaly++;
+            });
+            const maxN = Math.max(1, ...[...cells.values()].map(c => c.n));
+            cells.forEach(c => {
+                const lat = c.lat / c.n, lng = c.lng / c.n, t = c.n / maxN;
+                [[1.6, 0.08], [1, 0.16], [0.55, 0.3]].forEach(([k, op]) => L.circle([lat, lng], { radius: (120 + 380 * Math.sqrt(t)) * k, stroke: false, fillColor: t > 0.66 ? color('--bad') : t > 0.33 ? color('--warn') : color('--accent'), fillOpacity: op, interactive: false }).addTo(this.mapLayer));
+                L.circleMarker([lat, lng], { radius: 9, stroke: false, fillOpacity: 0 })
+                    .bindTooltip(`<b>${fmtNum(c.n)} รายงาน</b> ในบริเวณนี้<br>${[...c.people].slice(0, 4).map(esc).join(', ')}${c.people.size > 4 ? ` และอีก ${c.people.size - 4} คน` : ''}<br>โดยตัวแทน ${c.agent}${c.anomaly ? ` · ผิดปกติ ${c.anomaly}` : ''}`, { direction: 'top', className: 'map-tip', sticky: true })
+                    .addTo(this.mapLayer);
+                pts.push([lat, lng]);
+            });
+            if (pts.length) this.map.fitBounds(pts, { padding: [30, 30], maxZoom: 15 });
+            setTimeout(() => this.map.invalidateSize(), 50);
+            $('recMapHint').textContent = `ความหนาแน่นจาก ${fmtNum(r.rows.filter(x => x.hasGps).length)} รายงาน · สีน้ำเงิน → เหลือง → แดง = รายงานหนาแน่นขึ้น · ชี้/แตะเพื่อดูจำนวนและรายชื่อ`;
+            return;
+        }
         r.rows.filter(x => x.hasGps).slice(0, limit).forEach(x => {
             const m = L.circleMarker([x.lat, x.lng], {
                 radius: 7, weight: x.anomaly ? 3 : 1.5, color: x.anomaly ? color('--bad') : '#fff',
                 fillColor: x.type === AGENT_TYPE ? color('--warn') : color('--accent'), fillOpacity: 0.9
             });
+            m.bindTooltip(`<b>${esc(x.userName)}</b><br>${thDate(x.date, { day: 'numeric', month: 'short' })} ${esc(x.time)} น. · ${x.type === AGENT_TYPE ? 'ตัวแทน' : 'ขายเอง'}${x.anomaly ? `<br>⚠ ห่างจุดขาย ${fmtDistance(x.distance)}` : ''}`, { direction: 'top', offset: [0, -6], className: 'map-tip' });
             m.bindPopup(`<b>${esc(x.userName)}</b>${thDate(x.date)} ${esc(x.time)} น.<br>${x.type === AGENT_TYPE ? 'ขายโดยตัวแทน' : 'ขายด้วยตัวเอง'}${x.distance !== null ? `<br>ห่างจุดขาย ${fmtDistance(x.distance)}` : ''}<br><a href="#" data-open-rec="${x.row}">ดูรายละเอียด</a>`);
             m.on('popupopen', e => {
                 const a = e.popup.getElement().querySelector('[data-open-rec]');
@@ -330,7 +360,7 @@ VIEWS.records = {
         if (pts.length) this.map.fitBounds(pts, { padding: [30, 30], maxZoom: 16 });
         setTimeout(() => this.map.invalidateSize(), 50);
         const nogps = r.rows.length - pts.length;
-        $('recMapHint').textContent = `แสดง ${fmtNum(pts.length)} จุด${r.rows.filter(x => x.hasGps).length > limit ? ` (จำกัด ${fmtNum(limit)} จุดแรก)` : ''}${nogps ? ` · ไม่มี GPS ${fmtNum(nogps)} รายการ` : ''} · สีน้ำเงิน = ขายเอง, สีเหลือง = โดยตัวแทน, ขอบแดง = ตำแหน่งผิดปกติ, วงประ = รัศมีจุดขาย ${radius} ม.`;
+        $('recMapHint').textContent = `ชี้/แตะจุดเพื่อดูข้อมูล · แสดง ${fmtNum(pts.length)} จุด${r.rows.filter(x => x.hasGps).length > limit ? ` (จำกัด ${fmtNum(limit)} จุดแรก)` : ''}${nogps ? ` · ไม่มี GPS ${fmtNum(nogps)} รายการ` : ''} · สีน้ำเงิน = ขายเอง, สีเหลือง = โดยตัวแทน, ขอบแดง = ตำแหน่งผิดปกติ, วงประ = รัศมีจุดขาย ${radius} ม.`;
     },
 
     // ---------- รายละเอียด ----------

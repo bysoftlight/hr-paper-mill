@@ -384,3 +384,55 @@ button.feed-item, button.person { cursor: pointer; }
     .input-sm, .toolbar-row .select, .search-field .input { font-size: 16px; }
     .toolbar-row .range-sep { flex: none; }
 }
+
+/* --- Dashboard: กราฟ เทียบเดือน แผนที่ จุดขาย --- */
+.chart-box { min-height: 120px; }
+.chart-skel { display: block; height: 150px; border-radius: 12px; }
+.chart-hint { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
+.seg-sm button { min-height: 36px; padding: 0 14px; font-size: 13px; }
+.legend-row { display: flex; gap: 14px; margin-top: 8px; }
+.legend-row span { display: inline-flex; align-items: center; gap: 6px; }
+.lg-dash { width: 14px; height: 0; border-top: 2px dashed var(--muted); border-radius: 0; background: none; }
+.cmp-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.cmp-stats > div { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: var(--r-md); background: var(--surface); min-width: 0; }
+.cmp-stats small { font-size: 12px; color: var(--muted); }
+.cmp-stats b { font-size: 22px; font-weight: 500; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.cmp-stats span:not(.delta) { font-size: 11px; color: var(--muted); }
+.delta { display: inline-flex; align-self: flex-start; align-items: center; gap: 2px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.delta.is-up { background: var(--ok-soft); color: var(--ok); }
+.delta.is-down { background: var(--bad-soft); color: var(--bad); }
+.gauge-box { position: relative; min-height: 160px; }
+.split-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; padding: 10px 12px; border-radius: var(--r-md); background: var(--surface); }
+.split-stats div { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; align-items: center; }
+.split-stats small { font-size: 12px; color: var(--muted); }
+.split-stats b { grid-column: 2; font-size: 16px; font-variant-numeric: tabular-nums; }
+.ov-map { height: 300px; border-radius: var(--r-md); overflow: hidden; background: var(--container); z-index: 0; }
+.ov-map .map-fallback { display: grid; place-items: center; height: 100%; padding: 16px; text-align: center; color: var(--muted); font-size: 13px; }
+.map-tip { font-family: var(--font); font-size: 12px; line-height: 1.45; border-radius: 10px; }
+.site-rank { margin-top: 12px; display: flex; flex-direction: column; }
+.rank-head, .rank-row { display: grid; grid-template-columns: minmax(0, 1.6fr) 56px minmax(0, 1fr); gap: 10px; align-items: center; }
+.rank-head { padding: 0 8px 6px; font-size: 11px; color: var(--muted); }
+.rank-row { width: 100%; padding: 8px; border: 0; border-radius: 10px; background: none; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.rank-row + .rank-row { border-top: 1px solid var(--line-soft); }
+@media (hover: hover) { .rank-row:hover { background: var(--surface); } }
+.rank-name { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 8px; align-items: center; min-width: 0; }
+.rank-name b { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-name small { grid-column: 2; font-size: 11px; color: var(--muted); }
+.rank-bar { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.rank-bar i { flex: 1; height: 6px; border-radius: 3px; background: var(--accent); max-width: 100%; }
+.rank-bar b { font-size: 12px; min-width: 2.5em; text-align: right; }
+/* KPI: บอกว่ากดดูรายการได้ */
+.kpi { position: relative; transition: transform .15s, box-shadow .15s, border-color .15s; }
+.kpi-go { display: inline-flex; align-items: center; gap: 2px; margin-top: 6px; font-size: 12px; font-weight: 500; color: var(--accent); }
+.kpi-go .ic { width: 14px; height: 14px; }
+@media (hover: hover) { button.kpi:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0, 0, 0, .08); border-color: var(--accent); } }
+button.kpi:active { transform: scale(.98); }
+@media (max-width: 479px) {
+    .cmp-stats { grid-template-columns: 1fr; }
+    .cmp-stats > div { display: grid; grid-template-columns: 1fr auto; align-items: baseline; column-gap: 8px; }
+    .cmp-stats small, .cmp-stats span:not(.delta) { grid-column: 1 / -1; }
+    .cmp-stats b { grid-column: 1; }
+    .cmp-stats .delta { grid-column: 2; grid-row: 2; }
+    .ov-map { height: 240px; }
+}
+.map-tools { display: flex; justify-content: flex-end; margin-bottom: 8px; }

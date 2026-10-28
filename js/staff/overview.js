@@ -23,7 +23,7 @@ VIEWS.overview = {
     skeleton() {
         $('ovKpis').innerHTML = Array.from({ length: 5 }, () =>
             '<div class="kpi" aria-hidden="true"><span class="skel skel-text" style="width:60%"></span><span class="skel" style="height:30px;width:45%;margin:6px 0"></span><span class="skel skel-sm" style="width:70%"></span></div>').join('');
-        $('ovTrend').innerHTML = Array.from({ length: 30 }, (_, i) => `<div class="bar"><i class="skel" style="height:${20 + ((i * 37) % 60)}%"></i></div>`).join('');
+        ['ovTrend', 'ovCompare', 'ovHours', 'ovGauge'].forEach(id => { if (!$(id).childElementCount) $(id).innerHTML = '<span class="skel chart-skel" aria-hidden="true"></span>'; });
         ['ovLatest', 'ovMissing', 'ovAgent', 'ovAnom'].forEach(id => {
             $(id).innerHTML = Array.from({ length: 3 }, () => '<div class="feed-item" aria-hidden="true"><span class="skel" style="width:36px;height:36px;border-radius:50%"></span><span class="fi-text"><span class="skel skel-text" style="width:60%"></span><span class="skel skel-sm" style="width:40%"></span></span></div>').join('');
         });
@@ -70,17 +70,26 @@ VIEWS.overview = {
           <button type="button" class="kpi" data-ov-filter="month">
             <small>อัตราการส่งเดือนนี้</small><b>${k.monthRate}<span class="of">%</span></b><span>${fmtNum(k.monthRecords)} รายการ</span>
           </button>`;
-        $('ovKpis').querySelectorAll('[data-ov-filter]').forEach(b => b.addEventListener('click', () => this.drill(b.dataset.ovFilter)));
+        $('ovKpis').querySelectorAll('[data-ov-filter]').forEach(b => {
+            b.insertAdjacentHTML('beforeend', `<span class="kpi-go" aria-hidden="true">ดูรายการ ${icon('chevron-right')}</span>`);
+            b.addEventListener('click', () => { haptic(); this.drill(b.dataset.ovFilter); });
+        });
 
-        // แนวโน้ม 30 วัน (ซ้อน ขายเอง + ตัวแทน)
-        const max = Math.max(1, ...d.trend.map(t => t.count));
-        $('ovTrend').innerHTML = d.trend.map(t => {
-            const self = t.count - t.agent;
-            const label = `${thDate(t.date, { day: 'numeric', month: 'short' })}: ${t.count} รายการ (ตัวแทน ${t.agent})`;
-            return `<div class="bar${t.date === d.today ? ' is-today' : ''}${t.count ? '' : ' empty-bar'}" title="${label}"><i class="s" style="height:${self / max * 100}%"></i><i class="a" style="height:${t.agent / max * 100}%"></i></div>`;
-        }).join('');
-        const t = d.trend;
-        $('ovTrendAxis').innerHTML = [t[0], t[14], t[29]].map(x => `<span>${thDate(x.date, { day: 'numeric', month: 'short' })}</span>`).join('');
+        // แนวโน้ม 30 วัน (ซ้อน ขายเอง + ตัวแทน) — ชี้/แตะดูตัวเลข, แตะสองครั้งเปิดรายการของวันนั้น
+        const t = d.trend, last = t.length - 1;
+        Charts.bars($('ovTrend'), {
+            labels: t.map(x => thDate(x.date, { day: 'numeric', month: 'short' })),
+            xLabels: [0, Math.floor(last / 2), last],
+            series: [{ label: 'ขายเอง', values: t.map(x => x.count - x.agent), color: Charts.color('--accent') }, { label: 'โดยตัวแทน', values: t.map(x => x.agent), color: Charts.color('--warn') }],
+            height: 190, ariaLabel: 'กราฟจำนวนรายงานย้อนหลัง 30 วัน',
+            tooltip: i => `<small>${thDate(t[i].date, { weekday: 'short', day: 'numeric', month: 'short' })}</small><b>${fmtNum(t[i].count)} รายการ</b><div class="tip-row"><i class="sw" style="background:var(--accent)"></i>ขายเอง ${t[i].count - t[i].agent}</div><div class="tip-row"><i class="sw" style="background:var(--warn)"></i>ตัวแทน ${t[i].agent}</div>`
+        });
+        $('ovTrend').ondblclick = () => { const a = $('ovTrend').querySelector('.chart-bar.is-active'); if (a) { const i = [...a.parentNode.children].indexOf(a); VIEWS.records.openWith({ period: 'day', day: t[i].date }); } };
+
+        this.renderCompare();
+        this.renderGauge();
+        this.renderHours();
+        this.renderSites();
 
         // รายการล่าสุด
         $('ovLatest').innerHTML = d.latest.length ? d.latest.map((r, i) => `
@@ -122,6 +131,126 @@ VIEWS.overview = {
             <span class="fi-side">${r.hasGps ? `<span class="badge is-bad">${icon('alert')}ห่าง ${fmtDistance(r.distance)}</span>` : `<span class="badge is-warn">ไม่มี GPS</span>`}</span>
           </button>`).join('') : `<div class="empty">${icon('check-circle')}ไม่มีรายการผิดปกติวันนี้</div>`;
         $('ovAnom').querySelectorAll('[data-i]').forEach(b => b.addEventListener('click', () => VIEWS.records.openDetail(d.anomalies[b.dataset.i])));
+    },
+
+    // เทียบเดือน: เส้นทึบ = เดือนนี้, เส้นประ = เดือนก่อน (แบบสะสมหรือรายวัน)
+    renderCompare() {
+        const c = this.data.compare;
+        const card = $('ovCompare').closest('.card');
+        if (!c) { card.hidden = true; return; }
+        card.hidden = false;
+        const mode = this.cmpMode || 'cum';
+        const cum = arr => { let a = 0; return arr.map(v => (a += v)); };
+        const n = Math.max(c.current.length, c.previous.length);
+        const cur = mode === 'cum' ? cum(c.current) : c.current.slice();
+        const prev = mode === 'cum' ? cum(c.previous) : c.previous.slice();
+        const pad = (arr, len) => arr.concat(new Array(Math.max(0, len - arr.length)).fill(null));
+        const mName = k => thDate(k + '-01', { month: 'long' });
+        const pct = (a, b) => (b ? Math.round((a - b) / b * 100) : null);
+        const delta = (a, b, unit = '') => { const p = pct(a, b); return p === null ? '' : `<span class="delta ${p >= 0 ? 'is-up' : 'is-down'}">${p >= 0 ? '▲' : '▼'} ${Math.abs(p)}%${unit}</span>`; };
+        $('cmpStats').innerHTML = `
+          <div><small>รายงาน 1–${c.today} ${mName(c.thisMonth)}</small><b>${fmtNum(c.totals.current)}</b>${delta(c.totals.current, c.totals.previousSamePeriod)}<span>เดือนก่อนช่วงเดียวกัน ${fmtNum(c.totals.previousSamePeriod)}</span></div>
+          <div><small>อัตราการส่ง</small><b>${c.rate.current}%</b><span class="delta ${c.rate.current >= c.rate.previous ? 'is-up' : 'is-down'}">${c.rate.current >= c.rate.previous ? '▲' : '▼'} ${Math.abs(c.rate.current - c.rate.previous)} จุด</span><span>เดือนก่อน ${c.rate.previous}%</span></div>
+          <div><small>ขายโดยตัวแทน</small><b>${fmtNum(c.agent.current)}</b>${delta(c.agent.current, c.agent.previous)}<span>เดือนก่อน ${fmtNum(c.agent.previous)}</span></div>`;
+        const labels = Array.from({ length: n }, (_, i) => String(i + 1));
+        Charts.area($('ovCompare'), {
+            labels, height: 200, active: c.current.length - 1, ariaLabel: 'กราฟเทียบจำนวนรายงานเดือนนี้กับเดือนก่อน',
+            xLabels: [0, 14, n - 1].filter(i => i < n),
+            series: [
+                { label: mName(c.lastMonth), values: pad(prev, n), color: Charts.color('--muted'), dashed: true },
+                { label: mName(c.thisMonth), values: pad(cur, n), color: Charts.color('--accent') }
+            ],
+            tooltip: i => `<small>วันที่ ${i + 1}${mode === 'cum' ? ' (สะสม)' : ''}</small><div class="tip-row"><i class="sw" style="background:var(--accent)"></i>${mName(c.thisMonth)} <b>${cur[i] == null ? '-' : fmtNum(cur[i])}</b></div><div class="tip-row"><i class="sw" style="background:var(--muted)"></i>${mName(c.lastMonth)} <b>${prev[i] == null ? '-' : fmtNum(prev[i])}</b></div>`
+        });
+        $('cmpLegend').innerHTML = `<span><i class="lg" style="background:var(--accent)"></i>${mName(c.thisMonth)}</span><span><i class="lg lg-dash"></i>${mName(c.lastMonth)}</span>`;
+        $('cmpMode').querySelectorAll('button').forEach(b => {
+            b.setAttribute('aria-checked', String(b.dataset.mode === mode));
+            b.onclick = () => { this.cmpMode = b.dataset.mode; this.renderCompare(); };
+        });
+    },
+
+    renderGauge() {
+        const k = this.data.kpi, c = this.data.compare;
+        Charts.gauge($('ovGauge'), { value: k.monthRate, label: 'ของจำนวนวันที่ควรส่งเดือนนี้' });
+        const diff = c ? k.monthRate - c.rate.previous : null;
+        $('gaugeDelta').innerHTML = diff === null ? '' : `<span class="delta ${diff >= 0 ? 'is-up' : 'is-down'}">${diff >= 0 ? '▲' : '▼'} ${Math.abs(diff)} จุด จากเดือนก่อน</span>`;
+        const days = c ? c.today : 0, expected = k.participants * days;
+        $('gaugeSplit').innerHTML = `<div><i class="lg" style="background:var(--accent)"></i><small>ส่งแล้ว</small><b>${fmtNum(k.monthRecords)}</b></div><div><i class="lg" style="background:var(--container)"></i><small>ขาด</small><b>${fmtNum(Math.max(0, expected - k.monthRecords))}</b></div>`;
+    },
+
+    renderHours() {
+        const h = this.data.hours;
+        const card = $('ovHours').closest('.card');
+        if (!h) { card.hidden = true; return; }
+        card.hidden = false;
+        // ช่วงที่มีข้อมูล (อย่างน้อย 6:00–20:00)
+        let a = h.findIndex(v => v > 0), b = 23 - [...h].reverse().findIndex(v => v > 0);
+        if (a < 0) { a = 6; b = 20; }
+        a = Math.min(a, 6); b = Math.max(b, 20);
+        const hrs = h.slice(a, b + 1), peak = hrs.indexOf(Math.max(...hrs));
+        const total = hrs.reduce((x, y) => x + y, 0);
+        Charts.bars($('ovHours'), {
+            labels: hrs.map((_, i) => String(a + i).padStart(2, '0')),
+            xLabels: hrs.map((_, i) => i).filter(i => (a + i) % 3 === 0),
+            series: [{ label: 'รายงาน', values: hrs, color: Charts.color('--accent') }],
+            height: 150, active: total ? peak : null, ariaLabel: 'จำนวนรายงานแยกตามชั่วโมงที่ส่ง',
+            tooltip: i => `<small>${String(a + i).padStart(2, '0')}:00–${String(a + i).padStart(2, '0')}:59 น.</small><b>${fmtNum(hrs[i])} รายการ</b>${total ? `<small>${Math.round(hrs[i] / total * 100)}% ของเดือนนี้</small>` : ''}`
+        });
+    },
+
+    async renderSites() {
+        const sites = (this.data.sites || []).filter(x => x.site);
+        const card = $('ovMap').closest('.card');
+        if (!this.data.sites) { card.hidden = true; return; }
+        card.hidden = false;
+        const status = x => (x.today >= x.people ? 'ok' : x.today ? 'warn' : 'bad');
+        $('ovSites').innerHTML = sites.length ? `<div class="rank-head"><span>จุดขาย</span><span>วันนี้</span><span>เดือนนี้</span></div>` + sites.slice(0, 8).map((x, i) => `
+          <button type="button" class="rank-row" data-si="${i}">
+            <span class="rank-name"><i class="lg" style="background:var(--${status(x)})"></i><b>${esc(x.site)}</b><small>${x.people} คน</small></span>
+            <span class="mono">${x.today}/${x.people}</span>
+            <span class="rank-bar"><i style="width:${Math.round(x.month / Math.max(1, sites[0].month) * 100)}%"></i><b class="mono">${fmtNum(x.month)}</b></span>
+          </button>`).join('') : `<div class="empty">${icon('map')}ยังไม่มีข้อมูลจุดขาย</div>`;
+        $('ovSites').querySelectorAll('[data-si]').forEach(b => {
+            b.addEventListener('click', () => this.openSite(sites[b.dataset.si]));
+            b.addEventListener('mouseenter', () => this.focusSite && this.focusSite(sites[b.dataset.si]));
+        });
+        const geo = sites.filter(x => x.lat !== null && x.lng !== null);
+        const mapEl = $('ovMap');
+        if (!geo.length) { mapEl.innerHTML = `<div class="map-fallback">ยังไม่มีพิกัดจุดขาย (กรอกละติจูด/ลองจิจูดจุดขายในหน้าผู้ใช้สิทธิ์)</div>`; return; }
+        try {
+            loadStyle('js/vendor/leaflet/leaflet.css?v=1.9.4');
+            await loadScript('js/vendor/leaflet/leaflet.js?v=1.9.4');
+        } catch (e) { mapEl.innerHTML = `<div class="map-fallback">${esc(e.message)}</div>`; return; }
+        if (!this.map) {
+            this.map = L.map(mapEl, { scrollWheelZoom: false, zoomControl: true, attributionControl: true });
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(this.map);
+            mapEl.addEventListener('dblclick', () => this.map.scrollWheelZoom.enable());
+        }
+        if (this.mapLayer) this.mapLayer.remove();
+        this.mapLayer = L.layerGroup().addTo(this.map);
+        const maxM = Math.max(1, ...geo.map(x => x.month));
+        const markers = new Map();
+        geo.forEach(x => {
+            const st = status(x), col = Charts.color('--' + st);
+            // วงนอกจาง = ความหนาแน่น, วงในทึบ = ตำแหน่ง
+            L.circleMarker([x.lat, x.lng], { radius: 10 + 26 * Math.sqrt(x.month / maxM), stroke: false, fillColor: col, fillOpacity: 0.18, interactive: false }).addTo(this.mapLayer);
+            const m = L.circleMarker([x.lat, x.lng], { radius: 7, color: '#fff', weight: 2, fillColor: col, fillOpacity: 1 })
+                .bindTooltip(`<b>${esc(x.site)}</b><br>ผู้ใช้สิทธิ์ ${x.people} คน · วันนี้ส่ง ${x.today}/${x.people}<br>รายงานเดือนนี้ ${fmtNum(x.month)} รายการ`, { direction: 'top', offset: [0, -8], className: 'map-tip' })
+                .bindPopup(`<b>${esc(x.site)}</b><br>วันนี้ส่ง ${x.today}/${x.people} · เดือนนี้ ${fmtNum(x.month)}<br><a href="#" data-site-open>ดูรายการของจุดขายนี้</a>`)
+                .addTo(this.mapLayer);
+            m.on('popupopen', e => { const a = e.popup.getElement().querySelector('[data-site-open]'); if (a) a.onclick = ev => { ev.preventDefault(); this.openSite(x); }; });
+            markers.set(x.site, m);
+        });
+        this.focusSite = x => { const m = markers.get(x.site); if (m) m.openTooltip(); };
+        this.map.fitBounds(geo.map(x => [x.lat, x.lng]), { padding: [30, 30], maxZoom: 15 });
+        setTimeout(() => this.map.invalidateSize(), 60);
+    },
+
+    async openSite(x) {
+        const ps = can('participants.view') ? await loadParticipants() : [];
+        const ids = ps.filter(p => (p.site || 'ไม่ระบุจุดขาย') === x.site).map(p => p.id);
+        if (ids.length) VIEWS.records.openWith({ period: 'month', userIds: ids });
+        else VIEWS.records.openWith({ period: 'month' });
     },
 
     drill(kind) {

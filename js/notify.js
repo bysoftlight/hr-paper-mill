@@ -59,7 +59,7 @@ const NotifyUI = {
         if (!cfg || !cfg.publicKey) return { success: false, message: 'ระบบแจ้งเตือนยังไม่พร้อม' };
         let sub;
         try {
-            await navigator.serviceWorker.register('sw.js?v=3.17.0');
+            await navigator.serviceWorker.register('sw.js?v=3.18.0');
             const reg = await navigator.serviceWorker.ready;
             sub = await reg.pushManager.getSubscription();
             // กุญแจของระบบเปลี่ยน → ต้องสมัครใหม่

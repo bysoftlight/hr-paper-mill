@@ -268,8 +268,74 @@ function staffOverview_() {
     agentWatch: agentWatch,
     anomalies: todayRecs.filter(r => r.anomaly || !r.hasGps).map(recordDto_),
     trend: trend,
+    compare: overviewCompare_(records, participants.length, today),
+    hours: overviewHours_(monthRecs),
+    sites: overviewSites_(participants, monthRecs, reported),
     latest: records.slice().sort((a, b) => b.ts - a.ts).slice(0, 8).map(recordDto_)
   };
+}
+
+// เทียบเดือนนี้กับเดือนก่อน: จำนวนรายงานรายวัน (วันที่ 1..สิ้นเดือน) และอัตราการส่งช่วงวันเดียวกัน
+function overviewCompare_(records, participantCount, today) {
+  const y = Number(today.slice(0, 4)), m = Number(today.slice(5, 7)), dayNow = Number(today.slice(8, 10));
+  const prevY = m === 1 ? y - 1 : y, prevM = m === 1 ? 12 : m - 1;
+  const key = (yy, mm) => yy + '-' + ('0' + mm).slice(-2);
+  const thisKey = key(y, m), prevKey = key(prevY, prevM);
+  const daysIn = (yy, mm) => new Date(yy, mm, 0).getDate();
+  const cur = new Array(daysIn(y, m)).fill(0), prev = new Array(daysIn(prevY, prevM)).fill(0);
+  const agentCur = { n: 0 }, agentPrev = { n: 0 };
+  records.forEach(r => {
+    const mk = r.date.slice(0, 7), d = Number(r.date.slice(8, 10)) - 1;
+    if (mk === thisKey) { cur[d]++; if (r.type === SALES_TYPES[1]) agentCur.n++; }
+    else if (mk === prevKey) { prev[d]++; if (r.type === SALES_TYPES[1] && d < dayNow) agentPrev.n++; }
+  });
+  const sum = (arr, n) => arr.slice(0, n).reduce((a, b) => a + b, 0);
+  const span = Math.min(dayNow, prev.length);
+  const curTotal = sum(cur, dayNow), prevSame = sum(prev, span);
+  return {
+    thisMonth: thisKey, lastMonth: prevKey, today: dayNow,
+    current: cur.slice(0, dayNow), previous: prev,
+    totals: { current: curTotal, previousSamePeriod: prevSame, previousMonth: sum(prev, prev.length) },
+    rate: { current: participantCount ? Math.round(curTotal / (participantCount * dayNow) * 100) : 0, previous: participantCount ? Math.round(prevSame / (participantCount * span) * 100) : 0 },
+    agent: { current: agentCur.n, previous: agentPrev.n }
+  };
+}
+
+// ช่วงเวลาที่ส่งรายงาน (เดือนนี้) แยกรายชั่วโมง
+function overviewHours_(monthRecs) {
+  const h = new Array(24).fill(0);
+  monthRecs.forEach(r => { const n = Number(String(r.time).slice(0, 2)); if (n >= 0 && n < 24) h[n]++; });
+  return h;
+}
+
+// จุดขาย: พิกัด จำนวนผู้ใช้สิทธิ์ รายงานเดือนนี้ และวันนี้ (ใช้ทำแผนที่ความหนาแน่น)
+function overviewSites_(participants, monthRecs, reported) {
+  const sites = {};
+  participants.forEach(p => {
+    const name = p.site || 'ไม่ระบุจุดขาย';
+    const s = sites[name] || (sites[name] = { site: name, lat: null, lng: null, people: 0, today: 0, month: 0, pts: [] });
+    s.people++;
+    if (reported[p.id]) s.today++;
+    if (p.siteLat !== null && p.siteLng !== null && s.lat === null) { s.lat = p.siteLat; s.lng = p.siteLng; }
+  });
+  const siteOf = {};
+  participants.forEach(p => { siteOf[p.id] = p.site || 'ไม่ระบุจุดขาย'; });
+  monthRecs.forEach(r => {
+    const s = sites[siteOf[r.userId]];
+    if (!s) return;
+    s.month++;
+    if (r.hasGps && s.pts.length < 200) s.pts.push([r.lat, r.lng]);
+  });
+  return Object.keys(sites).map(k => {
+    const s = sites[k];
+    // ไม่มีพิกัดจุดขาย: ใช้ค่าเฉลี่ยพิกัดรายงานเดือนนี้แทน
+    if (s.lat === null && s.pts.length) {
+      s.lat = s.pts.reduce((a, p) => a + p[0], 0) / s.pts.length;
+      s.lng = s.pts.reduce((a, p) => a + p[1], 0) / s.pts.length;
+    }
+    delete s.pts;
+    return s;
+  }).sort((a, b) => b.month - a.month);
 }
 
 // ---------- แก้ไข/เพิ่ม/ลบ รายการ ----------
