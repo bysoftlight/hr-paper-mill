@@ -10,6 +10,7 @@
   <link rel="alternate icon" type="image/png" href="img/favicon-50x50.png">
   <link rel="apple-touch-icon" sizes="500x500" href="img/apple-touch-icon.png">
   <link rel="manifest" href="site.webmanifest">
+  <meta name="apple-mobile-web-app-title" content="HR Paper Mill">
 
   <meta name="theme-color" content="#FFFFFF">
   <meta name="description" content="ระบบบันทึกการขายและส่งหลักฐานการทำงาน โครงการใช้สิทธิ์สัมปทานผู้พิการตามมาตรา 35">
@@ -37,8 +38,8 @@
     /* กันไอคอนขยายเต็มจอ ถ้า stylesheet ยังโหลดไม่เสร็จหรือเป็นเวอร์ชันเก่า (:where = ไม่ทับขนาดใน style.css) */
     :where(svg.ic) { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; }
   </style>
-  <script src="js/settings.js?v=3.15.0"></script>
-  <link rel="stylesheet" href="css/style.css?v=3.15.0">
+  <script src="js/settings.js?v=3.16.0"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.16.0">
 </head>
 <body>
 
@@ -84,6 +85,8 @@
       <symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></symbol>
       <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></symbol>
       <symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></symbol>
+      <symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></symbol>
   </svg>
 
   <!-- ===== Shared content ===== -->
@@ -175,7 +178,7 @@
       <div><h2 id="settingsTitle">ตั้งค่า</h2><p>จำไว้ในเครื่องนี้ · มีผลทันที</p></div>
       <button type="button" class="icon-btn" data-close aria-label="ปิด"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
     </div>
-    <div class="sheet-body"><div class="set-groups" id="settingsBody"></div></div>
+    <div class="sheet-body"><div class="set-groups"><div class="set-groups" id="settingsBody"></div><div class="set-groups" id="notifyBody"></div><div class="set-groups" id="settingsMore"></div></div></div>
     <div class="sheet-foot"><button type="button" class="btn btn-primary" data-close>เสร็จสิ้น</button></div>
   </dialog>
 
@@ -253,7 +256,7 @@
   <!-- ===== Login ===== -->
   <div id="loginView" class="login">
     <section class="login-intro" aria-labelledby="loginTitle">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.15.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.16.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <p class="eyebrow">โครงการใช้สิทธิ์สัมปทานผู้พิการตามมาตรา 35 · ปี 2569</p>
       <h1 id="loginTitle">รายงานการขายประจำวัน<br>ส่งได้ในไม่กี่ขั้นตอน</h1>
       <ol class="intro-steps">
@@ -296,12 +299,12 @@
   <!-- ===== App ===== -->
   <div id="appContainer" class="app is-syncing" hidden>
     <header class="topbar">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.15.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.16.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <span class="chip" data-today>&nbsp;</span>
     </header>
 
     <nav class="sidenav" aria-label="เมนูหลัก">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.15.0" alt="" width="36" height="36"><span class="brand-text">HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.16.0" alt="" width="36" height="36"><span class="brand-text">HR Paper Mill</span></div>
       <div class="nav-items">
         <button type="button" class="nav-item" data-tab="form" aria-current="page"><svg class="ic ic-22" aria-hidden="true"><use href="#i-send"/></svg><span>ส่งรายงาน</span></button>
         <button type="button" class="nav-item" data-tab="history"><svg class="ic ic-22" aria-hidden="true"><use href="#i-history"/></svg><span>ประวัติ</span></button>
@@ -520,10 +523,11 @@
     </nav>
   </div>
 
-  <script src="js/config.js?v=3.15.0"></script>
-  <script src="js/utils.js?v=3.15.0"></script>
-  <script src="js/api.js?v=3.15.0"></script>
-  <script src="js/app.js?v=3.15.0"></script>
-  <script src="js/report.js?v=3.15.0"></script>
+  <script src="js/config.js?v=3.16.0"></script>
+  <script src="js/utils.js?v=3.16.0"></script>
+  <script src="js/api.js?v=3.16.0"></script>
+  <script src="js/notify.js?v=3.16.0"></script>
+  <script src="js/app.js?v=3.16.0"></script>
+  <script src="js/report.js?v=3.16.0"></script>
 </body>
 </html>

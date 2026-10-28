@@ -74,6 +74,9 @@ function renderSettings(el, sections) {
         if (c.type === 'switch') {
             return `<label class="set-switch"><input type="checkbox" role="switch" data-key="${c.key}" ${p[c.key] ? 'checked' : ''} aria-label="${lbl}"><span aria-hidden="true"></span></label>`;
         }
+        if (c.type === 'toggle') { // สวิตช์ที่ไม่ได้เก็บใน Prefs (เช่น สถานะการแจ้งเตือนจากเซิร์ฟเวอร์)
+            return `<label class="set-switch"><input type="checkbox" role="switch" data-toggle-id="${row.id}" ${c.checked ? 'checked' : ''} ${c.disabled ? 'disabled' : ''} aria-label="${lbl}"><span aria-hidden="true"></span></label>`;
+        }
         if (c.type === 'select') {
             return `<select class="select set-select" data-key="${c.key}" aria-label="${lbl}">${c.options.map(([v, t]) =>
                 `<option value="${settingsEsc(v)}" ${String(p[c.key]) === String(v) ? 'selected' : ''}>${settingsEsc(t)}</option>`).join('')}</select>`;
@@ -105,8 +108,12 @@ function renderSettings(el, sections) {
         const v = typeof PREF_DEFAULTS[s.dataset.key] === 'number' ? Number(s.value) : s.value;
         Prefs.set(s.dataset.key, v);
     }));
-    const actions = {};
-    sections.forEach(s => s.rows.forEach(r => { if (r.control && r.control.type === 'button') actions[r.id] = r.control.onClick; }));
+    const actions = {}, toggles = {};
+    sections.forEach(s => s.rows.forEach(r => {
+        if (r.control && r.control.type === 'button') actions[r.id] = r.control.onClick;
+        if (r.control && r.control.type === 'toggle') toggles[r.id] = r.control.onChange;
+    }));
+    el.querySelectorAll('[data-toggle-id]').forEach(i => i.addEventListener('change', () => toggles[i.dataset.toggleId] && toggles[i.dataset.toggleId](i.checked, i)));
     el.querySelectorAll('[data-action-id]').forEach(b => b.addEventListener('click', () => actions[b.dataset.actionId] && actions[b.dataset.actionId](b)));
 }
 

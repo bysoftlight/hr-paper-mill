@@ -41,26 +41,8 @@ function staffExportGsheet_(req, staff, ua) {
   return { success: true, url: ss.getUrl(), shared: shared, rows: rows.length };
 }
 
-// สรุปประจำวันทางอีเมล (ตั้ง Script Property SUMMARY_EMAILS แล้วรัน installDailySummaryTrigger ครั้งเดียว)
-function sendDailySummary() {
-  const to = prop_('SUMMARY_EMAILS');
-  if (!to) return;
-  const o = staffOverview_();
-  const lines = [
-    'สรุปการส่งรายงาน ' + o.today,
-    'ส่งแล้ว ' + o.kpi.reportedToday + ' / ' + o.kpi.participants + ' คน · ยังไม่ส่ง ' + o.kpi.missingToday + ' คน',
-    'ขายโดยตัวแทนวันนี้ ' + o.kpi.agentToday + ' · ตำแหน่งผิดปกติ ' + o.kpi.anomaliesToday + ' · ไม่มี GPS ' + o.kpi.nogpsToday,
-    '',
-    'ยังไม่ส่งรายงาน:',
-  ].concat(o.missing.map(m => '- ' + m.id + ' ' + m.name + (m.site ? ' (' + m.site + ')' : '') + (m.phone ? ' โทร ' + m.phone : '')));
-  if (o.agentWatch.length) {
-    lines.push('', 'เฝ้าระวังขายโดยตัวแทน (เดือนนี้):');
-    o.agentWatch.forEach(a => lines.push('- ' + a.id + ' ' + a.name + ' ' + a.used + '/' + a.limit + ' ครั้ง'));
-  }
-  MailApp.sendEmail(to, 'HR Paper Mill — สรุปรายงานวันที่ ' + o.today, lines.join('\n'));
-  log_({ id: 'system', name: 'ระบบ', role: 'system' }, 'system.daily_summary', to, { reported: o.kpi.reportedToday, missing: o.kpi.missingToday }, '');
-}
-
+// สรุปประจำวัน (อีเมล SUMMARY_EMAILS + การแจ้งเตือนของเจ้าหน้าที่): sendDailySummary() อยู่ใน Notify.gs
+// installNotifyTriggers() ใน Notify.gs ตั้งเวลาให้ทั้งการเตือนผู้ใช้สิทธิ์และสรุปนี้
 function installDailySummaryTrigger() {
   ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'sendDailySummary').forEach(t => ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger('sendDailySummary').timeBased().everyDays(1).atHour(18).inTimezone(TZ).create();

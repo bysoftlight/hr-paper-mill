@@ -4,7 +4,7 @@
 //      - หน้าผู้ใช้สิทธิ์ (index.html): login / history / submit / image
 //      - หน้าเจ้าหน้าที่ (staff.html): staff.* และ admin.* (ดู Staff.gs, Admin.gs)
 //   2) หน้าเว็บของ Apps Script เอง (Index.html) → เรียกผ่าน google.script.run
-// ไฟล์ในโปรเจกต์: Code.gs, Schema.gs, Auth.gs, Staff.gs, Admin.gs, Export.gs (+ Index.html) — วิธีติดตั้งดู apps-script/README.md
+// ไฟล์ในโปรเจกต์: Code.gs, Schema.gs, Auth.gs, Staff.gs, Admin.gs, Export.gs, Notify.gs (+ Index.html) — วิธีติดตั้งดู apps-script/README.md
 // หลังแก้โค้ด: Deploy → Manage deployments → Edit (รูปดินสอ) → Version: New version → Deploy
 // ตั้งค่า deployment: Execute as = Me, Who has access = Anyone
 
@@ -34,6 +34,19 @@ function doPost(e) {
     return json_({ success: false, message: 'รูปแบบคำขอไม่ถูกต้อง' });
   }
   if (req.secret !== API_SECRET) return json_({ success: false, message: 'ไม่มีสิทธิ์เข้าถึงระบบ' });
+
+  // การแจ้งเตือนของผู้ใช้สิทธิ์ และ service worker (ดู Notify.gs)
+  if (/^notify\./.test(String(req.action))) {
+    try {
+      if (typeof handleNotifyRequest_ !== 'function') return json_({ success: false, message: 'ระบบแจ้งเตือนยังไม่ได้ติดตั้ง (เพิ่มไฟล์ Notify.gs ใน Apps Script)' });
+      if (req.action === 'notify.inbox') return json_(notifyInbox_(req.endpoint));
+      const user = req.userId ? findUser_(req.userId) : null;
+      if (req.action !== 'notify.config' && !user) return json_({ success: false, code: 'NOT_FOUND', message: 'ไม่พบรหัสผู้ใช้สิทธิ์ กรุณาเข้าสู่ระบบใหม่' });
+      return json_(handleNotifyRequest_(req, user ? { type: 'user', id: user.id } : null));
+    } catch (err) {
+      return json_({ success: false, message: 'Error: ' + err });
+    }
+  }
 
   // คำสั่งของเจ้าหน้าที่ / ผู้ดูแลระบบ
   if (/^(staff|admin)\./.test(String(req.action))) {
@@ -75,9 +88,10 @@ function healthCheck_() {
     'Code.gs': typeof getImageData_ === 'function',
     'Schema.gs': typeof BKK_OFFSET_MS_ === 'number',
     'Auth.gs': typeof renewedToken_ === 'function',
-    'Staff.gs': typeof staffParticipantDelete_ === 'function',
+    'Staff.gs': typeof staffLogoutEverywhere_ === 'function',
     'Admin.gs': typeof adminStaffDelete_ === 'function',
-    'Export.gs': typeof staffExportGsheet_ === 'function'
+    'Export.gs': typeof staffExportGsheet_ === 'function',
+    'Notify.gs': typeof handleNotifyRequest_ === 'function'
   };
   const sheets = {};
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -223,6 +237,7 @@ function submitSalesData(formObject) {
       'app'      // O: ที่มา
     ]);
     log_({ id: user.id, name: user.name, role: 'participant' }, 'participant.submit', user.id + ' ' + todayStr, { type: formObject.salesType }, '');
+    if (typeof notifyNewRecord_ === 'function') notifyNewRecord_(user, formObject.salesType, Utilities.formatDate(now, TZ, 'HH:mm'));
 
     return { success: true, message: 'บันทึกข้อมูลเรียบร้อยแล้ว', record: toRecord_(now, formObject.salesType, file.getDownloadUrl(), lat, long) };
   } catch (error) {
