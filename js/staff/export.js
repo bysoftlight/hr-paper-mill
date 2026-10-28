@@ -140,7 +140,7 @@ VIEWS.exporter = {
         const shell = (n) => {
             const page = document.createElement('section');
             page.className = 'pdf-page';
-            page.innerHTML = `<header class="pdf-head"><div class="pdf-brand"><span class="logo"><span class="pdf-lift">H</span></span><span><b>HR Paper Mill</b><small>Dashboard เจ้าหน้าที่ · โครงการมาตรา 35</small></span></div><div class="pdf-title">${esc(title)}</div></header><div class="pdf-body"></div>
+            page.innerHTML = `<header class="pdf-head"><div class="pdf-brand"><img class="logo" src="img/logo.png" alt=""><span><b>HR Paper Mill</b><small>Dashboard เจ้าหน้าที่ · โครงการมาตรา 35</small></span></div><div class="pdf-title">${esc(title)}</div></header><div class="pdf-body"></div>
               <footer class="pdf-foot"><span>สร้างโดย ${esc(ST.me.name)} · ${thDateTime(Date.now())}</span><span class="mono">หน้า ${n}/${total}</span></footer>`;
             return page;
         };

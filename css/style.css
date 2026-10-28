@@ -11,9 +11,9 @@
     --ink: #1F1F1F;
     --ink-2: #3C4043;
     --muted: #5F6368;
-    --accent: #0B57D0;
-    --accent-hover: #0842A0;
-    --accent-soft: #D3E3FD;
+    --accent: #0850D1;
+    --accent-hover: #0640AA;
+    --accent-soft: #D8E6FC;
     --ok: #146C2E;   --ok-soft: #C4EED0;
     --warn: #7A5900; --warn-soft: #FFEFC2;
     --bad: #B3261E;  --bad-soft: #F9DEDC;
@@ -849,7 +849,8 @@ span.loc-link .ic { color: var(--muted); }
 body { font-size: 15px; letter-spacing: 0; }
 h1, h2, h3 { font-weight: 500; letter-spacing: -.01em; }
 .btn, .btn-chip, .btn-outline, .btn-danger { border-radius: 999px; font-weight: 500; }
-.btn-primary { box-shadow: none; }
+/* ปุ่มหลักไล่สีน้ำเงินตามโลโก้ Double A (#126EE4 → #0850D1) */
+.btn-primary, .btn-submit.is-ready { background: linear-gradient(135deg, #126EE4, #0850D1); }
 .btn-outline { border-color: #C4C7C5; color: var(--accent); }
 .btn-chip { border-color: #C4C7C5; }
 .btn-text { font-weight: 500; }
@@ -876,12 +877,8 @@ h1, h2, h3 { font-weight: 500; letter-spacing: -.01em; }
 .photo img, .hist-body img, .photo-btn { background: var(--container); border-color: transparent; }
 .menu button > .ic:first-child { color: var(--accent); }
 
-/* Header: Keyword-style white bar with a 4-color mark */
-.logo {
-    border-radius: 50%; color: transparent; position: relative; overflow: hidden;
-    background: conic-gradient(#4285F4 0 25%, #EA4335 0 50%, #FBBC04 0 75%, #34A853 0);
-}
-.logo::after { content: "H"; position: absolute; inset: 5px; display: grid; place-items: center; border-radius: 50%; background: #fff; color: var(--ink); font-size: 15px; font-weight: 700; }
+/* Header: white bar with the Double A Paper Mill mark */
+.logo { width: 36px; height: 36px; border-radius: 50%; background: none; object-fit: contain; }
 .brand { font-weight: 500; font-size: 18px; letter-spacing: -.01em; color: #444746; }
 .topbar { background: rgba(255, 255, 255, .92); backdrop-filter: saturate(180%) blur(12px); -webkit-backdrop-filter: saturate(180%) blur(12px); border-bottom-color: var(--line-soft); }
 .bottomnav { border-top-color: var(--line-soft); }
@@ -915,6 +912,4 @@ h1, h2, h3 { font-weight: 500; letter-spacing: -.01em; }
     .login-intro h1 { font-size: 32px; font-weight: 400; letter-spacing: -.02em; }
 }
 
-/* html2canvas ไม่รองรับ conic-gradient: โลโก้ในหน้า PDF ใช้สีพื้นเรียบ */
-.pdf-brand .logo { background: var(--accent); color: #fff; }
-.pdf-brand .logo::after { content: none; }
+.pdf-brand .logo { width: 36px; height: 36px; }
