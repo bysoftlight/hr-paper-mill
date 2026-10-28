@@ -24,9 +24,9 @@
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <!-- เปลี่ยนเลข ?v= ทุกครั้งที่แก้ CSS/JS -->
-  <script src="js/settings.js?v=3.19.0"></script>
-  <link rel="stylesheet" href="css/style.css?v=3.19.0">
-  <link rel="stylesheet" href="css/staff.css?v=3.19.0">
+  <script src="js/settings.js?v=3.20.0"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.20.0">
+  <link rel="stylesheet" href="css/staff.css?v=3.20.0">
 </head>
 <body class="staff">
 
@@ -145,6 +145,9 @@
           <button type="button" role="radio" data-v="normal" aria-checked="false">ตรงจุดขาย</button>
           <button type="button" role="radio" data-v="anomaly" aria-checked="false">ผิดปกติ</button>
           <button type="button" role="radio" data-v="nogps" aria-checked="false">ไม่มี GPS</button>
+          <button type="button" role="radio" data-v="lowacc" aria-checked="false">GPS ไม่แม่น</button>
+          <button type="button" role="radio" data-v="duplicate" aria-checked="false">รูปซ้ำ</button>
+          <button type="button" role="radio" data-v="review" aria-checked="false">ต้องตรวจสอบทั้งหมด</button>
         </div>
         <p class="hint" id="fRadiusHint"></p>
       </fieldset>
@@ -183,6 +186,26 @@
           <span class="icon-box is-accent"><svg class="ic" aria-hidden="true"><use href="#i-external"/></svg></span>
           <span><b>Google Sheets</b><small>สร้างไฟล์ใหม่ใน Google Drive และแชร์ให้อีเมลของคุณ</small></span>
         </button>
+      </div>
+      <h3 class="section-title rep-title">รายงานสำเร็จรูป</h3>
+      <div class="rep-card">
+        <div class="rep-head"><span class="icon-box is-accent"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg></span>
+          <span><b>รายงานประจำเดือน (เทียบเดือนก่อน)</b><small>อัตราการส่ง รายบุคคล ตัวแทน รายการต้องตรวจสอบ — ส่งอีเมลถึงผู้บริหารอัตโนมัติทุกวันที่ 1</small></span></div>
+        <div class="rep-actions">
+          <input type="month" class="input input-sm" id="repMonth" aria-label="เดือนของรายงาน">
+          <button type="button" class="btn-chip" data-report="monthly" data-out="view"><svg class="ic ic-16" aria-hidden="true"><use href="#i-file"/></svg> ดู / พิมพ์ PDF</button>
+          <button type="button" class="btn-chip" data-report="monthly" data-out="xlsx"><svg class="ic ic-16" aria-hidden="true"><use href="#i-table"/></svg> Excel</button>
+          <button type="button" class="btn-chip" data-report="monthly" data-out="email" data-perm="admin"><svg class="ic ic-16" aria-hidden="true"><use href="#i-mail"/></svg> ส่งอีเมลตอนนี้</button>
+        </div>
+      </div>
+      <div class="rep-card">
+        <div class="rep-head"><span class="icon-box is-ok"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg></span>
+          <span><b>รายงานการให้สิทธิ์ตามมาตรา 35 (ประจำปี)</b><small>รูปแบบสำหรับยื่นหน่วยงาน: ข้อมูลสถานประกอบการ รายชื่อผู้ใช้สิทธิ์ ช่วงเวลา จำนวนวันที่ปฏิบัติ พร้อมช่องลงนาม</small></span></div>
+        <div class="rep-actions">
+          <select class="select" id="repYear" aria-label="ปีของรายงาน"></select>
+          <button type="button" class="btn-chip" data-report="s35" data-out="view"><svg class="ic ic-16" aria-hidden="true"><use href="#i-file"/></svg> ดู / พิมพ์ PDF</button>
+          <button type="button" class="btn-chip" data-report="s35" data-out="xlsx"><svg class="ic ic-16" aria-hidden="true"><use href="#i-table"/></svg> Excel</button>
+        </div>
       </div>
     </div>
   </dialog>
@@ -267,6 +290,21 @@
         </div>
         <div class="cal-grid" id="calGrid" aria-live="polite"></div>
         <div class="cal-legend"><span><i class="lg lg-self"></i>ขายเอง</span><span><i class="lg lg-agent"></i>โดยตัวแทน</span><span><i class="lg lg-anom"></i>ตำแหน่งผิดปกติ</span><span><i class="lg lg-miss"></i>ไม่ได้ส่ง</span></div>
+      </section>
+      <section class="contact-log" id="pContact" aria-labelledby="pContactTitle">
+        <h3 class="section-title" id="pContactTitle">บันทึกการติดต่อ</h3>
+        <div class="contact-quick" role="group" aria-label="ผลการติดต่อ">
+          <button type="button" class="btn-chip" data-contact="called"><svg class="ic ic-16" aria-hidden="true"><use href="#i-phone"/></svg> โทรแล้ว ติดต่อได้</button>
+          <button type="button" class="btn-chip" data-contact="no_answer"><svg class="ic ic-16" aria-hidden="true"><use href="#i-x-circle"/></svg> ไม่รับสาย</button>
+          <button type="button" class="btn-chip" data-contact="reason"><svg class="ic ic-16" aria-hidden="true"><use href="#i-info"/></svg> แจ้งเหตุผล</button>
+          <button type="button" class="btn-chip" data-contact="visit"><svg class="ic ic-16" aria-hidden="true"><use href="#i-pin"/></svg> ลงพื้นที่</button>
+        </div>
+        <div class="contact-form" id="pContactForm" hidden>
+          <div class="reason-chips" id="pReasonChips"></div>
+          <textarea class="input" id="pContactNote" rows="2" maxlength="300" placeholder="รายละเอียด (ไม่บังคับ ยกเว้น &quot;แจ้งเหตุผล&quot;)"></textarea>
+          <div class="row-actions"><button type="button" class="btn-chip" id="pContactCancel">ยกเลิก</button><button type="button" class="btn-chip btn-chip-primary" id="pContactSave">บันทึก</button></div>
+        </div>
+        <ol class="contact-list" id="pContactList" aria-live="polite"></ol>
       </section>
       <dl class="kv" id="pKv"></dl>
     </div>
@@ -367,7 +405,7 @@
   <!-- ===== Sign in ===== -->
   <div id="authView" class="login" hidden>
     <section class="login-intro" aria-labelledby="authTitle">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.19.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.20.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <p class="eyebrow">สำหรับเจ้าหน้าที่ HR และผู้ดูแลระบบ</p>
       <h1 id="authTitle">ติดตามรายงานการขาย<br>ของผู้ใช้สิทธิ์ทุกคนในที่เดียว</h1>
       <ol class="intro-steps">
@@ -417,12 +455,12 @@
   <!-- ===== App ===== -->
   <div id="appContainer" class="app" hidden>
     <header class="topbar">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.19.0" alt="" width="36" height="36"><span>HR Staff</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.20.0" alt="" width="36" height="36"><span>HR Staff</span></div>
       <span class="live" data-live><span class="live-dot"></span><span data-live-text>อัปเดตสด</span></span>
     </header>
 
     <nav class="sidenav" aria-label="เมนูหลัก">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.19.0" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.20.0" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></div>
       <div class="nav-items">
         <button type="button" class="nav-item" data-tab="overview" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-grid"/></svg><span>ภาพรวม</span></button>
         <button type="button" class="nav-item" data-tab="records" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-list"/></svg><span>รายงาน</span></button>
@@ -496,7 +534,7 @@
             <div id="ovAgent" class="people-list"></div>
           </section>
           <section class="card" aria-labelledby="anomTitle">
-            <div class="card-head"><h3 class="card-title" id="anomTitle">ตำแหน่งต้องตรวจสอบ (วันนี้)</h3></div>
+            <div class="card-head"><h3 class="card-title" id="anomTitle">ต้องตรวจสอบ (วันนี้)</h3></div>
             <div id="ovAnom" class="feed"></div>
           </section>
         </div>
@@ -635,6 +673,7 @@
               <option value="participant.">ฝั่งผู้ใช้สิทธิ์ (participant)</option>
               <option value="export.">ส่งออกข้อมูล (export)</option>
               <option value="system.">ระบบ (system)</option>
+              <option value="client.">ข้อผิดพลาดบนเครื่องผู้ใช้ (client)</option>
             </select>
             <div class="search-field grow"><svg class="ic ic-16" aria-hidden="true"><use href="#i-search"/></svg><input type="search" class="input input-sm" id="logSearch" placeholder="ค้นหาผู้กระทำ เป้าหมาย รายละเอียด" aria-label="ค้นหา Log"></div>
             <button type="button" class="btn-chip" id="logExport"><svg class="ic ic-16" aria-hidden="true"><use href="#i-download"/></svg> Excel</button>
@@ -683,16 +722,17 @@
 
   <div id="pdfStage" class="pdf-stage" aria-hidden="true"></div>
 
-  <script src="js/config.js?v=3.19.0"></script>
-  <script src="js/utils.js?v=3.19.0"></script>
-  <script src="js/api.js?v=3.19.0"></script>
-  <script src="js/charts.js?v=3.19.0"></script>
-  <script src="js/notify.js?v=3.19.0"></script>
-  <script src="js/staff/core.js?v=3.19.0"></script>
-  <script src="js/staff/overview.js?v=3.19.0"></script>
-  <script src="js/staff/records.js?v=3.19.0"></script>
-  <script src="js/staff/participants.js?v=3.19.0"></script>
-  <script src="js/staff/admin.js?v=3.19.0"></script>
-  <script src="js/staff/export.js?v=3.19.0"></script>
+  <script src="js/config.js?v=3.20.0"></script>
+  <script src="js/utils.js?v=3.20.0"></script>
+  <script src="js/api.js?v=3.20.0"></script>
+  <script src="js/charts.js?v=3.20.0"></script>
+  <script src="js/notify.js?v=3.20.0"></script>
+  <script src="js/staff/core.js?v=3.20.0"></script>
+  <script src="js/staff/overview.js?v=3.20.0"></script>
+  <script src="js/staff/records.js?v=3.20.0"></script>
+  <script src="js/staff/participants.js?v=3.20.0"></script>
+  <script src="js/staff/admin.js?v=3.20.0"></script>
+  <script src="js/staff/export.js?v=3.20.0"></script>
+  <script src="js/staff/reports.js?v=3.20.0"></script>
 </body>
 </html>

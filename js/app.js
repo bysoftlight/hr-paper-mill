@@ -36,6 +36,8 @@ const DAYS_SHORT = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
 const $ = (id) => document.getElementById(id);
 
 // --- INIT ---
+ErrorLog.identify = () => ({ who: CURRENT_USER.id || '', whoName: CURRENT_USER.name || '', role: 'participant' });
+
 window.addEventListener('DOMContentLoaded', () => {
     initDialogs();
     initRules();
@@ -218,7 +220,8 @@ async function performLogin(userId, isAuto, background = false) {
         $('histRefresh').disabled = false;
         $('histUpdated').textContent = res.networkError ? 'เชื่อมต่อไม่ได้ · แสดงข้อมูลที่บันทึกไว้' : 'ระบบขัดข้องชั่วคราว · แสดงข้อมูลที่บันทึกไว้';
     } else if (!isAccountGone(res)) {
-        // เน็ตหลุด ไม่ใช่รหัสผิด: เก็บรหัสที่จำไว้ และให้ลองใหม่
+        // เน็ตหลุด/ระบบขัดข้อง ไม่ใช่รหัสผิด: บันทึกสาเหตุ (ส่งเมื่อเน็ตกลับมา) แล้วให้ลองใหม่
+        reportClientError('login', (res.serverError ? 'ระบบหลังบ้านตอบผิดรูปแบบ: ' : res.networkError ? 'เชื่อมต่อไม่ได้: ' : '') + (res.message || 'เข้าสู่ระบบไม่สำเร็จ'), 'รหัส ' + userId + (isAuto ? ' (เข้าอัตโนมัติ)' : ''));
         if (isAuto) {
             const retry = await showMessage({ title: res.networkError ? 'เชื่อมต่อไม่ได้' : 'ระบบขัดข้องชั่วคราว', text: res.message || 'กรุณาลองใหม่อีกครั้ง', tone: 'warn', okText: 'ลองอีกครั้ง', cancelText: 'ปิด' });
             if (retry) return performLogin(userId, true);

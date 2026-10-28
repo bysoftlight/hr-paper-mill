@@ -27,7 +27,7 @@ VIEWS.exporter = {
         if (F.userIds.length) out.push(['ผู้ใช้สิทธิ์', F.userIds.map(names).join(', ')]);
         if (F.types.length) out.push(['ประเภท', F.types.join(', ')]);
         if (F.sites.length) out.push(['จุดขาย', F.sites.join(', ')]);
-        if (F.location !== 'all') out.push(['ตำแหน่ง', { normal: 'ตรงจุดขาย', anomaly: 'ผิดปกติ', nogps: 'ไม่มี GPS' }[F.location]]);
+        if (F.location !== 'all') out.push(['ตำแหน่ง', { normal: 'ตรงจุดขาย', anomaly: 'ผิดปกติ', nogps: 'ไม่มี GPS', lowacc: 'GPS ไม่แม่น', duplicate: 'รูปซ้ำ', review: 'ต้องตรวจสอบทั้งหมด' }[F.location]]);
         if (F.status !== 'active') out.push(['สถานะ', F.status === 'deleted' ? 'ลบแล้ว' : 'ทั้งหมด']);
         if (F.q) out.push(['คำค้น', F.q]);
         return out;

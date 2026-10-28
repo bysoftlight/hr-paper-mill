@@ -12,6 +12,13 @@ function recPageSize() {
     return v || (window.matchMedia('(max-width: 767px)').matches ? 20 : 50);
 }
 
+// ป้ายคุณภาพหลักฐาน: รูปซ้ำ / GPS ไม่แม่น / ส่งย้อนหลัง
+function qualityBadges(r) {
+    return (r.dup ? ` <span class="badge is-bad" title="รูปนี้คล้ายกับรายการอื่น ${r.dupWith.length} รายการ">${icon('image')}รูปซ้ำ</span>` : '') +
+        (r.lowAccuracy ? ` <span class="badge is-warn" title="GPS คลาดเคลื่อน ±${r.accuracy} ม.">GPS ±${fmtNum(r.accuracy)} ม.</span>` : '') +
+        (r.source === 'app-offline' ? ' <span class="badge" title="บันทึกตอนไม่มีสัญญาณ แล้วส่งภายหลัง">ส่งย้อนหลัง</span>' : '');
+}
+
 VIEWS.records = {
     F: DEFAULT_FILTER(),
     page: 1, data: null, mode: 'table', loaded: false, reqSeq: 0,
@@ -174,10 +181,15 @@ VIEWS.records = {
           <span class="stat"><b>${fmtNum(a.self)}</b>ขายเอง</span>
           <span class="stat ${a.agent ? 'is-warn' : ''}"><b>${fmtNum(a.agent)}</b>โดยตัวแทน</span>
           <span class="stat ${a.anomalies ? 'is-bad' : ''}"><b>${fmtNum(a.anomalies)}</b>ตำแหน่งผิดปกติ</span>
-          <span class="stat ${a.nogps ? 'is-warn' : ''}"><b>${fmtNum(a.nogps)}</b>ไม่มี GPS</span>`;
+          <span class="stat ${a.nogps ? 'is-warn' : ''}"><b>${fmtNum(a.nogps)}</b>ไม่มี GPS</span>
+          ${a.lowAccuracy !== undefined ? `<span class="stat ${a.lowAccuracy ? 'is-warn' : ''}"><b>${fmtNum(a.lowAccuracy)}</b>GPS ไม่แม่น</span>` : ''}
+          ${a.duplicates !== undefined ? `<span class="stat ${a.duplicates ? 'is-bad' : ''}"><b>${fmtNum(a.duplicates)}</b>รูปซ้ำ</span>` : ''}`;
     },
 
     locCell(r) {
+        return this.locBadge(r) + qualityBadges(r);
+    },
+    locBadge(r) {
         if (!r.hasGps) return '<span class="badge is-warn">ไม่มี GPS</span>';
         if (r.anomaly) return `<span class="badge is-bad">${icon('alert')}ห่าง ${fmtDistance(r.distance)}</span>`;
         if (r.distance !== null) return `<span class="badge is-ok">${icon('check')}${fmtDistance(r.distance)}</span>`;
@@ -381,12 +393,20 @@ VIEWS.records = {
             ['จุดขาย', esc(rec.site || '-')],
             ['ตำแหน่ง', rec.hasGps ? `<a href="${esc(rec.mapUrl)}" target="_blank" rel="noopener" class="mono">${rec.lat.toFixed(5)}, ${rec.lng.toFixed(5)}</a>` : 'ไม่มีข้อมูล GPS'],
             ['ห่างจากจุดขาย', rec.distance !== null ? `${fmtDistance(rec.distance)} ${rec.anomaly ? '<span class="badge is-bad">ผิดปกติ</span>' : '<span class="badge is-ok">ปกติ</span>'}` : '-'],
+            ['ความแม่นยำ GPS', rec.accuracy != null ? `±${fmtNum(rec.accuracy)} ม. ${rec.lowAccuracy ? '<span class="badge is-warn">ไม่แม่น</span>' : ''}` : '-'],
+            ...(rec.dup ? [['รูปซ้ำกับ', rec.dupWith.map(d => `<button type="button" class="link-btn" data-dup-row="${d.row}">${esc(d.userName)} · ${thDate(d.date)}</button>`).join('<br>')]] : []),
             ['หมายเหตุ', esc(rec.note || '-')],
-            ['ที่มา', rec.source === 'staff' ? 'บันทึกโดยเจ้าหน้าที่' : 'ส่งจากแอปผู้ใช้สิทธิ์'],
+            ['ที่มา', rec.source === 'staff' ? 'บันทึกโดยเจ้าหน้าที่' : rec.source === 'app-offline' ? `ส่งย้อนหลังจากเครื่องที่ออฟไลน์${rec.receivedAt ? ` (ระบบได้รับ ${thDateTime(rec.receivedAt)})` : ''}` : 'ส่งจากแอปผู้ใช้สิทธิ์'],
             ['สถานะ', rec.status === 'deleted' ? '<span class="badge is-bad">ลบแล้ว</span>' : '<span class="badge is-ok">ใช้งาน</span>']
         ];
         if (rec.updatedBy) rows.push(['แก้ไขล่าสุด', `${esc(rec.updatedBy)} · ${rec.updatedAt ? thDateTime(rec.updatedAt) : ''}`]);
         $('recKv').innerHTML = rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+        // รูปซ้ำ: แตะเพื่อเปิดรายการที่ใช้รูปเดียวกัน
+        $('recKv').querySelectorAll('[data-dup-row]').forEach(b => b.addEventListener('click', async () => {
+            const d = rec.dupWith.find(x => String(x.row) === b.dataset.dupRow);
+            $('recordModal').close();
+            this.openWith({ period: 'day', day: d.date, userIds: [d.userId] });
+        }));
 
         const acts = [];
         if (rec.fileId) acts.push(`<button type="button" class="btn btn-outline" id="recDownload">${icon('download')} ดาวน์โหลดรูป</button>`);

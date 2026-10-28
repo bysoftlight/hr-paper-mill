@@ -124,6 +124,58 @@ VIEWS.participants = {
         if ($('pEdit')) $('pEdit').onclick = () => { $('participantModal').close(); this.openForm(p); };
         showModal('participantModal');
         this.renderCalendar();
+        this.initContact(p);
+    },
+
+    // ---------- บันทึกการติดต่อ (โทรแล้ว / ไม่รับสาย / แจ้งเหตุผล) ----------
+    initContact(p) {
+        const form = $('pContactForm');
+        form.hidden = true;
+        $('pContactNote').value = '';
+        $('pContactList').innerHTML = '<li class="muted-text">กำลังโหลด…</li>';
+        const reasons = ['ป่วย/ไม่สบาย', 'ติดธุระ', 'ร้าน/ตลาดปิด', 'ลืมส่ง', 'ไม่มีสัญญาณ/โทรศัพท์เสีย', 'ส่งไม่ผ่าน'];
+        let result = null;
+        $('pReasonChips').innerHTML = reasons.map(r => `<button type="button" class="badge reason" data-reason="${esc(r)}">${esc(r)}</button>`).join('');
+        $('pReasonChips').querySelectorAll('[data-reason]').forEach(b => b.onclick = () => {
+            const t = $('pContactNote');
+            t.value = t.value ? t.value + ' · ' + b.dataset.reason : b.dataset.reason;
+            t.focus();
+        });
+        document.querySelectorAll('[data-contact]').forEach(b => b.onclick = () => {
+            haptic();
+            result = b.dataset.contact;
+            document.querySelectorAll('[data-contact]').forEach(x => x.classList.toggle('is-on', x === b));
+            form.hidden = false;
+            $('pReasonChips').hidden = !['reason', 'called'].includes(result);
+            $('pContactNote').placeholder = result === 'reason' ? 'เหตุผลที่ไม่ได้ส่ง (ต้องระบุ)' : 'รายละเอียด (ไม่บังคับ)';
+            $('pContactNote').focus();
+        });
+        $('pContactCancel').onclick = () => { form.hidden = true; document.querySelectorAll('[data-contact]').forEach(x => x.classList.remove('is-on')); };
+        $('pContactSave').onclick = async () => {
+            if (result === 'reason' && !$('pContactNote').value.trim()) { $('pContactNote').focus(); return toast('กรุณาระบุเหตุผล'); }
+            $('pContactSave').disabled = true;
+            const r = await api('staff.contacts.add', { participantId: p.id, result, note: $('pContactNote').value.trim() });
+            $('pContactSave').disabled = false;
+            if (!r.success) return toast(r.message || 'บันทึกไม่สำเร็จ');
+            toast('บันทึกการติดต่อแล้ว');
+            $('pContactCancel').onclick();
+            $('pContactNote').value = '';
+            this.renderContacts(r.contacts);
+            if (VIEWS.overview && VIEWS.overview.data) VIEWS.overview.load();
+        };
+        api('staff.contacts.list', { participantId: p.id }).then(r => {
+            if (this.current !== p) return;
+            if (!r.success) { $('pContactList').innerHTML = `<li class="muted-text">${esc(r.message || 'โหลดไม่สำเร็จ')}</li>`; return; }
+            this.renderContacts(r.contacts);
+        });
+    },
+
+    renderContacts(list) {
+        const cls = { called: 'is-ok', no_answer: 'is-bad', reason: 'is-warn', visit: '', other: '' };
+        $('pContactList').innerHTML = list.length ? list.slice(0, 10).map(c => `
+          <li><span class="badge ${cls[c.result] || ''}">${esc(c.resultLabel)}</span>
+            <span class="cl-text">${c.note ? esc(c.note) : ''}<small>${thDateTime(c.ts)} · ${esc(c.staffName)}</small></span></li>`).join('')
+            : '<li class="muted-text">ยังไม่มีบันทึกการติดต่อ</li>';
     },
 
     shiftMonth(d) {

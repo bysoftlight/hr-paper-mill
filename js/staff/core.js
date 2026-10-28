@@ -118,6 +118,8 @@ async function api(action, payload = {}) {
     return res;
 }
 
+ErrorLog.identify = () => ({ who: ST.me ? ST.me.id : '', whoName: ST.me ? ST.me.name : '', role: 'staff' });
+
 // ---------- Boot ----------
 document.addEventListener('DOMContentLoaded', async () => {
     initDialogs();

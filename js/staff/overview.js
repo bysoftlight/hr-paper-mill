@@ -53,6 +53,8 @@ VIEWS.overview = {
         const d = this.data, k = d.kpi;
         $('ovDate').textContent = `${thDateLong(d.today)} · อัปเดต ${thTime(d.generatedAt)} น.`;
         const rate = k.participants ? Math.round(k.reportedToday / k.participants * 100) : 0;
+        // รายการที่ต้องตรวจ (นับรายการ ไม่นับซ้ำถ้ามีหลายปัญหา)
+        const review = d.anomalies.length;
         $('ovKpis').innerHTML = `
           <button type="button" class="kpi is-ok" data-ov-filter="today">
             <small>ส่งแล้ววันนี้</small><b>${fmtNum(k.reportedToday)}<span class="of"> / ${fmtNum(k.participants)}</span></b>
@@ -64,8 +66,8 @@ VIEWS.overview = {
           <button type="button" class="kpi" data-ov-filter="agentToday">
             <small>ขายโดยตัวแทนวันนี้</small><b>${fmtNum(k.agentToday)}</b><span>${k.agentOverLimit ? `<b class="text-bad">${k.agentOverLimit} คน</b> เกิน ${ST.config && ST.config.agentLimit || 10} ครั้ง/เดือน` : 'ไม่มีผู้เกินโควตาเดือนนี้'}</span>
           </button>
-          <button type="button" class="kpi ${k.anomaliesToday + k.nogpsToday ? 'is-warn' : ''}" data-ov-filter="anomaly">
-            <small>ตำแหน่งต้องตรวจสอบ</small><b>${fmtNum(k.anomaliesToday + k.nogpsToday)}</b><span>ผิดปกติ ${k.anomaliesToday} · ไม่มี GPS ${k.nogpsToday}</span>
+          <button type="button" class="kpi ${review ? 'is-warn' : ''}" data-ov-filter="anomaly">
+            <small>ต้องตรวจสอบวันนี้</small><b>${fmtNum(review)}</b><span>ตำแหน่งผิดปกติ ${k.anomaliesToday} · ไม่มี GPS ${k.nogpsToday}${k.duplicatesToday !== undefined ? ` · รูปซ้ำ ${k.duplicatesToday} · GPS ไม่แม่น ${k.lowAccToday}` : ''}</span>
           </button>
           <button type="button" class="kpi" data-ov-filter="month">
             <small>อัตราการส่งเดือนนี้</small><b>${k.monthRate}<span class="of">%</span></b><span>${fmtNum(k.monthRecords)} รายการ</span>
@@ -105,7 +107,7 @@ VIEWS.overview = {
         $('ovMissing').innerHTML = d.missing.length ? d.missing.map(m => `
           <div class="person">
             ${avatarHtml(m.name, m.pic)}
-            <span class="fi-text"><b>${esc(m.name)}</b><small><span class="mono">${esc(m.id)}</span>${m.site ? ' · ' + esc(m.site) : ''}</small></span>
+            <span class="fi-text"><b>${esc(m.name)}</b><small><span class="mono">${esc(m.id)}</span>${m.site ? ' · ' + esc(m.site) : ''}</small>${m.contact ? `<small class="contacted">${icon('check', 'ic-16')}${esc(m.contact.resultLabel)}${m.contact.note ? ' · ' + esc(m.contact.note) : ''} (${thTime(m.contact.ts)} น.)</small>` : ''}</span>
             ${m.phone ? `<a class="call-btn" href="tel:${esc(m.phone.replace(/[^0-9+]/g, ''))}" aria-label="โทรหา ${esc(m.name)}">${icon('phone')}</a>` : ''}
             ${can('participants.view') ? `<button type="button" class="icon-btn" data-pid="${esc(m.id)}" aria-label="ดูข้อมูล ${esc(m.name)}" style="margin:0">${icon('chevron-right')}</button>` : ''}
           </div>`).join('') : `<div class="empty">${icon('check-circle')}ทุกคนส่งรายงานวันนี้แล้ว</div>`;
@@ -128,7 +130,7 @@ VIEWS.overview = {
           <button type="button" class="feed-item" data-i="${i}">
             ${avatarHtml(r.userName, r.userPic)}
             <span class="fi-text"><b>${esc(r.userName)}</b><small>${esc(r.site || '-')} · ${esc(r.time)} น.</small></span>
-            <span class="fi-side">${r.hasGps ? `<span class="badge is-bad">${icon('alert')}ห่าง ${fmtDistance(r.distance)}</span>` : `<span class="badge is-warn">ไม่มี GPS</span>`}</span>
+            <span class="fi-side">${!r.hasGps ? '<span class="badge is-warn">ไม่มี GPS</span>' : r.anomaly ? `<span class="badge is-bad">${icon('alert')}ห่าง ${fmtDistance(r.distance)}</span>` : ''}${qualityBadges(r)}</span>
           </button>`).join('') : `<div class="empty">${icon('check-circle')}ไม่มีรายการผิดปกติวันนี้</div>`;
         $('ovAnom').querySelectorAll('[data-i]').forEach(b => b.addEventListener('click', () => VIEWS.records.openDetail(d.anomalies[b.dataset.i])));
     },
@@ -258,7 +260,7 @@ VIEWS.overview = {
         if (kind === 'missing') return can('participants.view') ? VIEWS.participants.openWith('missing') : null;
         if (kind === 'today') return VIEWS.records.openWith({ period: 'day', day: today });
         if (kind === 'agentToday') return VIEWS.records.openWith({ period: 'day', day: today, types: [AGENT_TYPE] });
-        if (kind === 'anomaly') return VIEWS.records.openWith({ period: 'day', day: today, location: 'anomaly' });
+        if (kind === 'anomaly') return VIEWS.records.openWith({ period: 'day', day: today, location: 'review' });
         if (kind === 'month') return VIEWS.records.openWith({ period: 'month' });
     }
 };

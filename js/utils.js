@@ -72,8 +72,55 @@ function formatBytes(bytes) {
 // localStorage ที่ไม่ทำให้แอปพังเมื่อเบราว์เซอร์ปิดการเก็บข้อมูล
 // ทำทีละขั้น: ขั้นใดผิดพลาด (เช่น API ที่บางเบราว์เซอร์ไม่ยอม) ขั้นที่เหลือยังทำต่อ
 function runSteps(steps) {
-    steps.forEach(step => { try { step(); } catch (e) { console.warn('ข้ามขั้นตอนที่ผิดพลาด:', e); } });
+    steps.forEach(step => { try { step(); } catch (e) { console.warn('ข้ามขั้นตอนที่ผิดพลาด:', e); reportClientError('step', e && e.message, String(step).slice(0, 120)); } });
 }
+
+// ---------- บันทึกข้อผิดพลาดบนเครื่องผู้ใช้ลง Log (เห็นสาเหตุทันที ไม่ต้องรอภาพหน้าจอ) ----------
+// แต่ละหน้ากำหนด ErrorLog.identify = () => ({ who, whoName, role })
+// ส่งไม่ได้ (ออฟไลน์) → เก็บในเครื่อง แล้วส่งเมื่อเน็ตกลับมา
+const ErrorLog = { identify: () => ({}), sent: 0, version: '' };
+const ERRQ_KEY = 'HRPM_ERRQ';
+function reportClientError(kind, message, extra) {
+    try {
+        if (!message || ErrorLog.sent >= 15) return; // ต่อการเปิดหน้าหนึ่งครั้ง
+        ErrorLog.sent++;
+        const id = ErrorLog.identify() || {};
+        const item = {
+            action: 'log.error', kind: String(kind || 'error'), message: String(message).slice(0, 300), extra: extra ? String(extra).slice(0, 300) : '',
+            page: location.pathname.split('/').pop() + location.hash, who: id.who || '', whoName: id.whoName || '', role: id.role || '',
+            online: navigator.onLine, standalone: (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true,
+            version: (document.querySelector('script[src*="app.js"], script[src*="core.js"]') || {}).src?.split('v=')[1] || '',
+            userAgent: navigator.userAgent.slice(0, 200), at: Date.now()
+        };
+        sendErrorItem(item).catch(() => {
+            const q = JSON.parse(store.get(ERRQ_KEY) || '[]').slice(-19);
+            q.push(item);
+            store.set(ERRQ_KEY, JSON.stringify(q));
+        });
+    } catch (e) { /* ห้ามให้ตัวบันทึกข้อผิดพลาดทำให้หน้าเว็บพัง */ }
+}
+function sendErrorItem(item) {
+    return fetch(CONFIG.API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ secret: CONFIG.API_SECRET }, item)) })
+        .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); });
+}
+function flushErrorQueue() {
+    let q = [];
+    try { q = JSON.parse(store.get(ERRQ_KEY) || '[]'); } catch (e) {}
+    if (!q.length || !navigator.onLine) return;
+    store.remove(ERRQ_KEY);
+    q.forEach(item => sendErrorItem(Object.assign(item, { extra: (item.extra ? item.extra + ' · ' : '') + 'เกิดเมื่อ ' + new Date(item.at).toLocaleString('th-TH') })).catch(() => {}));
+}
+window.addEventListener('error', e => {
+    // รูป/สคริปต์โหลดไม่ได้ไม่นับ (เกิดบ่อยตอนสัญญาณแย่) — นับเฉพาะข้อผิดพลาดของโค้ด
+    if (!e.message) return;
+    reportClientError('js', e.message, (e.filename || '').split('/').pop() + ':' + (e.lineno || '') + ':' + (e.colno || ''));
+});
+window.addEventListener('unhandledrejection', e => {
+    const r = e.reason;
+    reportClientError('promise', r && (r.message || String(r)), r && r.stack ? String(r.stack).split('\n')[1] : '');
+});
+window.addEventListener('online', flushErrorQueue);
+window.addEventListener('load', () => setTimeout(flushErrorQueue, 3000));
 
 // เปลี่ยน URL โดยไม่โหลดหน้าใหม่ — บางเบราว์เซอร์ (เช่น Safari แบบแอปบน Dock/หน้าจอหลัก) อาจปฏิเสธ จึงไม่ให้ทำให้ขั้นตอนอื่นล้ม
 function setUrl(url, push = false) {
