@@ -249,12 +249,13 @@ function installNotifyTriggers() {
 
 // ---------- VAPID (RFC 8292): JWT ES256 ----------
 function vapidKeys_() {
+  initEc_();
   const props = PropertiesService.getScriptProperties();
   let priv = props.getProperty('VAPID_PRIVATE'), pub = props.getProperty('VAPID_PUBLIC');
   if (!priv || !pub) {
     // สุ่มกุญแจลับจาก UUID หลายชุด (สุ่มด้วยระบบของ Google) แล้วย่อด้วย SHA-256
-    let d = 0n;
-    while (d <= 0n || d >= P256_.n) d = bytesToBig_(sha256_(Utilities.getUuid() + Utilities.getUuid() + Utilities.getUuid() + Date.now()));
+    let d = N0_;
+    while (d <= N0_ || d >= P256_.n) d = bytesToBig_(sha256_(Utilities.getUuid() + Utilities.getUuid() + Utilities.getUuid() + Date.now()));
     const Q = ecMul_(d, P256_.G);
     priv = vb64_(bigToBytes_(d, 32));
     pub = vb64_([4].concat(bigToBytes_(Q[0], 32), bigToBytes_(Q[1], 32)));
@@ -265,6 +266,7 @@ function vapidKeys_() {
 }
 
 function vapidAuthHeader_(endpoint) {
+  initEc_();
   const aud = String(endpoint).match(/^https:\/\/[^/]+/)[0];
   const cache = CacheService.getScriptCache();
   const keys = vapidKeys_();
@@ -281,25 +283,32 @@ function vapidAuthHeader_(endpoint) {
 }
 
 // --- P-256 ด้วย BigInt (พิกัดแบบ Jacobian) ---
-const P256_ = {
-  p: 0xffffffff00000001000000000000000000000000ffffffffffffffffffffffffn,
-  n: 0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551n,
-  a: -3n,
-  G: [0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296n, 0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5n]
-};
-function mod_(a, m) { const r = a % m; return r < 0n ? r + m : r; }
+// Apps Script แจ้ง ParseError กับตัวเลข BigInt แบบ 123n จึงสร้างผ่าน BigInt() แทน
+// และสร้างเมื่อใช้ครั้งแรกเท่านั้น: ถ้ามีปัญหา จะกระทบเฉพาะการแจ้งเตือน ไม่ทำให้ทั้งระบบใช้ไม่ได้
+let N0_, N1_, N2_, N3_, N4_, N8_, N255_, P256_ = null;
+function initEc_() {
+  if (P256_) return;
+  if (typeof BigInt !== 'function') throw new Error('Apps Script ไม่รองรับ BigInt — ตรวจว่าเปิดใช้ V8 runtime (Project Settings › Enable Chrome V8 runtime)');
+  N0_ = BigInt(0); N1_ = BigInt(1); N2_ = BigInt(2); N3_ = BigInt(3); N4_ = BigInt(4); N8_ = BigInt(8); N255_ = BigInt(255);
+  P256_ = {
+    p: BigInt('0xffffffff00000001000000000000000000000000ffffffffffffffffffffffff'),
+    n: BigInt('0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551'),
+    G: [BigInt('0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296'), BigInt('0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5')]
+  };
+}
+function mod_(a, m) { const r = a % m; return r < N0_ ? r + m : r; }
 function modInv_(a, m) {
-  let [r0, r1] = [mod_(a, m), m], [s0, s1] = [1n, 0n];
+  let [r0, r1] = [mod_(a, m), m], [s0, s1] = [N1_, N0_];
   while (r1) { const q = r0 / r1; [r0, r1] = [r1, r0 - q * r1]; [s0, s1] = [s1, s0 - q * s1]; }
   return mod_(s0, m);
 }
 function jDouble_(P) {
   const p = P256_.p, [X, Y, Z] = P;
-  if (!Y || !Z) return [0n, 1n, 0n];
-  const YY = mod_(Y * Y, p), S = mod_(4n * X * YY, p), ZZ = mod_(Z * Z, p);
-  const M = mod_(3n * (X - ZZ) * (X + ZZ), p); // a = -3
-  const X3 = mod_(M * M - 2n * S, p);
-  return [X3, mod_(M * (S - X3) - 8n * YY * YY, p), mod_(2n * Y * Z, p)];
+  if (!Y || !Z) return [N0_, N1_, N0_];
+  const YY = mod_(Y * Y, p), S = mod_(N4_ * X * YY, p), ZZ = mod_(Z * Z, p);
+  const M = mod_(N3_ * (X - ZZ) * (X + ZZ), p); // a = -3
+  const X3 = mod_(M * M - N2_ * S, p);
+  return [X3, mod_(M * (S - X3) - N8_ * YY * YY, p), mod_(N2_ * Y * Z, p)];
 }
 function jAdd_(P, Q) {
   const p = P256_.p;
@@ -308,14 +317,14 @@ function jAdd_(P, Q) {
   const Z1Z1 = mod_(P[2] * P[2], p), Z2Z2 = mod_(Q[2] * Q[2], p);
   const U1 = mod_(P[0] * Z2Z2, p), U2 = mod_(Q[0] * Z1Z1, p);
   const S1 = mod_(P[1] * Q[2] * Z2Z2, p), S2 = mod_(Q[1] * P[2] * Z1Z1, p);
-  if (U1 === U2) return S1 === S2 ? jDouble_(P) : [0n, 1n, 0n];
+  if (U1 === U2) return S1 === S2 ? jDouble_(P) : [N0_, N1_, N0_];
   const H = mod_(U2 - U1, p), R = mod_(S2 - S1, p), HH = mod_(H * H, p), HHH = mod_(H * HH, p), V = mod_(U1 * HH, p);
-  const X3 = mod_(R * R - HHH - 2n * V, p);
+  const X3 = mod_(R * R - HHH - N2_ * V, p);
   return [X3, mod_(R * (V - X3) - S1 * HHH, p), mod_(P[2] * Q[2] * H, p)];
 }
 function ecMul_(k, G) {
-  let R = [0n, 1n, 0n], A = [G[0], G[1], 1n];
-  while (k > 0n) { if (k & 1n) R = jAdd_(R, A); A = jDouble_(A); k >>= 1n; }
+  let R = [N0_, N1_, N0_], A = [G[0], G[1], N1_];
+  while (k > N0_) { if (k & N1_) R = jAdd_(R, A); A = jDouble_(A); k >>= N1_; }
   const zi = modInv_(R[2], P256_.p), zi2 = mod_(zi * zi, P256_.p);
   return [mod_(R[0] * zi2, P256_.p), mod_(R[1] * zi2 * zi, P256_.p)];
 }
@@ -329,7 +338,7 @@ function ecdsaSign_(message, d) {
   for (;;) {
     V = hmac_(K, V);
     const k = bytesToBig_(V);
-    if (k > 0n && k < n) {
+    if (k > N0_ && k < n) {
       const r = mod_(ecMul_(k, P256_.G)[0], n);
       const s = mod_(modInv_(k, n) * (z + r * d), n);
       if (r && s) return bigToBytes_(r, 32).concat(bigToBytes_(s, 32));
@@ -346,5 +355,5 @@ function sha256_(v) { return u8_(Utilities.computeDigest(Utilities.DigestAlgorit
 function hmac_(key, data) { return u8_(Utilities.computeHmacSha256Signature(s8_(data), s8_(key))); }
 function vb64_(bytes) { return Utilities.base64EncodeWebSafe(s8_(bytes)).replace(/=+$/, ''); }
 function fromB64url_(s) { return u8_(Utilities.base64DecodeWebSafe(s + '==='.slice((s.length + 3) % 4))); }
-function bytesToBig_(bytes) { return bytes.reduce((a, b) => (a << 8n) + BigInt(b), 0n); }
-function bigToBytes_(x, len) { const out = []; for (let i = 0; i < len; i++) { out.unshift(Number(x & 255n)); x >>= 8n; } return out; }
+function bytesToBig_(bytes) { return bytes.reduce((a, b) => (a << N8_) + BigInt(b), N0_); }
+function bigToBytes_(x, len) { const out = []; for (let i = 0; i < len; i++) { out.unshift(Number(x & N255_)); x >>= N8_; } return out; }
