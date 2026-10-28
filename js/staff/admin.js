@@ -33,6 +33,8 @@ VIEWS.admin = {
         this.setTab(this.tab);
     },
 
+    reset() { Object.assign(this, { tab: 'staff', staff: [], meta: null, logPage: 1 }); this.logReq++; },
+
     setTab(t) {
         this.tab = t;
         $('admTabs').querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.t === t)));
@@ -174,7 +176,7 @@ VIEWS.admin = {
         const r = await api('admin.staff.revoke', { id: s.id });
         if (!r.success) return showMessage({ title: 'ทำรายการไม่สำเร็จ', text: r.message, tone: 'bad' });
         toast('บังคับออกจากระบบแล้ว');
-        if (s.id === ST.me.id) location.reload();
+        if (s.id === ST.me.id) endSession('คุณบังคับออกจากระบบบัญชีของตัวเอง กรุณาเข้าสู่ระบบใหม่');
     },
 
     async removeStaff() {
