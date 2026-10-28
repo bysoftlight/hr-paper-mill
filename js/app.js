@@ -224,21 +224,21 @@ function endSession() {
     ALL_HISTORY = [];
     HISTORY_LOADED = false;
     TODAY_RECORD = null;
-    IMAGE_CACHE.clear();
-    document.querySelectorAll('dialog[open]').forEach(d => { delete d.dataset.locked; d.close(); });
-    showLoading(false);
-    $('salesForm').reset();
-    updateFileName($('evidenceImg'));
-    $('historyList').innerHTML = '';
-    renderUser();
-    history.replaceState(null, '', location.pathname);
+    // สลับไปหน้าเข้าสู่ระบบก่อนเสมอ แล้วจึงเก็บกวาด — ขั้นใดผิดพลาดในบางเบราว์เซอร์ (เช่น Safari แบบแอป) ก็ไม่ค้างหน้าเดิม
     backToLogin();
-    $('loginId').value = '';
-    $('loginId').readOnly = false;
-    $('loginBtn').disabled = true;
-    setLoginError(null);
-    window.scrollTo(0, 0);
-    showRulesModal(true);
+    runSteps([
+        () => { $('loginId').value = ''; $('loginId').readOnly = false; $('loginBtn').disabled = true; setLoginError(null); },
+        () => IMAGE_CACHE.clear(),
+        () => document.querySelectorAll('dialog[open]').forEach(d => { delete d.dataset.locked; d.close(); }),
+        () => showLoading(false),
+        () => $('salesForm').reset(),
+        () => { updateFileName($('evidenceImg')).catch(() => {}); },
+        () => { $('historyList').innerHTML = ''; },
+        () => renderUser(),
+        () => setUrl(location.pathname),
+        () => window.scrollTo(0, 0),
+        () => showRulesModal(true)
+    ]);
 }
 
 // --- APP NAVIGATION & SETUP ---
@@ -299,7 +299,7 @@ function switchTab(tab, pushHash = true) {
     document.querySelectorAll('[data-tab]').forEach(btn => {
         if (btn.dataset.tab === tab) btn.setAttribute('aria-current', 'page'); else btn.removeAttribute('aria-current');
     });
-    if (pushHash && location.hash !== '#' + tab) history.pushState(null, '', '#' + tab);
+    if (pushHash && location.hash !== '#' + tab) setUrl('#' + tab, true);
     window.scrollTo({ top: 0 });
     if (tab === 'history' && !HISTORY_LOADED) loadHistoryData();
 }

@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const params = new URLSearchParams(location.search);
     if (params.get('code') && params.get('state')) return finishLineLogin(params);
     if (params.get('error')) {
-        history.replaceState(null, '', location.pathname + location.hash);
+        setUrl(location.pathname + location.hash);
         return showAuth('ยกเลิกการเข้าสู่ระบบด้วย LINE แล้ว');
     }
 
@@ -238,7 +238,7 @@ async function startLineLogin() {
 async function finishLineLogin(params) {
     const state = sessionStorage.getItem('line_state'), verifier = sessionStorage.getItem('line_verifier');
     sessionStorage.removeItem('line_state'); sessionStorage.removeItem('line_verifier');
-    history.replaceState(null, '', location.pathname);
+    setUrl(location.pathname);
     if (!state || state !== params.get('state') || !verifier) return showAuth('การเข้าสู่ระบบด้วย LINE ไม่ถูกต้อง กรุณาลองใหม่');
     showLoading(true, 'กำลังเข้าสู่ระบบด้วย LINE…');
     const res = await api('staff.auth.line', { code: params.get('code'), codeVerifier: verifier, redirectUri: location.origin + location.pathname });
@@ -270,14 +270,20 @@ function endSession(message) {
     store.remove(TOKEN_KEY);
     Object.assign(ST, { token: null, me: null, perms: new Set(), participants: null, participantsReq: null, participantMeta: null, prefetch: null, lastSeen: 0, view: null });
     clearInterval(liveTimer); clearInterval(liveTextTimer); clearInterval(pendingTimer);
-    IMG_CACHE.clear();
-    document.querySelectorAll('dialog[open]').forEach(d => d.close());
-    showLoading(false);
-    Object.values(VIEWS).forEach(v => v.reset && v.reset());
-    history.replaceState(null, '', location.pathname);
-    window.scrollTo(0, 0);
+    // สลับไปหน้าเข้าสู่ระบบก่อนเสมอ แล้วจึงเก็บกวาด — ขั้นใดผิดพลาดในบางเบราว์เซอร์ก็ไม่ค้างหน้าเดิม
+    $('appContainer').hidden = true;
+    $('pendingView').hidden = true;
+    $('authView').hidden = false;
     $('appContainer').classList.remove('is-booting');
-    showAuth(message || '');
+    runSteps([
+        () => IMG_CACHE.clear(),
+        () => document.querySelectorAll('dialog[open]').forEach(d => d.close()),
+        () => showLoading(false),
+        ...Object.values(VIEWS).map(v => () => v.reset && v.reset()),
+        () => setUrl(location.pathname),
+        () => window.scrollTo(0, 0),
+        () => { showAuth(message || '').catch(e => console.warn(e)); }
+    ]);
 }
 
 // ---------- After sign in ----------
@@ -359,7 +365,7 @@ function switchTab(tab, push = true) {
     document.querySelectorAll('[data-tab]').forEach(b => {
         if (b.dataset.tab === tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     });
-    if (push && location.hash !== '#' + tab) history.pushState(null, '', '#' + tab);
+    if (push && location.hash !== '#' + tab) setUrl('#' + tab, true);
     window.scrollTo({ top: 0 });
     if (VIEWS[tab] && VIEWS[tab].show) VIEWS[tab].show();
 }

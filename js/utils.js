@@ -27,6 +27,16 @@ function formatBytes(bytes) {
 }
 
 // localStorage ที่ไม่ทำให้แอปพังเมื่อเบราว์เซอร์ปิดการเก็บข้อมูล
+// ทำทีละขั้น: ขั้นใดผิดพลาด (เช่น API ที่บางเบราว์เซอร์ไม่ยอม) ขั้นที่เหลือยังทำต่อ
+function runSteps(steps) {
+    steps.forEach(step => { try { step(); } catch (e) { console.warn('ข้ามขั้นตอนที่ผิดพลาด:', e); } });
+}
+
+// เปลี่ยน URL โดยไม่โหลดหน้าใหม่ — บางเบราว์เซอร์ (เช่น Safari แบบแอปบน Dock/หน้าจอหลัก) อาจปฏิเสธ จึงไม่ให้ทำให้ขั้นตอนอื่นล้ม
+function setUrl(url, push = false) {
+    try { history[push ? 'pushState' : 'replaceState'](null, '', url); } catch (e) { console.warn('เปลี่ยน URL ไม่ได้:', e); }
+}
+
 const store = {
     get(key) { try { return localStorage.getItem(key); } catch (e) { return null; } },
     set(key, val) { try { localStorage.setItem(key, val); } catch (e) {} },
