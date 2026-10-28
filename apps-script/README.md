@@ -64,6 +64,20 @@ Project Settings (รูปเฟือง) → **Script properties** → Add sc
 **Deploy → Manage deployments → Edit (ดินสอ) → Version: New version → Deploy**
 (Execute as: Me · Who has access: Anyone) — URL เดิมไม่เปลี่ยน
 
+## ตรวจสุขภาพระบบ
+
+เปิด `<URL ของ Web app>?health=1` ในเบราว์เซอร์ (URL ที่ลงท้ายด้วย `/exec`) — ต้องเห็น `"success": true`
+- `files` เป็น `false` = ไฟล์นั้นยังไม่ได้วางโค้ดรุ่นล่าสุด
+- `sheets` เป็น `false` = ยังไม่ได้รัน `setup()`
+- `folders` เป็น `false` = บัญชีที่ Deploy เปิดโฟลเดอร์ Drive นั้นไม่ได้
+- ถ้าเห็นหน้า error ของ Google แทน JSON ดูวิธีแก้ในหัวข้อถัดไป
+
+### ถ้าหน้าเว็บขึ้น "เชื่อมต่อระบบไม่สำเร็จ" / "ระบบหลังบ้านขัดข้อง"
+1. ในโปรเจกต์ต้องมีเฉพาะไฟล์ `Code`, `Schema`, `Auth`, `Staff`, `Admin`, `Export` (+ `Index.html`) — **ลบไฟล์สำรองหรือไฟล์เก่าที่คัดลอกไว้** (ชื่อตัวแปรซ้ำทำให้ทั้งระบบหยุดทำงาน)
+2. เลือกฟังก์ชัน `setup` แล้วกด **Run** → ถ้าระบบขอสิทธิ์ ให้กด Allow
+3. **Deploy → Manage deployments → Edit → New version → Deploy** (Execute as: Me · Who has access: Anyone)
+4. เมนู **Executions** (รูปนาฬิกาซ้ายมือ) แสดงข้อความ error ล่าสุดของ `doPost`
+
 ## 6. ข้อมูลที่ควรเติมในแผ่น `Users`
 
 | คอลัมน์ | ใช้ทำอะไร |

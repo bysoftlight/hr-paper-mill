@@ -16,7 +16,9 @@ const HISTORY_LIMIT = 400; // พอสำหรับตัวกรอง "ป
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // หลังย่อไฟล์แล้วควรเหลือไม่ถึง 1 MB
 const API_SECRET = 'MY_SUPER_SECRET_KEY_2026'; // ต้องตรงกับ API_SECRET ใน js/config.js ของเว็บ
 
-function doGet() {
+function doGet(e) {
+  // ตรวจสุขภาพระบบ: เปิด <URL ของ Web app>?health=1 ในเบราว์เซอร์
+  if (e && e.parameter && e.parameter.health) return json_(healthCheck_());
   return HtmlService.createHtmlOutputFromFile('Index')
       .setTitle('HR Paper Mill - Sales System')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
@@ -65,6 +67,31 @@ function doPost(e) {
   } catch (err) {
     return json_({ success: false, message: 'Error: ' + err });
   }
+}
+
+// บอกว่าไฟล์ไหนขาด/เป็นรุ่นเก่า แผ่นงานไหนไม่มี และ Script Properties ใดยังไม่ตั้ง (ไม่เปิดเผยค่าจริง)
+function healthCheck_() {
+  const files = {
+    'Code.gs': typeof getImageData_ === 'function',
+    'Schema.gs': typeof BKK_OFFSET_MS_ === 'number',
+    'Auth.gs': typeof renewedToken_ === 'function',
+    'Staff.gs': typeof staffParticipantDelete_ === 'function',
+    'Admin.gs': typeof adminStaffDelete_ === 'function',
+    'Export.gs': typeof staffExportGsheet_ === 'function'
+  };
+  const sheets = {};
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  ['Users', 'Records', 'Staff', 'Logs'].forEach(n => { sheets[n] = !!ss.getSheetByName(n); });
+  const props = {};
+  ['ADMIN_EMAILS', 'GOOGLE_CLIENT_ID', 'LINE_CHANNEL_ID', 'LINE_CHANNEL_SECRET', 'LINE_REDIRECT_URIS'].forEach(k => {
+    props[k] = !!PropertiesService.getScriptProperties().getProperty(k);
+  });
+  const folders = {};
+  [['IMAGE_FOLDER_ID', IMAGE_FOLDER_ID], ['PROFILE_FOLDER_ID', typeof PROFILE_FOLDER_ID === 'string' ? PROFILE_FOLDER_ID : '']].forEach(([k, id]) => {
+    try { folders[k] = !!id && !!DriveApp.getFolderById(id).getName(); } catch (err) { folders[k] = false; }
+  });
+  const ok = Object.values(files).every(Boolean) && Object.values(sheets).every(Boolean) && Object.values(folders).every(Boolean);
+  return { success: ok, files: files, sheets: sheets, folders: folders, properties: props, time: new Date().toISOString() };
 }
 
 function json_(obj) {
