@@ -46,9 +46,10 @@ function doPost(e) {
     switch (req.action) {
       case 'login': {
         const user = findUser_(req.userId, true);
-        if (user && !user.active) return json_({ success: false, message: 'บัญชีนี้ถูกปิดใช้งาน กรุณาติดต่อเจ้าหน้าที่' });
+        // code บอกหน้าเว็บว่าเป็นผลชัดเจน (ให้ลืมรหัสที่จำไว้) ต่างจากข้อผิดพลาดชั่วคราวของระบบ
+        if (user && !user.active) return json_({ success: false, code: 'INACTIVE', message: 'บัญชีนี้ถูกปิดใช้งาน กรุณาติดต่อเจ้าหน้าที่' });
         if (!user) log_({ id: '', name: 'ผู้ใช้สิทธิ์', role: 'participant' }, 'participant.login_failed', String(req.userId || '').slice(0, 20), '', '');
-        if (!user) return json_({ success: false, message: 'ไม่พบรหัสผู้ใช้สิทธิ์นี้ กรุณาตรวจสอบอีกครั้ง' });
+        if (!user) return json_({ success: false, code: 'NOT_FOUND', message: 'ไม่พบรหัสผู้ใช้สิทธิ์นี้ กรุณาตรวจสอบอีกครั้ง' });
         // ส่งประวัติมาพร้อมกัน ลดการเรียก API จาก 2 ครั้งเหลือ 1 ครั้งตอนเปิดแอป
         return json_(req.withHistory ? { success: true, data: user, history: getUserHistory(user.id) } : { success: true, data: user });
       }

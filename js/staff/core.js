@@ -138,16 +138,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         // โหลดภาพรวมไปพร้อมกับตรวจ session (ไม่ต้องรอทีละคำขอ) — ถ้า session ใช้ไม่ได้ ผลนี้จะถูกทิ้ง
         const tab = location.hash.replace('#', '').split('?')[0];
         if (!tab || tab === 'overview') ST.prefetch = { overview: callApi('staff.overview', { token: ST.token, userAgent: navigator.userAgent.slice(0, 200) }) };
-        // ตอนเปิดหน้า: session หมดอายุ/ใช้ไม่ได้ ให้ไปหน้าเข้าสู่ระบบเงียบๆ (ไม่ต้องขึ้นกล่องแจ้งเตือน)
-        const r = await callApi('staff.me', { token: ST.token });
-        if (r.success) return enter(r.staff);
-        if (!r.networkError) { store.remove(TOKEN_KEY); ST.token = null; }
-        $('appContainer').hidden = true;
-        $('appContainer').classList.remove('is-booting');
-        return showAuth(r.networkError ? r.message : (r.code === 'AUTH' ? 'Session หมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง' : ''));
+        return resumeSession();
     }
     showAuth();
 });
+
+// เปิดเว็บด้วย session ที่จำไว้: ต่ออายุ token อัตโนมัติ
+// ลืม session เฉพาะเมื่อเซิร์ฟเวอร์ยืนยันว่าใช้ไม่ได้ (AUTH) — เน็ตหลุด/ระบบขัดข้องชั่วคราว ให้ลองใหม่โดยไม่ต้องเข้าสู่ระบบใหม่
+async function resumeSession() {
+    const r = await callApi('staff.me', { token: ST.token });
+    if (r.success) { keepToken(r.token); return enter(r.staff); }
+    if (r.code === 'AUTH') {
+        store.remove(TOKEN_KEY); ST.token = null; ST.prefetch = null;
+        $('appContainer').hidden = true;
+        $('appContainer').classList.remove('is-booting');
+        return showAuth(r.message || 'Session หมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง');
+    }
+    const retry = await showMessage({ title: r.networkError ? 'เชื่อมต่อไม่ได้' : 'ระบบขัดข้องชั่วคราว', text: (r.message || 'กรุณาลองใหม่อีกครั้ง') + ' — ยังจำการเข้าสู่ระบบไว้', tone: 'warn', okText: 'ลองอีกครั้ง', cancelText: 'ปิด' });
+    if (retry) { ST.prefetch = null; return resumeSession(); }
+    $('appContainer').hidden = true;
+    $('appContainer').classList.remove('is-booting');
+    showAuth('ยังจำการเข้าสู่ระบบไว้ — รีเฟรชหน้าเมื่ออินเทอร์เน็ตกลับมา');
+}
+// token ใหม่จากเซิร์ฟเวอร์ (ต่ออายุ) เก็บแทนของเดิม
+function keepToken(token) {
+    if (!token) return;
+    ST.token = token;
+    store.set(TOKEN_KEY, token);
+}
 
 // ---------- Sign in ----------
 async function showAuth(message) {
@@ -155,14 +173,15 @@ async function showAuth(message) {
     $('appContainer').hidden = true;
     $('pendingView').hidden = true;
     setAuthHint(message || '');
-    if (!ST.config) {
+    let config = ST.config;
+    if (!config) {
         const cfg = await callApi('staff.config');
-        ST.config = cfg.success ? cfg : {};
-        if (!cfg.success) setAuthHint(cfg.message || 'โหลดการตั้งค่าไม่สำเร็จ', true);
+        if (cfg.success) ST.config = config = cfg; // โหลดไม่สำเร็จไม่จำไว้ ครั้งหน้าลองใหม่
+        else { config = {}; if (!message) setAuthHint(cfg.message || 'โหลดการตั้งค่าไม่สำเร็จ', true); }
     }
-    setupGoogle();
-    $('lineBtn').disabled = !ST.config.lineChannelId;
-    if (!ST.config.lineChannelId) $('lineBtn').title = 'ยังไม่ได้ตั้งค่า LINE Login';
+    setupGoogle(config);
+    $('lineBtn').disabled = !config.lineChannelId;
+    $('lineBtn').title = config.lineChannelId ? '' : 'ยังไม่ได้ตั้งค่า LINE Login';
 }
 
 function setAuthHint(text, isError) {
@@ -171,14 +190,14 @@ function setAuthHint(text, isError) {
     h.classList.toggle('is-error', !!isError);
 }
 
-function setupGoogle() {
+function setupGoogle(config) {
     const slot = $('googleBtn');
-    if (!ST.config.googleClientId) {
+    if (!config.googleClientId) {
         slot.innerHTML = '<button type="button" class="btn btn-outline" disabled>เข้าสู่ระบบด้วย Google (ยังไม่ได้ตั้งค่า)</button>';
         return;
     }
     loadScript('https://accounts.google.com/gsi/client').then(() => {
-        google.accounts.id.initialize({ client_id: ST.config.googleClientId, callback: handleGoogleCredential, ux_mode: 'popup', auto_select: false });
+        google.accounts.id.initialize({ client_id: config.googleClientId, callback: handleGoogleCredential, ux_mode: 'popup', auto_select: false });
         slot.innerHTML = '';
         google.accounts.id.renderButton(slot, { theme: 'outline', size: 'large', text: 'signin_with', shape: 'rectangular', locale: 'th', width: Math.min(400, slot.clientWidth || 320) });
     }).catch(() => {
@@ -293,6 +312,7 @@ function showPending(me) {
 async function refreshMe() {
     const r = await api('staff.me');
     if (!r.success) return;
+    keepToken(r.token);
     const wasActive = ST.me && ST.me.status === 'active' && ST.perms.size;
     const permsChanged = (r.staff.permissions || []).join() !== Array.from(ST.perms).join();
     if (r.staff.status === 'active' && r.staff.permissions.length) clearInterval(pendingTimer);
@@ -431,6 +451,7 @@ document.addEventListener('visibilitychange', () => {
 // ออกจากระบบจากอีกแท็บ หรือกลับมาด้วยปุ่มย้อนกลับหลังออกจากระบบ → กลับหน้าเข้าสู่ระบบ
 window.addEventListener('storage', e => {
     if ((e.key === TOKEN_KEY || e.key === null) && !store.get(TOKEN_KEY) && ST.token) endSession('ออกจากระบบจากหน้าต่างอื่นแล้ว');
+    else if (e.key === TOKEN_KEY && e.newValue && ST.token) ST.token = e.newValue; // อีกแท็บต่ออายุ token
 });
 window.addEventListener('pageshow', e => {
     if (e.persisted && !store.get(TOKEN_KEY) && ST.token) endSession();
@@ -475,7 +496,7 @@ VIEWS.account = {
             ['สถานะ', STATUS_LABELS[me.status] || me.status],
             ['อนุมัติโดย', me.approvedBy || '-'],
             ['เข้าใช้ล่าสุด', me.lastLoginAt ? thDateTime(me.lastLoginAt) : '-'],
-            ['Session หมดอายุ', exp]
+            ['จำการเข้าสู่ระบบถึง', exp + ' (ต่ออายุอัตโนมัติเมื่อเปิดใช้งาน)']
         ].map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('');
         $('accPerms').innerHTML = Object.keys(PERM_LABELS).map(p =>
             `<li class="${can(p) ? '' : 'is-off'}">${icon(can(p) ? 'check-circle' : 'x-circle')}<span>${PERM_LABELS[p]}</span></li>`).join('');

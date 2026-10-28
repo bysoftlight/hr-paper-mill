@@ -145,6 +145,13 @@ function setLoginBusy(busy) {
     $('loginId').readOnly = busy;
 }
 
+// ลืมรหัสที่จำไว้เฉพาะเมื่อบัญชีไม่มีแล้ว/ถูกปิดใช้งานจริง — ข้อผิดพลาดอื่นของระบบไม่ทำให้ต้องเข้าสู่ระบบใหม่
+function isAccountGone(res) {
+    if (res.success || res.networkError) return false;
+    if (res.code) return res.code === 'NOT_FOUND' || res.code === 'INACTIVE';
+    return /ไม่พบรหัสผู้ใช้สิทธิ์|ถูกปิดใช้งาน/.test(res.message || ''); // Apps Script รุ่นก่อนไม่มี code
+}
+
 function readCache(id) {
     try {
         const c = JSON.parse(store.get(CACHE_KEY) || 'null');
@@ -173,14 +180,14 @@ async function performLogin(userId, isAuto, background = false) {
         if (!background) return setupApp(res.history);
         renderUser();
         if (Array.isArray(res.history)) applyHistory(res.history); else loadHistoryData(true);
-    } else if (res.networkError && background) {
-        // ออฟไลน์: ใช้ข้อมูลที่บันทึกไว้ในเครื่องต่อ
+    } else if (!isAccountGone(res) && background) {
+        // ออฟไลน์ / ระบบขัดข้องชั่วคราว: ใช้ข้อมูลที่บันทึกไว้ในเครื่องต่อ (ยังจำการเข้าสู่ระบบไว้)
         $('histRefresh').disabled = false;
-        $('histUpdated').textContent = 'เชื่อมต่อไม่ได้ · แสดงข้อมูลที่บันทึกไว้';
-    } else if (res.networkError) {
+        $('histUpdated').textContent = res.networkError ? 'เชื่อมต่อไม่ได้ · แสดงข้อมูลที่บันทึกไว้' : 'ระบบขัดข้องชั่วคราว · แสดงข้อมูลที่บันทึกไว้';
+    } else if (!isAccountGone(res)) {
         // เน็ตหลุด ไม่ใช่รหัสผิด: เก็บรหัสที่จำไว้ และให้ลองใหม่
         if (isAuto) {
-            const retry = await showMessage({ title: 'เชื่อมต่อไม่ได้', text: res.message, tone: 'warn', okText: 'ลองอีกครั้ง', cancelText: 'ปิด' });
+            const retry = await showMessage({ title: res.networkError ? 'เชื่อมต่อไม่ได้' : 'ระบบขัดข้องชั่วคราว', text: res.message || 'กรุณาลองใหม่อีกครั้ง', tone: 'warn', okText: 'ลองอีกครั้ง', cancelText: 'ปิด' });
             if (retry) return performLogin(userId, true);
             backToLogin();
             $('loginId').value = userId;

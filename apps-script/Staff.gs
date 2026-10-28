@@ -22,7 +22,7 @@ function handleStaffRequest_(req) {
   const staff = staffFromToken_(req.token);
   switch (req.action) {
     case 'staff.me':
-      return { success: true, staff: staffDto_(staff) };
+      return { success: true, staff: staffDto_(staff), token: renewedToken_(staff) };
     case 'staff.logout':
       log_(staff, 'staff.logout', staff.email || staff.name, '', ua);
       return { success: true };
