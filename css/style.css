@@ -1,31 +1,34 @@
-/* HR Paper Mill — Paper Ledger design system (see DESIGN.md)
+/* HR Paper Mill — Google Blog design system (see DESIGN.md)
    Mobile-first. Breakpoints: 768px (tablet / iPad, side rail) · 1100px (laptop / desktop, full sidebar + 2 columns) */
 
 :root {
-    --ground: #F3F1EC;
+    /* Google Blog look: white canvas, Material 3 surfaces, Google Blue */
+    --ground: #FFFFFF;
     --surface: #FFFFFF;
-    --field: #FAF9F6;
-    --line: #E2DED5;
-    --line-soft: #EEEAE1;
-    --ink: #16191D;
-    --ink-2: #3A3F46;
-    --muted: #5B616B;
-    --accent: #1847C2;
-    --accent-soft: #E7EDFB;
-    --ok: #17663B;   --ok-soft: #E3F1E8;
-    --warn: #8A5A00; --warn-soft: #FDF3DC;
-    --bad: #B42318;  --bad-soft: #FBEAE8;
-    --bad-line: #F0C9C4;
-    --rail: #E8E4DA;
-    --not-ready: #D9D4C8;
-    --dash: #B9B3A6;
-    --scrim: rgba(22, 25, 29, .5);
-    --veil: rgba(243, 241, 236, .85);
+    --field: #F8FAFD;
+    --line: #DDE3EA;
+    --line-soft: #E9EEF6;
+    --ink: #1F1F1F;
+    --ink-2: #3C4043;
+    --muted: #5F6368;
+    --accent: #0B57D0;
+    --accent-hover: #0842A0;
+    --accent-soft: #D3E3FD;
+    --ok: #146C2E;   --ok-soft: #C4EED0;
+    --warn: #7A5900; --warn-soft: #FFEFC2;
+    --bad: #B3261E;  --bad-soft: #F9DEDC;
+    --bad-line: #F2B8B5;
+    --rail: #E9EEF6;
+    --not-ready: #DDE3EA;
+    --dash: #A8C7FA;
+    --scrim: rgba(31, 31, 31, .45);
+    --veil: rgba(255, 255, 255, .85);
+    --container: #F0F4F9;
 
-    --font: 'IBM Plex Sans Thai', system-ui, sans-serif;
-    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --font: 'Google Sans', 'Noto Sans Thai', system-ui, sans-serif;
+    --mono: 'Google Sans Code', 'Google Sans', ui-monospace, monospace;
 
-    --r-sm: 8px; --r-seg: 9px; --r-box: 10px; --r-md: 12px; --r-submit: 14px; --r-lg: 16px; --r-alert: 18px; --r-xl: 20px;
+    --r-sm: 12px; --r-seg: 999px; --r-box: 14px; --r-md: 16px; --r-submit: 999px; --r-lg: 24px; --r-alert: 28px; --r-xl: 28px;
     --tap: 44px;
     --gutter: 20px;
     --content: 480px;
@@ -123,7 +126,7 @@ b { font-weight: 600; }
 }
 
 @media (hover: hover) {
-    .btn-primary:not(:disabled):hover, .btn-submit.is-ready:hover { background: #133A9F; }
+    .btn-primary:not(:disabled):hover, .btn-submit.is-ready:hover { background: var(--accent-hover); }
     .btn-outline:hover, .btn-chip:not(:disabled):hover { background: var(--field); border-color: var(--dash); }
     .btn-danger:hover { background: var(--bad-soft); }
     .btn-text:hover span, .btn-text:hover { text-decoration: underline; text-underline-offset: 3px; }
@@ -758,7 +761,7 @@ span.loc-link .ic { color: var(--muted); }
 
 /* =====================================================
    Skeleton loader — โครงเนื้อหาระหว่างรอข้อมูลจริง
-   ใช้สี line-soft / field ของ Paper Ledger, ไม่มีสีเน้น
+   ใช้สี line-soft / field ของธีม, ไม่มีสีเน้น
    ===================================================== */
 @keyframes skel-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
 .skel,
@@ -839,3 +842,79 @@ span.loc-link .ic { color: var(--muted); }
     .is-syncing .summary-split .chip, .is-syncing .agent-meter-top b, .is-syncing .summary .meter,
     .is-syncing #sumLabel, .photo-btn.is-loading, .viewer-body.is-loading { animation: none; background: var(--line-soft); }
 }
+
+/* =====================================================
+   Google Blog layer — pill buttons, tinted cards, Google Sans
+   ===================================================== */
+body { font-size: 15px; letter-spacing: 0; }
+h1, h2, h3 { font-weight: 500; letter-spacing: -.01em; }
+.btn, .btn-chip, .btn-outline, .btn-danger { border-radius: 999px; font-weight: 500; }
+.btn-primary { box-shadow: none; }
+.btn-outline { border-color: #C4C7C5; color: var(--accent); }
+.btn-chip { border-color: #C4C7C5; }
+.btn-text { font-weight: 500; }
+@media (hover: hover) {
+    .btn-primary:not(:disabled):hover, .btn-submit.is-ready:hover { box-shadow: 0 1px 3px rgba(60, 64, 67, .3), 0 4px 8px 3px rgba(60, 64, 67, .15); }
+    .btn-outline:hover, .btn-chip:not(:disabled):hover { background: #F2F6FC; border-color: #C4C7C5; }
+}
+
+.card, .tile, .hist-list { background: var(--field); border-color: transparent; }
+.card .card, .card .tile { background: var(--surface); }
+.input { background: var(--surface); border: 1px solid #C4C7C5; border-radius: var(--r-sm); }
+.input:focus { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.select { border-color: #C4C7C5; border-radius: 999px; padding-left: 16px; }
+.contact, .loc-link { background: var(--surface); border-color: var(--line); }
+.upload { background: var(--surface); border-color: var(--dash); border-radius: var(--r-lg); }
+.choice { border-width: 1px; border-color: #C4C7C5; background: var(--surface); border-radius: var(--r-lg); }
+.choice:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.icon-box { background: var(--container); }
+.step-num { background: var(--container); }
+.segmented { background: var(--container); border-radius: 999px; }
+.segmented button[aria-selected="true"] { background: var(--accent-soft); color: #041E49; }
+.chip { background: var(--container); }
+.bars span { background: var(--accent-soft); }
+.photo img, .hist-body img, .photo-btn { background: var(--container); border-color: transparent; }
+.menu button > .ic:first-child { color: var(--accent); }
+
+/* Header: Keyword-style white bar with a 4-color mark */
+.logo {
+    border-radius: 50%; color: transparent; position: relative; overflow: hidden;
+    background: conic-gradient(#4285F4 0 25%, #EA4335 0 50%, #FBBC04 0 75%, #34A853 0);
+}
+.logo::after { content: "H"; position: absolute; inset: 5px; display: grid; place-items: center; border-radius: 50%; background: #fff; color: var(--ink); font-size: 15px; font-weight: 700; }
+.brand { font-weight: 500; font-size: 18px; letter-spacing: -.01em; color: #444746; }
+.topbar { background: rgba(255, 255, 255, .92); backdrop-filter: saturate(180%) blur(12px); -webkit-backdrop-filter: saturate(180%) blur(12px); border-bottom-color: var(--line-soft); }
+.bottomnav { border-top-color: var(--line-soft); }
+.nav-item[aria-current="page"] { color: #041E49; }
+.nav-item[aria-current="page"] .ic { background: var(--accent-soft); border-radius: 999px; padding: 4px 18px; box-sizing: content-box; }
+.bottomnav .nav-item { gap: 4px; }
+
+.eyebrow { font-size: 14px; font-weight: 500; color: var(--muted); letter-spacing: .02em; }
+.view-head h2 { font-weight: 400; letter-spacing: -.02em; }
+.sheet-head, .sheet-foot { border-color: var(--line-soft); }
+.alert-actions .btn { border-radius: 999px; }
+
+@media (min-width: 768px) {
+    .sidenav { background: var(--surface); border-right-color: var(--line-soft); }
+    .sidenav .nav-item[aria-current="page"] { background: var(--accent-soft); }
+    .sidenav .nav-item[aria-current="page"] .ic { background: none; padding: 0; }
+    .sidenav .nav-item { border-radius: 999px; }
+    .view-head h2 { font-size: 32px; line-height: 1.25; }
+}
+@media (min-width: 1024px) {
+    .login-intro { background: var(--field); border-right: 0; }
+    .login-intro h1 { font-size: 48px; font-weight: 400; line-height: 1.15; letter-spacing: -.025em; }
+    .intro-steps .mono { background: var(--surface); }
+    .login-card { background: var(--surface); border: 1px solid var(--line-soft); }
+}
+@media (min-width: 1100px) {
+    .sidenav .nav-item { min-height: 52px; padding: 0 18px; }
+    .view-head h2 { font-size: 36px; }
+}
+@media (max-width: 767px) {
+    .login-intro h1 { font-size: 32px; font-weight: 400; letter-spacing: -.02em; }
+}
+
+/* html2canvas ไม่รองรับ conic-gradient: โลโก้ในหน้า PDF ใช้สีพื้นเรียบ */
+.pdf-brand .logo { background: var(--accent); color: #fff; }
+.pdf-brand .logo::after { content: none; }

@@ -1,9 +1,24 @@
-# Paper Ledger — Design System
+# Google Blog — Design System
 
-ระบบดีไซน์ที่ใช้ใน HR Paper Mill v.26 (แอปรายงานการขายมาตรา 35)
+ระบบดีไซน์ที่ใช้ใน HR Paper Mill (แอปรายงานการขายมาตรา 35) ตั้งแต่ v3.13 อิงหน้าตา blog.google / Material 3
 ใช้ได้ทั้งมือถือ แท็บเล็ต (iPad) และคอมพิวเตอร์ (PC / Mac) เน้นการกรอกข้อมูล ส่งงาน และดูประวัติ ผู้ใช้หลากหลายวัย อ่านง่าย กดง่าย
 
-**แนวคิด:** กระดาษกับหมึก — พื้นโทนกระดาษอุ่น การ์ดสีขาว ตัวอักษรเข้มคมชัด และสีน้ำเงินเข้มสีเดียวสำหรับสิ่งที่กดได้หรือถูกเลือก
+**แนวคิด:** พื้นขาวสะอาดแบบ blog.google การ์ดพื้นเทาฟ้าอ่อน (`#F8FAFD`) มุมโค้งมาก ปุ่มทรงแคปซูล สีน้ำเงิน Google (`#0B57D0`) สำหรับสิ่งที่กดได้หรือถูกเลือก และโลโก้วงแหวน 4 สี
+
+> ค่าล่าสุดอยู่ที่ `:root` และบล็อก "Google Blog layer" ท้าย `css/style.css` · ตารางด้านล่างที่ยังอ้างค่า Paper Ledger เดิม (สีครีม, IBM Plex) ใช้เป็นโครงสร้าง/ขนาดได้ แต่สีและมุมโค้งให้ยึดตามนี้:
+>
+> | Token | ค่าใหม่ |
+> |---|---|
+> | `--ground` / `--surface` | `#FFFFFF` |
+> | `--field` (การ์ด ไทล์) / `--container` (ราง ไอคอนกล่อง) | `#F8FAFD` / `#F0F4F9` |
+> | `--line` / `--line-soft` | `#DDE3EA` / `#E9EEF6` · ขอบช่องกรอกและปุ่มเส้นขอบ `#C4C7C5` |
+> | `--ink` / `--ink-2` / `--muted` | `#1F1F1F` / `#3C4043` / `#5F6368` |
+> | `--accent` / hover / `--accent-soft` | `#0B57D0` / `#0842A0` / `#D3E3FD` (ตัวอักษรบน soft: `#041E49`) |
+> | ok / warn / bad | `#146C2E`·`#C4EED0` / `#7A5900`·`#FFEFC2` / `#B3261E`·`#F9DEDC` |
+> | ฟอนต์ | Google Sans + Noto Sans Thai · ตัวเลข/รหัส Google Sans Code |
+> | มุมโค้ง | ช่องกรอก 12 · ไทล์ 16 · การ์ด 24 · แผ่นล่าง/หน้าต่าง 28 · ปุ่ม ชิป แท็บ = แคปซูล (999) |
+> | หัวข้อหน้า | น้ำหนัก 400 ตัวใหญ่ (มือถือ 22 · แท็บเล็ต 32 · คอม 36 · หน้าเข้าสู่ระบบ 48) |
+> | เมนูที่เลือก | พื้นแคปซูล `accent-soft` (แถบล่างมือถือ: แคปซูลรอบไอคอน) |
 
 ---
 
@@ -62,11 +77,11 @@
 ## 3. ตัวอักษร (Typography)
 
 ```html
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Google+Sans+Code:wght@400;500&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
 ```
 
-- ฟอนต์หลัก: **IBM Plex Sans Thai** (400 ปกติ · 500 ป้ายกำกับ · 600 หัวข้อ/ปุ่ม)
-- ฟอนต์ตัวเลข/รหัส: **IBM Plex Mono** 500
+- ฟอนต์หลัก: **Google Sans** + **Noto Sans Thai** (400 ปกติ/หัวข้อใหญ่ · 500 ป้ายกำกับ/ปุ่ม · 600 ตัวหนา)
+- ฟอนต์ตัวเลข/รหัส: **Google Sans Code** 500
 - line-height พื้นฐาน 1.55 (เนื้อหายาว เช่น กฎ ใช้ 1.65)
 
 | บทบาท | ขนาด | น้ำหนัก | หมายเหตุ |
