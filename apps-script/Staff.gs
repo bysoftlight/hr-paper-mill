@@ -61,6 +61,22 @@ function handleStaffRequest_(req) {
     case 'staff.participants.delete':
       requirePerm_(staff, 'participants.edit');
       return staffParticipantDelete_(req, staff, ua);
+    case 'staff.contacts.list':
+      requirePerm_(staff, 'participants.view');
+      return { success: true, contacts: readContacts_(String(req.participantId || '').toUpperCase(), 50) };
+    case 'staff.contacts.add':
+      requirePerm_(staff, 'participants.view');
+      return staffContactAdd_(req, staff, ua);
+    case 'staff.report.section35':
+      requirePerm_(staff, 'export');
+      return staffSection35_(req);
+    case 'staff.report.monthly':
+      requirePerm_(staff, 'export');
+      return { success: true, report: monthlyReport_(req.month) };
+    case 'staff.report.monthly.send':
+      requirePerm_(staff, 'admin');
+      if (typeof sendMonthlyReport === 'function') return sendMonthlyReport(req.month, staff);
+      return { success: false, message: 'ต้องอัปเดตไฟล์ Notify.gs ก่อน' };
     case 'staff.image':
       requirePerm_(staff, 'records.view');
       return staffImage_(req.fileId, req.thumb);
@@ -279,7 +295,8 @@ function staffOverview_() {
   const todayRecs = records.filter(r => r.date === today);
   const reported = {};
   todayRecs.forEach(r => { reported[r.userId] = r; });
-  const missing = participants.filter(p => !reported[p.id]).map(p => ({ id: p.id, name: p.name, pic: p.pic, site: p.site, phone: p.phone }));
+  const contacted = contactedToday_();
+  const missing = participants.filter(p => !reported[p.id]).map(p => ({ id: p.id, name: p.name, pic: p.pic, site: p.site, phone: p.phone, contact: contacted[p.id] || null }));
 
   const agentMonth = {};
   records.forEach(r => { if (r.date.slice(0, 7) === month && r.type === SALES_TYPES[1]) agentMonth[r.userId] = (agentMonth[r.userId] || 0) + 1; });
@@ -667,4 +684,130 @@ function staffLogoutEverywhere_(staff, ua) {
   clearStaffCache_();
   log_(staff, 'staff.logout_all', staff.email || staff.name, '', ua);
   return { success: true, everywhere: true };
+}
+
+// ---------- บันทึกการติดต่อผู้ใช้สิทธิ์ (แผ่น Contacts สร้างอัตโนมัติ) ----------
+const CONTACT_SHEET = 'Contacts';
+const C_HEADERS = ['เวลา', 'รหัสผู้ใช้สิทธิ์', 'ผลการติดต่อ', 'เหตุผล/รายละเอียด', 'เจ้าหน้าที่ (ID)', 'เจ้าหน้าที่'];
+const CONTACT_RESULTS = { called: 'โทรแล้ว ติดต่อได้', no_answer: 'โทรแล้ว ไม่รับสาย', reason: 'แจ้งเหตุผล', visit: 'ลงพื้นที่/พบตัว', other: 'อื่นๆ' };
+function contactSheet_() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sh = ss.getSheetByName(CONTACT_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(CONTACT_SHEET);
+    sh.getRange(1, 1, 1, C_HEADERS.length).setValues([C_HEADERS]);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+function readContacts_(participantId, limit) {
+  const sh = contactSheet_();
+  const last = sh.getLastRow();
+  if (last < 2) return [];
+  return sh.getRange(2, 1, last - 1, C_HEADERS.length).getValues()
+    .filter(r => !participantId || String(r[1]).toUpperCase() === participantId)
+    .map((r, i) => ({ ts: r[0] instanceof Date ? r[0].getTime() : new Date(r[0]).getTime(), i: i, participantId: String(r[1]), result: String(r[2]), resultLabel: CONTACT_RESULTS[r[2]] || String(r[2]), note: String(r[3] || ''), staffName: String(r[5] || '') }))
+    .filter(c => isFinite(c.ts))
+    .sort((a, b) => b.ts - a.ts || b.i - a.i) // เวลาเท่ากัน: แถวที่บันทึกทีหลังมาก่อน
+    .slice(0, limit || 50);
+}
+function staffContactAdd_(req, staff, ua) {
+  const id = String(req.participantId || '').trim().toUpperCase();
+  const p = readParticipants_().filter(x => x.id === id)[0];
+  if (!p) fail_('INVALID', 'ไม่พบผู้ใช้สิทธิ์นี้');
+  if (!CONTACT_RESULTS[req.result]) fail_('INVALID', 'กรุณาเลือกผลการติดต่อ');
+  const note = clean_(req.note, 300);
+  if (req.result === 'reason' && !note) fail_('INVALID', 'กรุณาระบุเหตุผล');
+  contactSheet_().appendRow([new Date(), id, req.result, note, staff.id, staff.name]);
+  log_(staff, 'participants.contact', id + ' ' + p.name, { result: CONTACT_RESULTS[req.result], note: note }, ua);
+  return { success: true, contacts: readContacts_(id, 50) };
+}
+// ผู้ที่ติดต่อแล้ววันนี้ (ใช้แสดงในรายชื่อ "ยังไม่ส่งวันนี้")
+function contactedToday_() {
+  const today = fmtDate_(new Date()), out = {};
+  readContacts_('', 500).forEach(c => { if (fmtDate_(new Date(c.ts)) === today && !out[c.participantId]) out[c.participantId] = c; });
+  return out;
+}
+
+// ---------- รายงานประจำเดือน (เทียบเดือนก่อน) — ใช้ทั้งหน้า Staff และอีเมลอัตโนมัติ ----------
+// month = 'yyyy-MM' (ไม่ระบุ = เดือนที่แล้ว)
+function monthlyReport_(month) {
+  const now = new Date();
+  const today = fmtDate_(now);
+  if (!/^\d{4}-\d{2}$/.test(String(month || ''))) {
+    const y = Number(today.slice(0, 4)), m = Number(today.slice(5, 7));
+    month = (m === 1 ? y - 1 : y) + '-' + ('0' + (m === 1 ? 12 : m - 1)).slice(-2);
+  }
+  const y = Number(month.slice(0, 4)), m = Number(month.slice(5, 7));
+  const prev = (m === 1 ? y - 1 : y) + '-' + ('0' + (m === 1 ? 12 : m - 1)).slice(-2);
+  const daysIn = (yy, mm) => new Date(yy, mm, 0).getDate();
+  // เดือนปัจจุบัน: นับถึงวันนี้
+  const daysOf = key => (key === today.slice(0, 7) ? Number(today.slice(8, 10)) : daysIn(Number(key.slice(0, 4)), Number(key.slice(5, 7))));
+  const participants = readParticipants_();
+  const active = participants.filter(p => p.active);
+  const records = readRecords_(participants).filter(r => r.status === 'active');
+  const stats = key => {
+    const rs = records.filter(r => r.date.slice(0, 7) === key);
+    const days = daysOf(key), expected = active.length * days;
+    return {
+      month: key, days: days, participants: active.length, records: rs.length,
+      rate: expected ? Math.round(rs.length / expected * 1000) / 10 : 0,
+      agent: rs.filter(r => r.type === SALES_TYPES[1]).length,
+      anomalies: rs.filter(r => r.anomaly).length, nogps: rs.filter(r => !r.hasGps).length,
+      duplicates: rs.filter(r => r.dup).length, lowAccuracy: rs.filter(r => r.lowAccuracy).length,
+      offline: rs.filter(r => r.source === 'app-offline').length, rows: rs
+    };
+  };
+  const cur = stats(month), before = stats(prev);
+  const people = active.map(p => {
+    const rs = cur.rows.filter(r => r.userId === p.id);
+    const dates = {};
+    rs.forEach(r => { dates[r.date] = 1; });
+    const sent = Object.keys(dates).length, agent = rs.filter(r => r.type === SALES_TYPES[1]).length;
+    const prevSent = Object.keys(before.rows.filter(r => r.userId === p.id).reduce((a, r) => { a[r.date] = 1; return a; }, {})).length;
+    return { id: p.id, name: p.name, site: p.site, sent: sent, missed: Math.max(0, cur.days - sent), agent: agent, overAgent: agent > AGENT_LIMIT_PER_MONTH,
+      issues: rs.filter(r => r.anomaly || !r.hasGps || r.dup || r.lowAccuracy).length, prevSent: prevSent,
+      rate: cur.days ? Math.round(sent / cur.days * 100) : 0 };
+  }).sort((a, b) => a.rate - b.rate || a.name.localeCompare(b.name));
+  const contacts = readContacts_('', 2000).filter(c => fmtDate_(new Date(c.ts)).slice(0, 7) === month).length;
+  const strip = s => { const o = Object.assign({}, s); delete o.rows; return o; };
+  return {
+    month: month, previous: prev, generatedAt: now.getTime(),
+    current: strip(cur), before: strip(before), people: people, contacts: contacts,
+    perfect: people.filter(p => p.missed === 0).length, overAgent: people.filter(p => p.overAgent).length
+  };
+}
+
+// ---------- รายงานสำหรับยื่นหน่วยงาน (มาตรา 35: การให้สัมปทาน/จัดสถานที่จำหน่ายสินค้า) ----------
+// ข้อมูลบริษัทตั้งใน Script Properties: COMPANY_NAME, COMPANY_ADDRESS, COMPANY_TAX_ID, EMPLOYER_ACCOUNT_NO, COMPANY_CONTACT
+function staffSection35_(req) {
+  const now = new Date(), today = fmtDate_(now);
+  const year = /^\d{4}$/.test(String(req.year || '')) ? String(req.year) : today.slice(0, 4);
+  const from = year + '-01-01', to = year === today.slice(0, 4) ? today : year + '-12-31';
+  const participants = readParticipants_();
+  const records = readRecords_(participants).filter(r => r.status === 'active' && r.date >= from && r.date <= to);
+  const dayDiff = (a, b) => Math.round((Date.UTC(+b.slice(0, 4), +b.slice(5, 7) - 1, +b.slice(8, 10)) - Date.UTC(+a.slice(0, 4), +a.slice(5, 7) - 1, +a.slice(8, 10))) / 86400000) + 1;
+  const rows = participants.filter(p => p.active || records.some(r => r.userId === p.id)).map(p => {
+    const rs = records.filter(r => r.userId === p.id);
+    const dates = Object.keys(rs.reduce((a, r) => { a[r.date] = 1; return a; }, {})).sort();
+    const start = dates[0] || '', end = dates[dates.length - 1] || '';
+    const expected = start ? dayDiff(start, to) : 0;
+    const months = {};
+    rs.forEach(r => { const k = r.date.slice(0, 7); months[k] = (months[k] || 0) + 1; });
+    return {
+      id: p.id, name: p.name, status: p.status, site: p.site, siteLat: p.siteLat, siteLng: p.siteLng, phone: p.phone, active: p.active,
+      start: start, end: end, daysWorked: dates.length, daysExpected: expected, missed: Math.max(0, expected - dates.length),
+      rate: expected ? Math.round(dates.length / expected * 1000) / 10 : 0,
+      agentDays: rs.filter(r => r.type === SALES_TYPES[1]).length, months: months
+    };
+  }).sort((a, b) => a.name.localeCompare(b.name, 'th'));
+  return {
+    success: true, year: year, from: from, to: to, generatedAt: now.getTime(),
+    company: {
+      name: prop_('COMPANY_NAME'), address: prop_('COMPANY_ADDRESS'), taxId: prop_('COMPANY_TAX_ID'),
+      employerNo: prop_('EMPLOYER_ACCOUNT_NO'), contact: prop_('COMPANY_CONTACT')
+    },
+    rows: rows,
+    totals: { participants: rows.length, daysWorked: rows.reduce((a, r) => a + r.daysWorked, 0), daysExpected: rows.reduce((a, r) => a + r.daysExpected, 0), agentDays: rows.reduce((a, r) => a + r.agentDays, 0) }
+  };
 }

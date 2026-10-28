@@ -35,6 +35,11 @@ function doPost(e) {
   }
   if (req.secret !== API_SECRET) return json_({ success: false, message: 'ไม่มีสิทธิ์เข้าถึงระบบ' });
 
+  // ข้อผิดพลาดที่เกิดบนเครื่องผู้ใช้ (หน้าเว็บส่งมาเอง) → Logs เป็น client.error
+  if (req.action === 'log.error') {
+    try { return json_(logClientError_(req)); } catch (err) { return json_({ success: false }); }
+  }
+
   // การแจ้งเตือนของผู้ใช้สิทธิ์ และ service worker (ดู Notify.gs)
   if (/^notify\./.test(String(req.action))) {
     try {
@@ -62,8 +67,9 @@ function doPost(e) {
       case 'login': {
         const user = findUser_(req.userId, true);
         // code บอกหน้าเว็บว่าเป็นผลชัดเจน (ให้ลืมรหัสที่จำไว้) ต่างจากข้อผิดพลาดชั่วคราวของระบบ
+        if (user && !user.active) log_({ id: user.id, name: user.name, role: 'participant' }, 'participant.login_failed', user.id, { reason: 'บัญชีถูกปิดใช้งาน' }, '');
         if (user && !user.active) return json_({ success: false, code: 'INACTIVE', message: 'บัญชีนี้ถูกปิดใช้งาน กรุณาติดต่อเจ้าหน้าที่' });
-        if (!user) log_({ id: '', name: 'ผู้ใช้สิทธิ์', role: 'participant' }, 'participant.login_failed', String(req.userId || '').slice(0, 20), '', '');
+        if (!user) log_({ id: '', name: 'ผู้ใช้สิทธิ์', role: 'participant' }, 'participant.login_failed', String(req.userId || '').slice(0, 20), { reason: 'ไม่พบรหัสนี้ในระบบ' }, '');
         if (!user) return json_({ success: false, code: 'NOT_FOUND', message: 'ไม่พบรหัสผู้ใช้สิทธิ์นี้ กรุณาตรวจสอบอีกครั้ง' });
         // ส่งประวัติมาพร้อมกัน ลดการเรียก API จาก 2 ครั้งเหลือ 1 ครั้งตอนเปิดแอป
         return json_(req.withHistory ? { success: true, data: user, history: getUserHistory(user.id) } : { success: true, data: user });
@@ -80,6 +86,25 @@ function doPost(e) {
   } catch (err) {
     return json_({ success: false, message: 'Error: ' + err });
   }
+}
+
+// จำกัด: ทั้งระบบไม่เกิน 60 รายการ/นาที และข้อความเดิมจากคนเดิมบันทึกครั้งเดียวใน 10 นาที (กัน Log ท่วม)
+function logClientError_(req) {
+  const cache = CacheService.getScriptCache();
+  const minuteKey = 'clienterr:' + Math.floor(Date.now() / 60000);
+  const n = Number(cache.get(minuteKey) || 0);
+  if (n >= 60) return { success: true, throttled: true };
+  cache.put(minuteKey, String(n + 1), 120);
+  const msg = clean_(req.message, 300), who = clean_(req.who, 40);
+  const sig = 'clienterr:' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, who + '|' + msg)).slice(0, 22);
+  if (cache.get(sig)) return { success: true, duplicate: true };
+  cache.put(sig, '1', 600);
+  const role = ['participant', 'staff'].indexOf(req.role) === -1 ? 'unknown' : req.role;
+  log_({ id: who, name: clean_(req.whoName, 60) || (who ? who : 'ไม่ทราบ'), role: role }, 'client.error', clean_(req.page, 80), {
+    message: msg, kind: clean_(req.kind, 30), source: clean_(req.source, 160), line: clean_(req.line, 12),
+    online: req.online, app: req.standalone ? 'แอปบนหน้าจอโฮม' : 'เบราว์เซอร์', version: clean_(req.version, 12), extra: clean_(req.extra, 300)
+  }, String(req.userAgent || '').slice(0, 200));
+  return { success: true };
 }
 
 // บอกว่าไฟล์ไหนขาด/เป็นรุ่นเก่า แผ่นงานไหนไม่มี และ Script Properties ใดยังไม่ตั้ง (ไม่เปิดเผยค่าจริง)

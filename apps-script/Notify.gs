@@ -237,14 +237,110 @@ function activeStaffIds_() {
   return ACTIVE_STAFF_IDS_;
 }
 
+// ตั้งเวลาทั้งหมดของระบบ (รันครั้งเดียว — รันซ้ำได้ ไม่สร้างซ้ำ)
+//   07:00 ตรวจสุขภาพระบบ · NOTIFY_REMIND_HOUR (17:00) เตือนผู้ใช้สิทธิ์ · 18:00 สรุปประจำวัน · วันที่ 1 08:00 รายงานประจำเดือน
 function installNotifyTriggers() {
-  const handlers = ['sendDailyReminders', 'sendDailySummary'];
+  const handlers = ['sendDailyReminders', 'sendDailySummary', 'sendMonthlyReport', 'morningHealthCheck'];
   ScriptApp.getProjectTriggers().filter(t => handlers.indexOf(t.getHandlerFunction()) !== -1).forEach(t => ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger('sendDailyReminders').timeBased().everyDays(1).atHour(remindHour_()).inTimezone(TZ).create();
   ScriptApp.newTrigger('sendDailySummary').timeBased().everyDays(1).atHour(18).inTimezone(TZ).create();
+  ScriptApp.newTrigger('sendMonthlyReport').timeBased().onMonthDay(1).atHour(8).inTimezone(TZ).create();
+  ScriptApp.newTrigger('morningHealthCheck').timeBased().everyDays(1).atHour(7).inTimezone(TZ).create();
   vapidKeys_();
   notifySheet_();
-  Logger.log('ตั้งเวลาแล้ว: เตือนผู้ใช้สิทธิ์ ' + remindHour_() + ':00 น. · สรุปเจ้าหน้าที่ 18:00 น.');
+  Logger.log('ตั้งเวลาแล้ว: ตรวจระบบ 07:00 · เตือนผู้ใช้สิทธิ์ ' + remindHour_() + ':00 · สรุปเจ้าหน้าที่ 18:00 · รายงานประจำเดือน วันที่ 1 เวลา 08:00');
+}
+function installAllTriggers() { installNotifyTriggers(); }
+
+// ---------- รายงานประจำเดือนทางอีเมล (ผู้บริหาร) ----------
+// ผู้รับ: REPORT_EMAILS (ถ้าไม่ตั้ง ใช้ SUMMARY_EMAILS แล้ว ADMIN_EMAILS) — แนบ PDF
+function reportRecipients_() {
+  return String(prop_('REPORT_EMAILS') || prop_('SUMMARY_EMAILS') || prop_('ADMIN_EMAILS')).split(',').map(s => s.trim()).filter(Boolean);
+}
+function sendMonthlyReport(month, staff) {
+  if (typeof month !== 'string') month = ''; // เรียกจากตัวตั้งเวลา: ได้ event object
+  const to = reportRecipients_();
+  if (!to.length) return { success: false, message: 'ยังไม่ได้ตั้งผู้รับ (Script Property REPORT_EMAILS)' };
+  const r = monthlyReport_(month);
+  const html = monthlyReportHtml_(r);
+  const title = 'HR Paper Mill — รายงานประจำเดือน ' + thMonth_(r.month);
+  let pdf = null;
+  try { pdf = Utilities.newBlob(html, 'text/html', 'report.html').getAs('application/pdf').setName('รายงานประจำเดือน-' + r.month + '.pdf'); } catch (e) { console.warn('สร้าง PDF ไม่สำเร็จ', e); }
+  MailApp.sendEmail({ to: to.join(','), subject: title, htmlBody: html, attachments: pdf ? [pdf] : [] });
+  log_(staff || { id: 'system', name: 'ระบบ', role: 'system' }, 'system.monthly_report', r.month, { to: to.length, records: r.current.records, rate: r.current.rate }, '');
+  return { success: true, sentTo: to, month: r.month };
+}
+function thMonth_(key) {
+  const names = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+  return names[Number(key.slice(5, 7)) - 1] + ' ' + (Number(key.slice(0, 4)) + 543);
+}
+function monthlyReportHtml_(r) {
+  const c = r.current, b = r.before;
+  const e = s => String(s == null ? '' : s).replace(/[&<>"]/g, x => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[x]));
+  const delta = (a, z, unit) => {
+    const d = Math.round((a - z) * 10) / 10;
+    if (!d) return '<span style="color:#5F6368">เท่าเดิม</span>';
+    return '<span style="color:' + (d > 0 ? '#146C2E' : '#B3261E') + '">' + (d > 0 ? '▲ ' : '▼ ') + Math.abs(d) + (unit || '') + '</span>';
+  };
+  const card = (label, val, d) => '<td style="padding:12px;border-radius:12px;background:#F0F4F9;vertical-align:top"><div style="font-size:12px;color:#5F6368">' + label + '</div><div style="font-size:24px;font-weight:600;color:#1F1F1F">' + val + '</div><div style="font-size:12px">' + d + '</div></td>';
+  const rows = r.people.map(p => '<tr><td style="padding:6px 8px;border-bottom:1px solid #E9EEF6">' + e(p.name) + '<br><span style="color:#5F6368;font-size:11px">' + e(p.id) + ' · ' + e(p.site || '-') + '</span></td>' +
+    '<td style="padding:6px 8px;border-bottom:1px solid #E9EEF6;text-align:right">' + p.sent + '/' + c.days + '</td>' +
+    '<td style="padding:6px 8px;border-bottom:1px solid #E9EEF6;text-align:right;color:' + (p.rate < 80 ? '#B3261E' : '#146C2E') + '">' + p.rate + '%</td>' +
+    '<td style="padding:6px 8px;border-bottom:1px solid #E9EEF6;text-align:right">' + delta(p.sent, p.prevSent, ' วัน') + '</td>' +
+    '<td style="padding:6px 8px;border-bottom:1px solid #E9EEF6;text-align:right;' + (p.overAgent ? 'color:#B3261E;font-weight:600' : '') + '">' + p.agent + '</td>' +
+    '<td style="padding:6px 8px;border-bottom:1px solid #E9EEF6;text-align:right">' + (p.issues || '-') + '</td></tr>').join('');
+  return '<div style="font-family:Sarabun,Tahoma,sans-serif;color:#1F1F1F;max-width:760px">' +
+    '<h2 style="margin:0 0 4px;font-weight:500">รายงานประจำเดือน ' + thMonth_(r.month) + '</h2>' +
+    '<p style="margin:0 0 16px;color:#5F6368">HR Paper Mill · โครงการใช้สิทธิ์สัมปทานผู้พิการตามมาตรา 35 · เทียบกับ ' + thMonth_(r.previous) + '</p>' +
+    '<table style="border-collapse:separate;border-spacing:8px;width:100%"><tr>' +
+    card('อัตราการส่ง', c.rate + '%', delta(c.rate, b.rate, ' จุด')) +
+    card('จำนวนรายงาน', c.records.toLocaleString(), delta(c.records, b.records)) +
+    card('ส่งครบทุกวัน', r.perfect + '/' + c.participants + ' คน', '') +
+    '</tr><tr>' +
+    card('ขายโดยตัวแทน', c.agent, delta(c.agent, b.agent)) +
+    card('ต้องตรวจสอบ', (c.anomalies + c.nogps + c.duplicates + c.lowAccuracy), 'ตำแหน่ง ' + c.anomalies + ' · ไม่มี GPS ' + c.nogps + ' · รูปซ้ำ ' + c.duplicates + ' · GPS ไม่แม่น ' + c.lowAccuracy) +
+    card('เกินโควตาตัวแทน', r.overAgent + ' คน', 'บันทึกการติดต่อ ' + r.contacts + ' ครั้ง') +
+    '</tr></table>' +
+    '<h3 style="font-weight:500;margin:20px 0 8px">รายบุคคล (เรียงจากอัตราการส่งน้อยไปมาก)</h3>' +
+    '<table style="border-collapse:collapse;width:100%;font-size:13px"><thead><tr style="background:#F0F4F9;color:#444746">' +
+    '<th style="padding:6px 8px;text-align:left">ผู้ใช้สิทธิ์</th><th style="padding:6px 8px;text-align:right">วันที่ส่ง</th><th style="padding:6px 8px;text-align:right">อัตรา</th><th style="padding:6px 8px;text-align:right">เทียบเดือนก่อน</th><th style="padding:6px 8px;text-align:right">ตัวแทน</th><th style="padding:6px 8px;text-align:right">ต้องตรวจ</th></tr></thead><tbody>' +
+    rows + '</tbody></table>' +
+    '<p style="margin-top:16px;font-size:12px;color:#5F6368">ดูรายละเอียดที่ ' + SITE_URL + 'staff.html · ส่งอัตโนมัติทุกวันที่ 1</p></div>';
+}
+
+// ---------- ตรวจสุขภาพระบบทุกเช้า (07:00) — พบปัญหาส่งอีเมลถึง ADMIN_EMAILS ----------
+function morningHealthCheck() {
+  const problems = [];
+  let h = null;
+  try { h = healthCheck_(); } catch (e) { problems.push('ตรวจสุขภาพระบบไม่ได้: ' + e); }
+  if (h) {
+    Object.keys(h.files).forEach(k => { if (!h.files[k]) problems.push('ไฟล์ ' + k + ' ขาดหรือเป็นรุ่นเก่า'); });
+    Object.keys(h.sheets).forEach(k => { if (!h.sheets[k]) problems.push('ไม่พบแผ่นงาน ' + k); });
+    Object.keys(h.folders).forEach(k => { if (!h.folders[k]) problems.push('เข้าถึงโฟลเดอร์ ' + k + ' ไม่ได้'); });
+  }
+  const handlers = ScriptApp.getProjectTriggers().map(t => t.getHandlerFunction());
+  ['sendDailyReminders', 'sendDailySummary', 'sendMonthlyReport'].forEach(f => { if (handlers.indexOf(f) === -1) problems.push('ตัวตั้งเวลา ' + f + ' ไม่ได้ติดตั้ง (รัน installNotifyTriggers)'); });
+  // ข้อผิดพลาดจากเครื่องผู้ใช้ใน 24 ชั่วโมง
+  let clientErrors = 0, loginFails = 0;
+  try {
+    const since = Date.now() - 86400000;
+    readRows_(SHEET.LOGS, L_HEADERS.length).forEach(r => {
+      const t = r[LCOL.TS] instanceof Date ? r[LCOL.TS].getTime() : 0;
+      if (t < since) return;
+      if (r[LCOL.ACTION] === 'client.error') clientErrors++;
+      if (r[LCOL.ACTION] === 'participant.login_failed') loginFails++;
+    });
+  } catch (e) {}
+  if (clientErrors >= 10) problems.push('มีข้อผิดพลาดบนเครื่องผู้ใช้ ' + clientErrors + ' ครั้งใน 24 ชม. (ดู Log ประเภท client.error)');
+  const failingPush = readNotify_().filter(n => n.fails >= 3).length;
+  if (failingPush) problems.push('ส่งการแจ้งเตือนไม่สำเร็จซ้ำ ' + failingPush + ' เครื่อง');
+  const ok = !problems.length;
+  log_({ id: 'system', name: 'ระบบ', role: 'system' }, 'system.health', ok ? 'ปกติ' : problems.length + ' ปัญหา', { problems: problems, clientErrors: clientErrors, loginFails: loginFails }, '');
+  if (!ok) {
+    const to = String(prop_('ADMIN_EMAILS')).split(',').map(s => s.trim()).filter(Boolean);
+    if (to.length) MailApp.sendEmail(to.join(','), 'HR Paper Mill — พบปัญหาจากการตรวจระบบตอนเช้า', 'ตรวจระบบเมื่อ ' + new Date() + '\n\n' + problems.map((p, i) => (i + 1) + '. ' + p).join('\n') + '\n\nตรวจเพิ่มเติม: เปิดลิงก์ Apps Script (/exec) ต่อท้าย ?health=1\nคู่มือแก้ปัญหา: apps-script/README.md');
+  }
+  return { ok: ok, problems: problems };
 }
 
 // ---------- VAPID (RFC 8292): JWT ES256 ----------

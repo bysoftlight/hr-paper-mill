@@ -436,3 +436,26 @@ button.kpi:active { transform: scale(.98); }
     .ov-map { height: 240px; }
 }
 .map-tools { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+.link-btn { padding: 0; border: 0; background: none; color: var(--accent); font: inherit; text-align: left; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+/* --- บันทึกการติดต่อ --- */
+.contact-log { padding: 14px; border-radius: var(--r-md); background: var(--field); }
+.contact-quick { display: flex; flex-wrap: wrap; gap: 8px; }
+.contact-quick .btn-chip.is-on { background: var(--accent-soft); border-color: var(--accent); color: var(--on-accent-soft); }
+.contact-form { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.contact-form textarea { height: auto; padding: 10px 12px; resize: vertical; font-size: 16px; }
+.reason-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.reason-chips .reason { cursor: pointer; border: 0; font: inherit; font-size: 12px; padding: 4px 10px; }
+.contact-list { list-style: none; padding: 0; margin: 12px 0 0; display: flex; flex-direction: column; gap: 8px; }
+.contact-list li { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; }
+.contact-list .badge { flex: none; }
+.cl-text { display: flex; flex-direction: column; min-width: 0; }
+.cl-text small { color: var(--muted); font-size: 11px; }
+.fi-text .contacted { display: inline-flex; align-items: center; gap: 3px; color: var(--ok); }
+/* --- รายงานสำเร็จรูป --- */
+.rep-title { margin: 20px 0 10px; }
+.rep-card { padding: 14px; border-radius: var(--r-md); background: var(--field); margin-bottom: 10px; }
+.rep-head { display: flex; gap: 12px; align-items: flex-start; }
+.rep-head b { display: block; font-weight: 500; }
+.rep-head small { display: block; color: var(--muted); font-size: 12px; }
+.rep-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.rep-actions .input-sm, .rep-actions .select { width: auto; flex: 0 1 170px; min-width: 0; }
