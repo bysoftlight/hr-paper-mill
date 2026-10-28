@@ -131,7 +131,7 @@ function el(tag, className, text) {
 function pageShell(title, pageNo, total) {
     const page = el('section', 'pdf-page');
     const head = el('header', 'pdf-head');
-    head.innerHTML = `<div class="pdf-brand"><span class="logo"><span class="pdf-lift">H</span></span><span><b>HR Paper Mill</b><small>โครงการใช้สิทธิ์สัมปทานผู้พิการตามมาตรา 35</small></span></div>`;
+    head.innerHTML = `<div class="pdf-brand"><img class="logo" src="img/logo.png" alt=""><span><b>HR Paper Mill</b><small>โครงการใช้สิทธิ์สัมปทานผู้พิการตามมาตรา 35</small></span></div>`;
     head.appendChild(el('div', 'pdf-title', title));
     const body = el('div', 'pdf-body');
     const foot = el('footer', 'pdf-foot');
