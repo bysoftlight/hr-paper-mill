@@ -38,8 +38,8 @@
     /* กันไอคอนขยายเต็มจอ ถ้า stylesheet ยังโหลดไม่เสร็จหรือเป็นเวอร์ชันเก่า (:where = ไม่ทับขนาดใน style.css) */
     :where(svg.ic) { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; }
   </style>
-  <script src="js/settings.js?v=3.18.0"></script>
-  <link rel="stylesheet" href="css/style.css?v=3.18.0">
+  <script src="js/settings.js?v=3.19.0"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.19.0">
 </head>
 <body>
 
@@ -88,6 +88,7 @@
       <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></symbol>
       <symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></symbol>
       <symbol id="i-haptic" viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M3 8v8M21 8v8M11 18h2"/></symbol>
+      <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
   </svg>
 
   <!-- ===== Shared content ===== -->
@@ -239,6 +240,89 @@
   <div id="pdfStage" class="pdf-stage" aria-hidden="true"></div>
 
   <!-- ===== Alert dialog ===== -->
+  <!-- ===== แนะนำการใช้งานครั้งแรก ===== -->
+  <dialog id="onboardModal" class="onboard" aria-labelledby="obTitle">
+    <div class="ob-track" id="obTrack">
+      <section class="ob-slide" aria-label="ขั้นที่ 1 จาก 3">
+        <svg class="ob-art" viewBox="0 0 240 180" aria-hidden="true">
+          <rect x="20" y="20" width="200" height="140" rx="24" fill="var(--accent-soft)"/>
+          <path d="M40 120 C 80 90, 110 140, 150 100 S 200 70, 210 90" fill="none" stroke="var(--outline)" stroke-width="3" stroke-dasharray="6 6"/>
+          <rect x="88" y="34" width="64" height="116" rx="14" fill="var(--surface)" stroke="var(--ink-2)" stroke-width="3"/>
+          <path d="M120 60c-12 0-20 9-20 20 0 15 20 34 20 34s20-19 20-34c0-11-8-20-20-20z" fill="#0850D1"/><circle cx="120" cy="80" r="7" fill="#fff"/>
+          <circle cx="120" cy="80" r="34" fill="none" stroke="#0850D1" stroke-opacity=".25" stroke-width="6"><animate attributeName="r" values="22;40;22" dur="2.4s" repeatCount="indefinite"/><animate attributeName="stroke-opacity" values=".35;0;.35" dur="2.4s" repeatCount="indefinite"/></circle>
+          <rect x="104" y="128" width="32" height="6" rx="3" fill="var(--ok)"/>
+        </svg>
+        <span class="ob-step">ขั้นที่ 1</span>
+        <h2 id="obTitle">เปิด GPS ระบบจะอ่านพิกัดให้เอง</h2>
+        <p>อยู่ที่จุดขายแล้วเปิดแอป ระบบยืนยันตำแหน่งอัตโนมัติ ถ้าขึ้นว่าไม่ได้รับอนุญาต ให้กด "อนุญาต" การใช้ตำแหน่ง</p>
+      </section>
+      <section class="ob-slide" aria-label="ขั้นที่ 2 จาก 3">
+        <svg class="ob-art" viewBox="0 0 240 180" aria-hidden="true">
+          <rect x="20" y="20" width="200" height="140" rx="24" fill="var(--warn-soft)"/>
+          <rect x="42" y="34" width="156" height="112" rx="12" fill="var(--surface)"/>
+          <path d="M52 44h18M52 44v18M188 44h-18M188 44v18M52 136h18M52 136v-18M188 136h-18M188 136v-18" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="132" cy="70" r="14" fill="var(--ink-2)"/><path d="M108 120c0-16 11-26 24-26s24 10 24 26z" fill="var(--ink-2)"/>
+          <rect x="62" y="96" width="42" height="28" rx="5" fill="#0850D1"/><rect x="68" y="102" width="12" height="12" rx="2" fill="#fff"/><rect x="84" y="104" width="14" height="3" rx="1.5" fill="#fff"/><rect x="84" y="110" width="10" height="3" rx="1.5" fill="#fff"/>
+          <rect x="42" y="126" width="156" height="20" rx="0" fill="rgba(0,0,0,.55)"/><rect x="50" y="133" width="80" height="5" rx="2.5" fill="#fff" fill-opacity=".9"/>
+        </svg>
+        <span class="ob-step">ขั้นที่ 2</span>
+        <h2>ถ่ายภาพให้ครบในรูปเดียว</h2>
+        <p>ให้เห็น <b>บัตรประจำร้านค้าผู้พิการ</b> <b>ล็อคที่ขาย</b> และ <b>ผู้ขาย</b> — กล้องในแอปมีกรอบนำ และประทับวัน-เวลา-พิกัดลงรูปให้อัตโนมัติ</p>
+      </section>
+      <section class="ob-slide" aria-label="ขั้นที่ 3 จาก 3">
+        <svg class="ob-art" viewBox="0 0 240 180" aria-hidden="true">
+          <rect x="20" y="20" width="200" height="140" rx="24" fill="var(--ok-soft)"/>
+          <circle cx="120" cy="84" r="40" fill="var(--ok)"/><path d="M102 85l12 12 24-26" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M160 122c-8 0-14 6-14 13h40c0-7-6-13-14-13-1-6-6-10-12-10z" fill="var(--surface)" stroke="var(--ink-2)" stroke-width="2.5" stroke-linejoin="round"/>
+          <path d="M172 140v12M166 146l6 6 6-6" stroke="var(--ink-2)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <text x="60" y="146" font-size="12" fill="var(--ink-2)" font-family="sans-serif">1 ครั้ง / วัน</text>
+        </svg>
+        <span class="ob-step">ขั้นที่ 3</span>
+        <h2>กดบันทึก วันละ 1 ครั้ง</h2>
+        <p>สัญญาณหลุดก็กดบันทึกได้ ระบบเก็บไว้ในเครื่องแล้วส่งให้เองเมื่อเน็ตกลับมา · ดูวันที่ส่ง/ขาดได้ในปฏิทินหน้า "ประวัติ"</p>
+      </section>
+    </div>
+    <div class="ob-foot">
+      <div class="ob-dots" id="obDots" aria-hidden="true"><span></span><span></span><span></span></div>
+      <div class="ob-actions">
+        <button type="button" class="btn btn-outline" id="obSkip">ข้าม</button>
+        <button type="button" class="btn btn-primary" id="obNext">ถัดไป</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ===== กล้องในแอป ===== -->
+  <dialog id="cameraModal" class="camera" aria-label="กล้องถ่ายภาพหลักฐาน">
+    <div class="cam-stage">
+      <video id="camVideo" playsinline muted autoplay></video>
+      <div class="cam-guide" aria-hidden="true">
+        <span class="g-corner tl"></span><span class="g-corner tr"></span><span class="g-corner bl"></span><span class="g-corner br"></span>
+        <span class="g-zone g-seller"><i>ผู้ขาย</i></span>
+        <span class="g-zone g-card"><i>บัตรประจำร้านค้า</i></span>
+        <span class="g-label g-stall">ให้เห็นล็อคที่ขายทั้งหมดในกรอบ</span>
+      </div>
+      <div class="cam-top">
+        <button type="button" class="cam-btn" id="camClose" aria-label="ปิดกล้อง"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+        <div class="cam-profile"><span class="cam-avatar" id="camProfile"></span><span><small>เทียบใบหน้ากับรูปโปรไฟล์</small><b id="camProfileText"></b></span></div>
+      </div>
+      <div class="cam-bottom">
+        <p class="cam-stamp" id="camStamp" aria-live="off"></p>
+        <div class="cam-controls">
+          <button type="button" class="cam-btn" id="camGallery" aria-label="เลือกรูปจากเครื่องแทน"><svg class="ic" aria-hidden="true"><use href="#i-image"/></svg></button>
+          <button type="button" class="cam-shutter" id="camShutter" aria-label="ถ่ายภาพ"><span></span></button>
+          <button type="button" class="cam-btn" id="camFlip" aria-label="สลับกล้องหน้า/หลัง"><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg></button>
+        </div>
+      </div>
+      <div class="cam-review" id="camReview" hidden>
+        <img id="camShot" alt="ภาพที่ถ่าย">
+        <div class="cam-review-actions">
+          <button type="button" class="btn btn-outline" id="camRetake">ถ่ายใหม่</button>
+          <button type="button" class="btn btn-primary" id="camUse">ใช้รูปนี้</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
   <dialog id="msgDialog" class="alert" role="alertdialog" aria-labelledby="msgTitle" aria-describedby="msgText">
     <div class="alert-icon" id="msgIcon"></div>
     <h2 id="msgTitle"></h2>
@@ -257,7 +341,7 @@
   <!-- ===== Login ===== -->
   <div id="loginView" class="login">
     <section class="login-intro" aria-labelledby="loginTitle">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.18.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.19.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <p class="eyebrow">โครงการใช้สิทธิ์สัมปทานผู้พิการตามมาตรา 35 · ปี 2569</p>
       <h1 id="loginTitle">รายงานการขายประจำวัน<br>ส่งได้ในไม่กี่ขั้นตอน</h1>
       <ol class="intro-steps">
@@ -303,12 +387,12 @@
   <!-- ===== App ===== -->
   <div id="appContainer" class="app is-syncing" hidden>
     <header class="topbar">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.18.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.19.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <span class="chip" data-today>&nbsp;</span>
     </header>
 
     <nav class="sidenav" aria-label="เมนูหลัก">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.18.0" alt="" width="36" height="36"><span class="brand-text">HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.19.0" alt="" width="36" height="36"><span class="brand-text">HR Paper Mill</span></div>
       <div class="nav-items">
         <button type="button" class="nav-item" data-tab="form" aria-current="page"><svg class="ic ic-22" aria-hidden="true"><use href="#i-send"/></svg><span>ส่งรายงาน</span></button>
         <button type="button" class="nav-item" data-tab="history"><svg class="ic ic-22" aria-hidden="true"><use href="#i-history"/></svg><span>ประวัติ</span></button>
@@ -329,6 +413,11 @@
       <div class="view-head">
         <h2 id="formTitle">ส่งรายงานการขาย</h2>
         <p>ทำ 3 ขั้นตอนให้ครบ แล้วกดบันทึก</p>
+      </div>
+      <div class="banner banner-warn outbox-banner" id="outboxBanner" role="status" hidden>
+        <svg class="ic" aria-hidden="true"><use href="#i-wifi-off"/></svg>
+        <div><b>รายงานรอส่ง (เก็บไว้ในเครื่อง)</b><span id="outboxText"></span></div>
+        <button type="button" class="btn-chip" id="outboxSend">ส่งตอนนี้</button>
       </div>
       <nav class="stepper" id="stepper" aria-label="ความคืบหน้าการส่งรายงาน">
         <ol>
@@ -404,17 +493,24 @@
               <h3 id="stepPhotoTitle">ถ่ายภาพหลักฐาน</h3>
             </div>
             <input type="file" id="evidenceImg" class="sr-only" accept="image/*" capture="environment">
-            <label for="evidenceImg" class="upload" id="photoEmpty">
-              <svg class="ic ic-30" aria-hidden="true"><use href="#i-camera"/></svg>
-              <b>ถ่ายภาพ / เลือกรูป</b>
-              <small>ให้เห็นบัตรประจำร้านค้าผู้พิการ ล็อคที่ขาย และผู้ที่ขาย</small>
-            </label>
+            <div id="photoEmpty" class="upload-choices">
+              <button type="button" class="upload" id="cameraOpen" hidden>
+                <svg class="ic ic-30" aria-hidden="true"><use href="#i-camera"/></svg>
+                <b>เปิดกล้องพร้อมกรอบนำถ่าย</b>
+                <small>ให้เห็นบัตรประจำร้านค้าผู้พิการ ล็อคที่ขาย และผู้ที่ขาย · ประทับวัน-เวลา-พิกัดลงบนรูปให้อัตโนมัติ</small>
+              </button>
+              <label for="evidenceImg" class="upload" id="photoPick">
+                <svg class="ic ic-30" aria-hidden="true"><use href="#i-camera"/></svg>
+                <b>ถ่ายภาพ / เลือกรูป</b>
+                <small>ให้เห็นบัตรประจำร้านค้าผู้พิการ ล็อคที่ขาย และผู้ที่ขาย</small>
+              </label>
+            </div>
             <div id="photoFilled" class="photo" hidden>
               <img id="photoPreview" alt="ตัวอย่างภาพหลักฐาน">
               <div class="photo-meta">
                 <small id="fileNameDisplay" aria-live="polite"></small>
                 <div class="row-actions">
-                  <label for="evidenceImg" class="btn-chip"><svg class="ic ic-16" aria-hidden="true"><use href="#i-camera"/></svg> ถ่ายใหม่</label>
+                  <button type="button" class="btn-chip" id="photoRetake"><svg class="ic ic-16" aria-hidden="true"><use href="#i-camera"/></svg> ถ่ายใหม่</button>
                   <button type="button" class="btn-chip btn-chip-bad" id="photoRemove"><svg class="ic ic-16" aria-hidden="true"><use href="#i-trash"/></svg> ลบรูป</button>
                 </div>
               </div>
@@ -468,12 +564,13 @@
               <div><span class="big" id="sumCount">0</span> <span class="unit">รายการ</span></div>
               <div class="summary-sub"><span class="mono" id="sumDays">0</span> วันที่ส่ง</div>
             </div>
-            <div class="bars" id="sumBars" aria-hidden="true"></div>
+            <div class="bars" id="sumBars"></div>
             <div class="bars-axis" id="sumAxis" aria-hidden="true"></div>
             <div class="agent-meter" id="agentMeter" data-level="ok">
               <div class="agent-meter-top"><span>ขายโดยตัวแทน เดือนนี้</span><b><span class="mono" data-agent-used>0</span> / 10 ครั้ง</b></div>
               <div class="meter" role="meter" aria-label="ขายโดยตัวแทน เดือนนี้" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0"><div class="meter-bar"></div></div>
-              <small>เกิน 10 ครั้งต่อเดือน อาจไม่ได้รับสิทธิ์ในปีถัดไป (ข้อ 1.3)</small>
+              <div class="quota-dots" id="agentDots" aria-hidden="true"></div>
+              <small><b id="agentLeft"></b> · เกิน 10 ครั้งต่อเดือน อาจไม่ได้รับสิทธิ์ในปีถัดไป (ข้อ 1.3)</small>
             </div>
             <div class="summary-split">
               <span class="chip chip-self">ขายเอง <b class="mono" id="sumSelf">0</b></span>
@@ -483,6 +580,19 @@
         </div>
 
         <div class="hist-main stack">
+          <section class="card cal-card" aria-labelledby="calHead">
+            <div class="card-head">
+              <h3 class="card-title" id="calHead">ปฏิทินของฉัน</h3>
+              <div class="cal-nav">
+                <button type="button" class="icon-btn" id="calPrev" aria-label="เดือนก่อน"><svg class="ic" aria-hidden="true"><use href="#i-chevron-left"/></svg></button>
+                <b id="calTitle"></b>
+                <button type="button" class="icon-btn" id="calNext" aria-label="เดือนถัดไป"><svg class="ic" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
+              </div>
+            </div>
+            <div class="cal-grid" id="calGrid"></div>
+            <div class="cal-stats" id="calStats"></div>
+            <div class="cal-info" id="calInfo" hidden></div>
+          </section>
           <div id="historyList"></div>
           <button id="loadMoreBtn" type="button" class="btn btn-outline" hidden>โหลดเพิ่มเติม <svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
         </div>
@@ -519,6 +629,7 @@
           <ul class="card menu" aria-label="ข้อมูลและช่วยเหลือ">
             <li><button type="button" data-settings><svg class="ic" aria-hidden="true"><use href="#i-settings"/></svg><span>ตั้งค่า</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></button></li>
             <li><button type="button" data-open="rulesModal"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg><span>ข้อปฏิบัติการใช้สิทธิ์</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></button></li>
+            <li><button type="button" data-onboard><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg><span>แนะนำการใช้งาน (3 ขั้นตอน)</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></button></li>
             <li><button type="button" data-open="howtoModal"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg><span>วิธีการใช้งาน</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></button></li>
             <li><button type="button" data-open="privacyModal"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg><span>นโยบายความเป็นส่วนตัว</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></button></li>
             <li><button type="button" data-open="aboutModal"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span>เกี่ยวกับระบบ</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></button></li>
@@ -536,11 +647,14 @@
     </nav>
   </div>
 
-  <script src="js/config.js?v=3.18.0"></script>
-  <script src="js/utils.js?v=3.18.0"></script>
-  <script src="js/api.js?v=3.18.0"></script>
-  <script src="js/notify.js?v=3.18.0"></script>
-  <script src="js/app.js?v=3.18.0"></script>
-  <script src="js/report.js?v=3.18.0"></script>
+  <script src="js/config.js?v=3.19.0"></script>
+  <script src="js/utils.js?v=3.19.0"></script>
+  <script src="js/api.js?v=3.19.0"></script>
+  <script src="js/notify.js?v=3.19.0"></script>
+  <script src="js/outbox.js?v=3.19.0"></script>
+  <script src="js/camera.js?v=3.19.0"></script>
+  <script src="js/charts.js?v=3.19.0"></script>
+  <script src="js/app.js?v=3.19.0"></script>
+  <script src="js/report.js?v=3.19.0"></script>
 </body>
 </html>

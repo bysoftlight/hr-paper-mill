@@ -1,7 +1,9 @@
 // js/utils.js
 
 // ฟังก์ชันย่อรูป: คืนค่า base64 (ไม่มี prefix) และขนาดไฟล์หลังย่อเป็น byte
-function compressImage(file, maxWidth = 1024, quality = 0.6) {
+// opts.stamp = ['บรรทัด 1', ...] → ประทับข้อความ (วัน-เวลา-พิกัด) ลงแถบล่างของรูป
+// opts.hash = true → คืน hash (dHash 64 บิต) ของรูปก่อนประทับ ใช้ตรวจรูปซ้ำ
+function compressImage(file, maxWidth = 1024, quality = 0.6, opts = {}) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader(); reader.readAsDataURL(file);
         reader.onload = event => {
@@ -12,13 +14,54 @@ function compressImage(file, maxWidth = 1024, quality = 0.6) {
                 else { if (height > maxWidth) { width = Math.round((width *= maxWidth / height)); height = maxWidth; } }
                 const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
                 const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
+                const hash = opts.hash ? dHash(canvas) : '';
+                if (opts.stamp && opts.stamp.length) stampImage(ctx, width, height, opts.stamp);
                 const base64 = canvas.toDataURL('image/jpeg', quality).split(',')[1];
-                resolve({ base64, bytes: Math.round(base64.length * 3 / 4) });
+                resolve({ base64, bytes: Math.round(base64.length * 3 / 4), hash });
             };
             img.onerror = error => reject(error);
         };
         reader.onerror = error => reject(error);
     });
+}
+
+// ลายนิ้วมือรูป (difference hash): ย่อเหลือ 9×8 สีเทา เทียบความสว่างช่องติดกัน → 64 บิต (hex 16 ตัว)
+// รูปเดียวกันที่ถูกย่อ/บีบอัดต่างกันได้ค่าใกล้เคียงกัน (ต่างกันไม่กี่บิต)
+function dHash(source) {
+    const c = document.createElement('canvas'); c.width = 9; c.height = 8;
+    const x = c.getContext('2d');
+    x.drawImage(source, 0, 0, 9, 8);
+    const d = x.getImageData(0, 0, 9, 8).data;
+    const g = i => d[i * 4] * 0.299 + d[i * 4 + 1] * 0.587 + d[i * 4 + 2] * 0.114;
+    let hex = '';
+    for (let row = 0; row < 8; row++) {
+        let nib = 0;
+        for (let col = 0; col < 8; col++) {
+            nib = (nib << 1) | (g(row * 9 + col) > g(row * 9 + col + 1) ? 1 : 0);
+            if (col % 4 === 3) { hex += nib.toString(16); nib = 0; }
+        }
+    }
+    return hex;
+}
+
+// ประทับข้อความลงแถบโปร่งแสงด้านล่างของรูป (อ่านได้ทั้งพื้นสว่างและมืด)
+function stampImage(ctx, w, h, lines) {
+    const fs = Math.max(13, Math.round(w / 40)), lh = Math.round(fs * 1.35), pad = Math.round(fs * 0.7);
+    const barH = pad * 2 + lh * lines.length;
+    const grad = ctx.createLinearGradient(0, h - barH - pad, 0, h);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(0.35, 'rgba(0,0,0,.55)');
+    grad.addColorStop(1, 'rgba(0,0,0,.72)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, h - barH - pad, w, barH + pad);
+    ctx.textBaseline = 'top';
+    ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 2;
+    lines.forEach((t, i) => {
+        ctx.font = `${i === 0 ? '600 ' : ''}${fs}px "Google Sans", "Noto Sans Thai", system-ui, sans-serif`;
+        ctx.fillStyle = i === 0 ? '#fff' : 'rgba(255,255,255,.92)';
+        ctx.fillText(t, pad, h - barH + pad + lh * i, w - pad * 2);
+    });
+    ctx.shadowBlur = 0;
 }
 
 function formatBytes(bytes) {

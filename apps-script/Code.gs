@@ -183,8 +183,14 @@ function submitSalesData(formObject) {
 
   try {
     const recordSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Records');
-    const now = new Date();
+    const received = new Date();
+    // ส่งย้อนหลังจากเครื่องที่ออฟไลน์: ใช้เวลาที่ถ่าย/กดบันทึกจริง (ย้อนได้ไม่เกิน 48 ชม.) และระบุที่มาว่า app-offline
+    const captured = Number(formObject.capturedAt);
+    const delayMs = isFinite(captured) && captured > 0 ? received.getTime() - captured : 0;
+    const backdated = delayMs > 10 * 60000 && delayMs <= 48 * 3600000;
+    const now = backdated ? new Date(captured) : received;
     const todayStr = Utilities.formatDate(now, TZ, 'yyyy-MM-dd');
+    ensureRecordHeaders_(recordSheet);
 
     // --- ตรวจสอบการส่งซ้ำ: Timestamp(A) ถึงสถานะ(L) — รายการที่เจ้าหน้าที่ลบแล้วไม่นับ ---
     const lastRow = recordSheet.getLastRow();
@@ -234,9 +240,12 @@ function submitSalesData(formObject) {
       '',        // K: หมายเหตุ
       'active',  // L: สถานะ
       '', '',    // M–N: แก้ไขโดย / แก้ไขล่าสุด
-      'app'      // O: ที่มา
+      backdated ? 'app-offline' : 'app', // O: ที่มา
+      num_(formObject.accuracy) === null ? '' : Math.round(num_(formObject.accuracy)), // P: ความแม่นยำ GPS (ม.)
+      /^[0-9a-f]{16}$/.test(String(formObject.photoHash || '')) ? String(formObject.photoHash) : '', // Q: ลายนิ้วมือรูป (dHash)
+      received   // R: ระบบได้รับเมื่อ
     ]);
-    log_({ id: user.id, name: user.name, role: 'participant' }, 'participant.submit', user.id + ' ' + todayStr, { type: formObject.salesType }, '');
+    log_({ id: user.id, name: user.name, role: 'participant' }, 'participant.submit', user.id + ' ' + todayStr, { type: formObject.salesType, offline: backdated ? Math.round(delayMs / 60000) + ' นาที' : undefined }, '');
     if (typeof notifyNewRecord_ === 'function') notifyNewRecord_(user, formObject.salesType, Utilities.formatDate(now, TZ, 'HH:mm'));
 
     return { success: true, message: 'บันทึกข้อมูลเรียบร้อยแล้ว', record: toRecord_(now, formObject.salesType, file.getDownloadUrl(), lat, long) };
@@ -245,6 +254,12 @@ function submitSalesData(formObject) {
   } finally {
     lock.releaseLock();
   }
+}
+
+// หัวคอลัมน์ใหม่ (P–R) สำหรับชีตเดิมที่ยังไม่ได้รัน setup() ใหม่
+function ensureRecordHeaders_(sh) {
+  const cur = sh.getRange(1, RCOL.ACCURACY + 1, 1, 3).getValues()[0];
+  if (!cur[0] || !cur[1] || !cur[2]) sh.getRange(1, RCOL.ACCURACY + 1, 1, 3).setValues([R_HEADERS.slice(RCOL.ACCURACY, RCOL.ACCURACY + 3)]);
 }
 
 function toRecord_(ts, type, imageUrl, lat, lng) {

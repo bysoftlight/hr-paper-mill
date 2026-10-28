@@ -159,3 +159,31 @@ function watchScrollGlass() {
     update();
 }
 document.addEventListener('DOMContentLoaded', watchScrollGlass);
+
+// ติดตั้งเป็นแอป: service worker (แคชไฟล์ ออฟไลน์ แจ้งเตือน) + ขอให้เบราว์เซอร์เก็บข้อมูลถาวร
+// (ลดโอกาสที่ Safari ลบข้อมูลในเครื่อง เช่น รายงานที่รอส่ง เมื่อไม่ได้เปิดเว็บนาน)
+let INSTALL_PROMPT = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); INSTALL_PROMPT = e; document.dispatchEvent(new CustomEvent('installable')); });
+window.addEventListener('appinstalled', () => { INSTALL_PROMPT = null; document.dispatchEvent(new CustomEvent('installable')); });
+if ('serviceWorker' in navigator && window.isSecureContext) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(e => console.warn('ลงทะเบียน service worker ไม่สำเร็จ', e));
+        if (navigator.storage && navigator.storage.persist) navigator.storage.persisted().then(p => p || navigator.storage.persist()).catch(() => {});
+    });
+}
+document.addEventListener('installable', () => {
+    const body = document.getElementById('settingsBody'), dlg = document.getElementById('settingsModal');
+    if (body && dlg && dlg.open) renderSettings(body, [{ title: 'แอป', rows: [installSettingsRow()] }, displaySettings()]);
+});
+function isStandalone() {
+    return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+}
+// แถวในหน้าตั้งค่า: ติดตั้งเป็นแอป
+function installSettingsRow() {
+    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (isStandalone()) return { icon: 'check-circle', tone: 'green', label: 'ติดตั้งเป็นแอปแล้ว', desc: 'เปิดจากไอคอนบนหน้าจอโฮม · เปิดได้แม้ไม่มีสัญญาณ' };
+    if (INSTALL_PROMPT) return { id: 'installApp', icon: 'download', tone: 'blue', label: 'ติดตั้งเป็นแอป', desc: 'เปิดเร็วขึ้น ใช้ได้แม้ออฟไลน์ และข้อมูลในเครื่องไม่หาย', control: { type: 'button', label: 'ติดตั้ง', onClick: async () => { INSTALL_PROMPT.prompt(); await INSTALL_PROMPT.userChoice.catch(() => {}); INSTALL_PROMPT = null; document.dispatchEvent(new CustomEvent('installable')); } } };
+    return { icon: 'download', tone: 'blue', label: 'ติดตั้งเป็นแอป', desc: '', control: { type: 'info', html: ios
+        ? '<span>เปิดเร็วขึ้น ใช้ได้แม้ออฟไลน์ และ Safari จะไม่ลบข้อมูลในเครื่องหลังไม่ได้ใช้ 7 วัน</span><ol class="set-steps"><li>เปิดหน้านี้ใน <b>Safari</b></li><li>แตะปุ่ม <b>แชร์</b> (สี่เหลี่ยมมีลูกศรขึ้น)</li><li>เลือก <b>เพิ่มไปยังหน้าจอโฮม</b> แล้วเปิดจากไอคอน</li></ol>'
+        : '<span>เปิดเร็วขึ้นและใช้ได้แม้ออฟไลน์ — เปิดเมนูของเบราว์เซอร์ (⋮) แล้วเลือก <b>ติดตั้งแอป</b> หรือ <b>เพิ่มลงในหน้าจอหลัก</b></span>' } };
+}

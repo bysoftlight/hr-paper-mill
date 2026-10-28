@@ -218,6 +218,7 @@ b { font-weight: 600; }
 .chip .ic { width: 14px; height: 14px; }
 .chip.is-ok { background: var(--ok-soft); color: var(--ok); }
 .chip.is-warn { background: var(--warn-soft); color: var(--warn); }
+.chip.is-info { background: var(--accent-soft); color: var(--on-accent-soft); }
 .chip-self { background: var(--accent-soft); color: var(--accent); }
 .chip-agent { background: var(--warn-soft); color: var(--warn); }
 
@@ -1155,3 +1156,133 @@ input::-webkit-datetime-edit { padding: 0; }
 .gauge-label b small { font-size: 16px; color: var(--muted); }
 .gauge-label span { display: block; font-size: 12px; color: var(--muted); }
 :root[data-motion="reduce"] .chart * { animation: none !important; transition: none !important; }
+
+/* =====================================================
+   กล้องในแอป + ตัวเลือกถ่ายภาพ
+   ===================================================== */
+.upload-choices { display: grid; gap: 10px; }
+.upload-choices .upload { width: 100%; font: inherit; }
+.upload-choices.has-camera #photoPick { min-height: 0; flex-direction: row; gap: 8px; padding: 12px; border-style: solid; border-width: 1px; }
+.upload-choices.has-camera #photoPick .ic { width: 20px; height: 20px; }
+.upload-choices.has-camera #photoPick small { display: none; }
+.upload-choices.has-camera #photoPick b { font-size: 14px; font-weight: 500; color: var(--accent); }
+.upload-choices.has-camera #cameraOpen { border-style: solid; border-color: transparent; background: linear-gradient(135deg, #126EE4, #0850D1); color: #fff; }
+.upload-choices.has-camera #cameraOpen .ic { color: #fff; }
+.upload-choices.has-camera #cameraOpen small { color: rgba(255, 255, 255, .85); }
+
+dialog.camera {
+    position: fixed; inset: 0; width: 100%; max-width: 100%; height: 100%; max-height: 100%; margin: 0;
+    background: #000; color: #fff; border-radius: 0;
+}
+dialog.camera::backdrop { background: #000; }
+.cam-stage { position: relative; width: 100%; height: 100%; overflow: hidden; }
+#camVideo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+#camVideo.is-mirror { transform: scaleX(-1); }
+.camera.is-flash .cam-stage::after { content: ""; position: absolute; inset: 0; background: #fff; opacity: .7; pointer-events: none; }
+.cam-guide { position: absolute; inset: 0; pointer-events: none; }
+.g-corner { position: absolute; width: 34px; height: 34px; border: 3px solid rgba(255, 255, 255, .9); }
+.g-corner.tl { top: 16%; left: 7%; border-right: 0; border-bottom: 0; border-top-left-radius: 14px; }
+.g-corner.tr { top: 16%; right: 7%; border-left: 0; border-bottom: 0; border-top-right-radius: 14px; }
+.g-corner.bl { bottom: 24%; left: 7%; border-right: 0; border-top: 0; border-bottom-left-radius: 14px; }
+.g-corner.br { bottom: 24%; right: 7%; border-left: 0; border-top: 0; border-bottom-right-radius: 14px; }
+.g-zone { position: absolute; border: 2px dashed rgba(255, 255, 255, .75); border-radius: 16px; display: flex; align-items: flex-start; justify-content: center; }
+.g-zone i, .g-label { font-style: normal; font-size: 12px; font-weight: 500; padding: 3px 10px; border-radius: 999px; background: rgba(0, 0, 0, .55); color: #fff; transform: translateY(-50%); white-space: nowrap; }
+.g-seller { left: 50%; width: min(38%, 220px); aspect-ratio: 3 / 4; top: 22%; transform: translateX(-50%); border-radius: 45% 45% 22% 22%; }
+.g-card { left: 10%; width: 32%; bottom: 27%; aspect-ratio: 1.58; }
+.g-label { position: absolute; left: 50%; top: 16%; transform: translate(-50%, -140%); }
+.cam-top { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 12px; padding: calc(12px + env(safe-area-inset-top)) 16px 24px; background: linear-gradient(rgba(0, 0, 0, .55), transparent); }
+.cam-profile { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.cam-profile small { display: block; font-size: 11px; opacity: .8; }
+.cam-profile b { display: block; font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cam-avatar { display: grid; place-items: center; flex: none; width: 46px; height: 46px; border-radius: 50%; overflow: hidden; border: 2px solid #fff; background: #0850D1; font-weight: 600; }
+.cam-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.cam-bottom { position: absolute; left: 0; right: 0; bottom: 0; padding: 16px 16px calc(20px + env(safe-area-inset-bottom)); background: linear-gradient(transparent, rgba(0, 0, 0, .65)); }
+.cam-stamp { margin: 0 0 14px; font-size: 12px; text-align: center; opacity: .9; font-variant-numeric: tabular-nums; }
+.cam-controls { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; justify-items: center; }
+.cam-btn { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, .18); color: #fff; cursor: pointer; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.cam-shutter { width: 76px; height: 76px; border-radius: 50%; border: 4px solid #fff; background: transparent; padding: 4px; cursor: pointer; }
+.cam-shutter span { display: block; width: 100%; height: 100%; border-radius: 50%; background: #fff; transition: transform .12s; }
+.cam-shutter:active span { transform: scale(.88); }
+.cam-review { position: absolute; inset: 0; background: #000; display: flex; flex-direction: column; }
+.cam-review img { flex: 1; min-height: 0; width: 100%; object-fit: contain; }
+.cam-review-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 14px 16px calc(16px + env(safe-area-inset-bottom)); }
+.cam-review-actions .btn-outline { background: transparent; color: #fff; border-color: rgba(255, 255, 255, .6); }
+@media (orientation: landscape) and (max-height: 560px) {
+    .g-seller { top: 14%; bottom: 30%; left: 38%; right: 38%; }
+    .g-card { width: 22%; bottom: 18%; }
+    .g-corner.tl, .g-corner.tr { top: 10%; } .g-corner.bl, .g-corner.br { bottom: 16%; }
+}
+
+/* --- รายงานรอส่ง (ออฟไลน์) + toast ของหน้าผู้ใช้สิทธิ์ --- */
+.outbox-banner { align-items: center; margin-bottom: 14px; }
+.outbox-banner > div { flex: 1; min-width: 0; }
+.outbox-banner span { display: block; font-size: 13px; }
+.outbox-banner .btn-chip { flex: none; }
+#userToast {
+    position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom)); z-index: 120;
+    transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+    max-width: calc(100% - 32px); padding: 10px 16px; border-radius: var(--r-md);
+    background: var(--ink); color: var(--surface); font-size: 14px; font-weight: 500;
+    transition: opacity .2s, transform .2s;
+}
+#userToast.is-show { opacity: 1; transform: translate(-50%, 0); }
+@media (min-width: 768px) { #userToast { bottom: 24px; } }
+
+/* --- ปฏิทินของฉัน + ตัวนับโควตาตัวแทน --- */
+.quota-dots { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; }
+.quota-dots span {
+    display: grid; place-items: center; aspect-ratio: 1; border-radius: 50%; min-width: 0;
+    border: 1.5px solid var(--outline); background: var(--surface); color: var(--muted); font-size: 11px; font-family: var(--mono);
+}
+.quota-dots span.is-used { border-color: var(--warn); background: var(--warn-soft); color: var(--warn); }
+.agent-meter[data-level="bad"] .quota-dots span.is-used { border-color: var(--bad); background: var(--bad-soft); color: var(--bad); }
+.agent-meter .meter { display: none; }
+.cal-nav { display: flex; align-items: center; gap: 2px; }
+.cal-nav b { min-width: 8.5em; text-align: center; font-size: 14px; font-weight: 500; }
+.cal-nav .icon-btn { margin: 0; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal-dow { text-align: center; font-size: 11px; color: var(--muted); padding-bottom: 2px; }
+.cal-cell {
+    display: grid; place-items: center; aspect-ratio: 1; max-height: 46px; width: 100%; padding: 0;
+    border: 0; border-radius: 12px; background: var(--surface); color: var(--ink-2);
+    font: 500 13px var(--mono); cursor: pointer; transition: transform .12s, box-shadow .12s;
+}
+.cal-cell.is-pad { background: none; }
+.cal-cell.is-self { background: var(--accent); color: var(--on-accent); }
+.cal-cell.is-agent { background: var(--warn); color: var(--on-warn); }
+.cal-cell.is-missed { background: var(--bad-soft); color: var(--bad); }
+.cal-cell.is-future { background: none; color: var(--muted); opacity: .5; cursor: default; }
+.cal-cell.is-today { box-shadow: inset 0 0 0 2px var(--ink); }
+.cal-cell.is-picked { transform: scale(1.08); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
+.cal-stats { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 12px; font-size: 13px; color: var(--ink-2); }
+.cal-stats span { display: inline-flex; align-items: center; gap: 6px; }
+.lg { display: inline-block; width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.lg-self { background: var(--accent); } .lg-agent { background: var(--warn); } .lg-missed { background: var(--bad-soft); box-shadow: inset 0 0 0 1px var(--bad); }
+.cal-info { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 12px; padding: 10px 12px; border-radius: var(--r-md); background: var(--surface); font-size: 13px; }
+.cal-info b { flex: 1 1 100%; font-size: 14px; font-weight: 500; }
+.cal-info span { color: var(--muted); }
+
+/* --- แนะนำการใช้งานครั้งแรก: 3 หน้าจอ เลื่อนแนวนอนแบบ snap --- */
+dialog.onboard {
+    width: calc(100% - 2 * var(--gutter)); max-width: 420px; padding: 0; border-radius: var(--r-xl); overflow: hidden;
+    display: flex; flex-direction: column;
+}
+dialog.onboard:not([open]) { display: none; }
+dialog.onboard[open] { animation: pop .2s ease-out; }
+.ob-track {
+    display: grid; grid-auto-flow: column; grid-auto-columns: 100%; overflow-x: auto; overflow-y: hidden;
+    scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none;
+}
+.ob-track::-webkit-scrollbar { display: none; }
+.ob-slide { scroll-snap-align: center; scroll-snap-stop: always; padding: 24px 24px 8px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.ob-art { width: 100%; height: auto; max-height: 34dvh; margin-bottom: 8px; }
+.ob-step { font-size: 12px; font-weight: 600; color: var(--accent); letter-spacing: .04em; }
+.ob-slide h2 { font-size: 21px; font-weight: 500; line-height: 1.35; }
+.ob-slide p { color: var(--ink-2); font-size: 15px; line-height: 1.6; }
+.ob-slide p b { color: var(--ink); font-weight: 600; }
+.ob-foot { display: flex; flex-direction: column; gap: 14px; padding: 12px 24px 22px; }
+.ob-dots { display: flex; justify-content: center; gap: 6px; }
+.ob-dots span { width: 8px; height: 8px; border-radius: 999px; background: var(--line); transition: width .25s, background-color .25s; }
+.ob-dots span.is-on { width: 22px; background: var(--accent); }
+.ob-actions { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; }
+.ob-actions .btn { min-height: 48px; }
