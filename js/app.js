@@ -897,6 +897,14 @@ function openSettings() {
     renderParticipantSettings();
     showModal('settingsModal');
     checkGeoPermission();
+    // การแจ้งเตือนผูกกับรหัสผู้ใช้สิทธิ์: แสดงเมื่อเข้าสู่ระบบแล้ว
+    $('notifyBody').innerHTML = '';
+    if (CURRENT_USER.id) {
+        NotifyUI.kind = 'user';
+        NotifyUI.call = callApi;
+        NotifyUI.extra = () => ({ userId: CURRENT_USER.id });
+        NotifyUI.mount($('notifyBody'));
+    }
 }
 
 function cacheInfo() {
@@ -909,7 +917,8 @@ function cacheInfo() {
 
 function renderParticipantSettings() {
     const signedIn = !!CURRENT_USER.id;
-    const sections = [displaySettings(), {
+    renderSettings($('settingsBody'), [displaySettings()]);
+    const sections = [{
         title: 'การส่งรายงาน',
         rows: [
             { id: 'geo', icon: 'pin', tone: 'green', label: 'สิทธิ์ใช้ตำแหน่ง (GPS)', desc: 'ใช้ยืนยันตำแหน่งตอนส่งรายงาน', control: { type: 'info', html: '<span class="set-status" id="geoStatus">กำลังตรวจสอบ…</span><span id="geoHelp"></span><div class="row-actions"><button type="button" class="btn-chip" id="geoTest">ทดสอบตำแหน่ง</button></div>' } },
@@ -923,7 +932,7 @@ function renderParticipantSettings() {
             { id: 'clearCache', icon: 'database', tone: 'amber', label: 'ข้อมูลที่เก็บในเครื่อง', desc: settingsEsc(cacheInfo()) + ' · ช่วยให้เปิดแอปได้ทันที', control: { type: 'button', label: 'ล้างข้อมูล', tone: 'bad', onClick: clearLocalData } }
         ] : [])
     }];
-    renderSettings($('settingsBody'), sections);
+    renderSettings($('settingsMore'), sections);
     $('geoTest').addEventListener('click', testGeo);
 }
 

@@ -1,0 +1,25 @@
+{
+  "name": "HR Paper Mill Staff",
+  "short_name": "HR Staff",
+  "description": "Dashboard เจ้าหน้าที่ HR Paper Mill",
+  "lang": "th",
+  "start_url": "staff.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FFFFFF",
+  "icons": [
+    {
+      "src": "img/apple-touch-icon.png",
+      "sizes": "500x500",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "img/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "id": "staff.html"
+}

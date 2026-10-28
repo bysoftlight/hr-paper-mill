@@ -27,6 +27,13 @@ function handleStaffRequest_(req) {
       if (req.everywhere) return staffLogoutEverywhere_(staff, ua);
       log_(staff, 'staff.logout', staff.email || staff.name, '', ua);
       return { success: true };
+    case 'staff.notify.config':
+    case 'staff.notify.subscribe':
+    case 'staff.notify.unsubscribe':
+    case 'staff.notify.test':
+    case 'staff.notify.email':
+      if (typeof handleNotifyRequest_ !== 'function') return { success: false, message: 'ระบบแจ้งเตือนยังไม่ได้ติดตั้ง (เพิ่มไฟล์ Notify.gs ใน Apps Script)' };
+      return handleNotifyRequest_(req, { type: 'staff', id: staff.id, email: staff.email || '' });
     case 'staff.overview':
       requirePerm_(staff, 'records.view');
       return staffOverview_();
