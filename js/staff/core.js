@@ -518,7 +518,7 @@ function openSettings() {
         can('records.view') && { icon: 'list', tone: 'purple', label: 'จำนวนรายการต่อหน้า', desc: 'หน้ารายงาน · มากขึ้น = เลื่อนดูได้ยาว แต่โหลดนานขึ้น', control: { type: 'seg', key: 'pageSize', options: [['auto', 'อัตโนมัติ'], ['20', '20'], ['50', '50'], ['100', '100']] } },
         can('records.view') && { icon: 'image', tone: 'teal', label: 'แสดงรูปย่อในตาราง', desc: 'ปิดเพื่อให้หน้ารายงานโหลดเร็วขึ้น (ยังเปิดดูรูปเต็มได้)', control: { type: 'switch', key: 'thumbs' } }
     ].filter(Boolean);
-    renderSettings($('settingsBody'), [displaySettings()]);
+    renderSettings($('settingsBody'), [{ title: 'แอป', rows: [installSettingsRow()] }, displaySettings()]);
     renderSettings($('settingsMore'), [{ title: 'การทำงาน', rows: work }]);
     showModal('settingsModal');
     $('notifyBody').innerHTML = '';

@@ -8,8 +8,8 @@ const UCOL = { ID: 0, NAME: 1, STATUS: 2, PIC: 3, SITE: 4, SITE_LAT: 5, SITE_LNG
 const U_HEADERS = ['รหัส', 'ชื่อ-สกุล', 'การใช้สิทธิ์', 'รูป', 'จุดขาย', 'ละติจูดจุดขาย', 'ลองจิจูดจุดขาย', 'เบอร์โทร', 'ใช้งาน', 'หมายเหตุ', 'แก้ไขล่าสุด', 'แก้ไขโดย'];
 
 // Records: รายงานการขาย (A–J เดิม)
-const RCOL = { TS: 0, DATE: 1, TIME: 2, USER_ID: 3, USER_NAME: 4, TYPE: 5, IMAGE: 6, LAT: 7, LNG: 8, MAP: 9, NOTE: 10, STATUS: 11, UPDATED_BY: 12, UPDATED_AT: 13, SOURCE: 14 };
-const R_HEADERS = ['Timestamp', 'วันที่', 'เวลา', 'รหัส', 'ชื่อ', 'ประเภทการขาย', 'รูปหลักฐาน', 'Latitude', 'Longitude', 'แผนที่', 'หมายเหตุ', 'สถานะ', 'แก้ไขโดย', 'แก้ไขล่าสุด', 'ที่มา'];
+const RCOL = { TS: 0, DATE: 1, TIME: 2, USER_ID: 3, USER_NAME: 4, TYPE: 5, IMAGE: 6, LAT: 7, LNG: 8, MAP: 9, NOTE: 10, STATUS: 11, UPDATED_BY: 12, UPDATED_AT: 13, SOURCE: 14, ACCURACY: 15, PHOTO_HASH: 16, RECEIVED_AT: 17 };
+const R_HEADERS = ['Timestamp', 'วันที่', 'เวลา', 'รหัส', 'ชื่อ', 'ประเภทการขาย', 'รูปหลักฐาน', 'Latitude', 'Longitude', 'แผนที่', 'หมายเหตุ', 'สถานะ', 'แก้ไขโดย', 'แก้ไขล่าสุด', 'ที่มา', 'ความแม่นยำ GPS (ม.)', 'ลายนิ้วมือรูป', 'ระบบได้รับเมื่อ'];
 
 // Staff: บัญชีเจ้าหน้าที่ (เข้าสู่ระบบด้วย Google / LINE)
 const SCOL = { ID: 0, PROVIDER: 1, SUB: 2, EMAIL: 3, NAME: 4, PICTURE: 5, ROLE: 6, PERMS: 7, STATUS: 8, TOKEN_VER: 9, CREATED_AT: 10, LAST_LOGIN: 11, APPROVED_BY: 12, APPROVED_AT: 13, NOTE: 14 };

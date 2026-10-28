@@ -209,6 +209,7 @@ async function performLogin(userId, isAuto, background = false) {
     if (res.success) {
         userStore.set(USER_KEY, res.data.id);
         CURRENT_USER = res.data;
+        if (!isAuto) maybeOnboard();
         if (!background) return setupApp(res.history);
         renderUser();
         if (Array.isArray(res.history)) applyHistory(res.history); else loadHistoryData(true);
@@ -264,7 +265,7 @@ function endSession() {
         () => document.querySelectorAll('dialog[open]').forEach(d => { delete d.dataset.locked; d.close(); }),
         () => showLoading(false),
         () => $('salesForm').reset(),
-        () => { updateFileName($('evidenceImg')).catch(() => {}); },
+        () => { PICKED_FILE = null; GPS_FIX = null; updateFileName().catch(() => {}); },
         () => { $('historyList').innerHTML = ''; },
         () => renderUser(),
         () => setUrl(location.pathname),
@@ -287,6 +288,7 @@ function setupApp(history, cachedAt) {
     if (Array.isArray(history)) applyHistory(history, cachedAt);
     switchTab(tabFromHash(), false);
     if (!Array.isArray(history)) loadHistoryData();
+    refreshOutbox().then(() => { if (navigator.onLine) flushOutbox(); });
 }
 
 function renderUser() {
@@ -337,14 +339,30 @@ function switchTab(tab, pushHash = true) {
 }
 
 // --- FORM HANDLING ---
-let COMPRESSED = null;     // { base64, bytes } ของรูปที่เลือกล่าสุด
+let COMPRESSED = null;     // { base64, bytes, hash, stamped } ของรูปที่เลือกล่าสุด
+let PICKED_FILE = null;    // รูปจากกล้องในแอป (ถ้าไม่ได้เลือกผ่านช่องไฟล์)
+let CAPTURE_AT = 0;        // เวลาที่ถ่าย/เลือกรูป (ใช้ประทับบนรูปและเป็นเวลารายงานเมื่อส่งย้อนหลังตอนออฟไลน์)
+let GPS_FIX = null;        // { lat, lng, acc } ล่าสุด
+const photoFile = () => PICKED_FILE || ($('evidenceImg').files && $('evidenceImg').files[0]) || null;
 let compressToken = 0;
 
 function initForm() {
     $('salesForm').addEventListener('submit', handleFormSubmit);
     $('locRefresh').addEventListener('click', getLocation);
-    $('evidenceImg').addEventListener('change', (e) => updateFileName(e.target));
-    $('photoRemove').addEventListener('click', () => { $('evidenceImg').value = ''; updateFileName($('evidenceImg')); });
+    $('evidenceImg').addEventListener('change', () => { PICKED_FILE = null; CAPTURE_AT = Date.now(); updateFileName(); });
+    $('photoRemove').addEventListener('click', () => { $('evidenceImg').value = ''; PICKED_FILE = null; updateFileName(); });
+    // กล้องในแอป (มีกรอบนำถ่าย) — เบราว์เซอร์ที่ไม่รองรับใช้ช่องเลือกรูปเดิม
+    if (Camera.supported()) {
+        $('cameraOpen').hidden = false;
+        $('photoEmpty').classList.add('has-camera');
+        $('photoPick').querySelector('b').textContent = 'หรือเลือกรูปจากเครื่อง';
+    }
+    $('cameraOpen').addEventListener('click', openCamera);
+    $('photoRetake').addEventListener('click', () => (Camera.supported() ? openCamera() : $('evidenceImg').click()));
+    initOutbox();
+    initOnboarding();
+    $('calPrev').addEventListener('click', () => shiftCalendar(-1));
+    $('calNext').addEventListener('click', () => shiftCalendar(1));
     // แถบขั้นตอน: แตะเพื่อเลื่อนไปขั้นนั้นอย่างนุ่มนวล
     document.querySelectorAll('#stepper li').forEach(li => li.querySelector('button').addEventListener('click', () => scrollToStep(li.dataset.target)));
     // ทำขั้นตอนเสร็จ → เลื่อนไปขั้นถัดไปที่ยังไม่เสร็จ
@@ -377,6 +395,10 @@ function getLocation() {
             const { latitude, longitude, accuracy } = pos.coords;
             $('lat').value = latitude;
             $('long').value = longitude;
+            const hadGps = !!GPS_FIX;
+            GPS_FIX = { lat: latitude, lng: longitude, acc: accuracy };
+            // ถ่ายรูปก่อนได้พิกัด: ประทับใหม่ให้มีพิกัด
+            if (!hadGps && photoFile() && !(COMPRESSED && COMPRESSED.withGps)) updateFileName({ restamp: true });
             setLocStatus('ok', 'check-circle', 'ระบุตำแหน่งแล้ว', `${latitude.toFixed(5)}, ${longitude.toFixed(5)} · ±${Math.round(accuracy)} ม.`);
             $('locMap').href = `https://www.google.com/maps?q=${latitude},${longitude}`;
             $('locMap').hidden = false;
@@ -396,8 +418,8 @@ function getLocation() {
 }
 
 let previewUrl = null;
-async function updateFileName(input) {
-    const file = input.files && input.files[0];
+async function updateFileName(opts = {}) {
+    const file = photoFile();
     const token = ++compressToken;
     COMPRESSED = null;
     if (previewUrl) { URL.revokeObjectURL(previewUrl); previewUrl = null; }
@@ -410,22 +432,53 @@ async function updateFileName(input) {
     $('photoPreview').src = previewUrl;
     $('stepPhoto').classList.remove('is-error');
     $('fileNameDisplay').textContent = `${file.name} · ${formatBytes(file.size)} · กำลังย่อขนาด…`;
-    advanceStep('stepPhoto');
+    if (!opts.restamp) advanceStep('stepPhoto');
     try {
-        const result = await compressImage(file, ...photoSize());
+        const result = await compressImage(file, ...photoSize(), { stamp: stampLines(), hash: true });
         if (token !== compressToken) return;
-        COMPRESSED = result;
-        $('fileNameDisplay').textContent = `${file.name} · ${formatBytes(file.size)} → ${formatBytes(result.bytes)} (ย่อขนาดแล้ว)`;
+        COMPRESSED = Object.assign(result, { withGps: !!GPS_FIX });
+        // แสดงรูปที่ประทับวัน-เวลา-พิกัดแล้ว (รูปนี้คือรูปที่จะส่งจริง)
+        $('photoPreview').src = 'data:image/jpeg;base64,' + result.base64;
+        $('fileNameDisplay').textContent = `${file.name} · ${formatBytes(file.size)} → ${formatBytes(result.bytes)} · ประทับวัน-เวลา${GPS_FIX ? '-พิกัด' : ''}แล้ว`;
     } catch (e) {
         if (token !== compressToken) return;
         $('fileNameDisplay').textContent = `${file.name} · อ่านรูปไม่ได้ กรุณาเลือกรูปใหม่`;
     }
 }
 
+// ข้อความที่ประทับลงรูป
+function stampLines() {
+    const at = new Date(CAPTURE_AT || Date.now());
+    const day = at.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    const time = at.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    return [
+        `${CURRENT_USER.id || ''} · ${CURRENT_USER.name || ''}`,
+        `${day} ${time} น.`,
+        GPS_FIX ? `พิกัด ${GPS_FIX.lat.toFixed(5)}, ${GPS_FIX.lng.toFixed(5)} (±${Math.round(GPS_FIX.acc)} ม.)` : 'ยังไม่ได้รับพิกัด GPS',
+        'HR Paper Mill · หลักฐานการขาย มาตรา 35'
+    ];
+}
+
+async function openCamera() {
+    haptic();
+    const res = await Camera.open({
+        profile: { name: CURRENT_USER.name, id: CURRENT_USER.id, pic: CURRENT_USER.pic },
+        stampPreview: () => { const l = stampLines(); return [l[1].replace(/:\d\d น\.$/, ' น.'), GPS_FIX ? `±${Math.round(GPS_FIX.acc)} ม.` : 'รอพิกัด GPS']; }
+    });
+    if (res === 'gallery') return $('evidenceImg').click();
+    if (res && res.error) { await showMessage({ title: 'เปิดกล้องไม่ได้', text: res.error, tone: 'warn' }); return $('evidenceImg').click(); }
+    if (res instanceof File) {
+        PICKED_FILE = res;
+        CAPTURE_AT = Date.now();
+        $('evidenceImg').value = '';
+        updateFileName();
+    }
+}
+
 function formState() {
     return {
         location: !!$('lat').value,
-        photo: $('evidenceImg').files.length > 0
+        photo: !!photoFile()
     };
 }
 
@@ -447,10 +500,15 @@ function updateChecklist() {
     if (TODAY_RECORD) $('todayTime').textContent = `${TODAY_RECORD.time} น.`;
 }
 
+function queuedToday() {
+    const today = new Date().toDateString();
+    return OUTBOX_PENDING.some(x => new Date(x.formData.capturedAt || x.createdAt).toDateString() === today);
+}
+
 // แถบขั้นตอนด้านบน: บอกว่าเหลืออีกกี่ขั้นตอน
 const STEP_ORDER = ['stepLocation', 'stepType', 'stepPhoto', 'submitCard'];
 function stepsDone(s) {
-    if (TODAY_RECORD) return { stepLocation: true, stepType: true, stepPhoto: true, submitCard: true };
+    if (TODAY_RECORD || queuedToday()) return { stepLocation: true, stepType: true, stepPhoto: true, submitCard: true };
     return { stepLocation: s.location, stepType: true, stepPhoto: s.photo, submitCard: false };
 }
 function updateStepper(s) {
@@ -464,7 +522,7 @@ function updateStepper(s) {
         li.querySelector('button').setAttribute('aria-current', id === current ? 'step' : 'false');
     });
     const left = STEP_ORDER.filter(id => !done[id]).length;
-    $('stepperNote').textContent = TODAY_RECORD ? 'ส่งรายงานของวันนี้แล้ว' : left === 1 ? 'เหลือขั้นตอนสุดท้าย — กดบันทึกรายงาน' : `เหลืออีก ${left} ขั้นตอน`;
+    $('stepperNote').textContent = TODAY_RECORD ? 'ส่งรายงานของวันนี้แล้ว' : queuedToday() ? 'รายงานวันนี้รอส่งอยู่ในเครื่อง — จะส่งเองเมื่อมีสัญญาณ' : left === 1 ? 'เหลือขั้นตอนสุดท้าย — กดบันทึกรายงาน' : `เหลืออีก ${left} ขั้นตอน`;
 }
 function scrollToStep(id) {
     const el = $(id);
@@ -495,6 +553,10 @@ function flagStep(id) {
 async function handleFormSubmit(e) {
     e.preventDefault();
     if (SUBMITTING) return;
+    if (queuedToday()) {
+        await showMessage({ title: 'รายงานวันนี้รอส่งอยู่', text: 'รายงานของวันนี้เก็บไว้ในเครื่องแล้ว ระบบจะส่งให้เมื่อมีสัญญาณ กด "ส่งตอนนี้" ที่แถบสีเหลืองเพื่อลองส่งทันที', tone: 'warn' });
+        return;
+    }
     if (TODAY_RECORD) {
         await showMessage({ title: 'วันนี้ส่งรายงานแล้ว', text: `ส่งไปเมื่อเวลา ${TODAY_RECORD.time} น. ระบบรับรายงานวันละหนึ่งครั้ง ส่งครั้งถัดไปได้พรุ่งนี้`, tone: 'ok' });
         return;
@@ -517,27 +579,31 @@ async function handleFormSubmit(e) {
     $('submitBtn').disabled = true;
     showLoading(true, 'กำลังบันทึกข้อมูล…');
     try {
-        const file = $('evidenceImg').files[0];
-        const image = COMPRESSED || await compressImage(file, ...photoSize());
+        const file = photoFile();
+        const image = COMPRESSED || await compressImage(file, ...photoSize(), { stamp: stampLines(), hash: true });
         const formData = {
             userName: CURRENT_USER.name, salesType: selectedSalesType,
             lat: $('lat').value, long: $('long').value,
+            accuracy: GPS_FIX ? Math.round(GPS_FIX.acc) : '',
+            photoHash: image.hash || '',
+            capturedAt: CAPTURE_AT || Date.now(),
             imageFile: { name: file.name, mimeType: "image/jpeg", data: image.base64 }
         };
 
         const session = SESSION;
-        const res = await callApi('submit', { userId: CURRENT_USER.id, formData: formData });
+        // ไม่มีสัญญาณ: เก็บไว้ในเครื่องแล้วส่งเองเมื่อเน็ตกลับมา
+        const res = navigator.onLine === false ? { success: false, networkError: true } : await callApi('submit', { userId: CURRENT_USER.id, formData: formData });
         showLoading(false);
         if (session !== SESSION) return;
 
         if (res.success) {
             const time = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
             await showMessage({ title: 'บันทึกรายงานแล้ว', text: `${res.message || 'บันทึกข้อมูลเรียบร้อย'} · ${selectedSalesType} · ${time} น.`, tone: 'ok', okText: 'ดูประวัติ' });
-            $('salesForm').reset();
-            await updateFileName($('evidenceImg'));
-            getLocation();
+            resetReportForm();
             loadHistoryData(true);
             switchTab('history');
+        } else if (res.networkError && !res.serverError) {
+            await queueReport(formData);
         } else {
             showMessage({ title: 'บันทึกไม่สำเร็จ', text: res.message || 'กรุณาลองใหม่อีกครั้ง', tone: 'bad' });
         }
@@ -548,6 +614,85 @@ async function handleFormSubmit(e) {
         SUBMITTING = false;
         $('submitBtn').disabled = false;
     }
+}
+
+function resetReportForm() {
+    $('salesForm').reset();
+    PICKED_FILE = null;
+    CAPTURE_AT = 0;
+    updateFileName();
+    getLocation();
+}
+
+// ---------- ส่งได้แม้สัญญาณหลุด (คิวในเครื่อง) ----------
+let OUTBOX_PENDING = [];
+async function queueReport(formData) {
+    try {
+        await Outbox.put({ id: 'r' + Date.now(), userId: CURRENT_USER.id, userName: CURRENT_USER.name, createdAt: Date.now(), formData });
+    } catch (e) {
+        return showMessage({ title: 'เก็บรายงานไว้ในเครื่องไม่ได้', text: 'เบราว์เซอร์นี้ไม่อนุญาตให้เก็บข้อมูล กรุณาลองส่งใหม่เมื่อมีสัญญาณ', tone: 'bad' });
+    }
+    requestBackgroundSync();
+    await refreshOutbox();
+    await showMessage({ title: 'เก็บรายงานไว้ในเครื่องแล้ว', text: 'ตอนนี้ไม่มีสัญญาณ ระบบจะส่งให้อัตโนมัติเมื่อเน็ตกลับมา (ใช้วันและเวลาที่กดบันทึกจริง) ไม่ต้องกดส่งซ้ำ', tone: 'ok' });
+    resetReportForm();
+}
+
+async function requestBackgroundSync() {
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        if (reg.sync) await reg.sync.register('hrpm-outbox');
+    } catch (e) { /* Safari ไม่มี Background Sync: ส่งเมื่อเปิดแอป/เน็ตกลับมาแทน */ }
+}
+
+async function refreshOutbox() {
+    try { OUTBOX_PENDING = (await Outbox.all()).filter(x => x.userId === CURRENT_USER.id); } catch (e) { OUTBOX_PENDING = []; }
+    const n = OUTBOX_PENDING.length;
+    $('outboxBanner').hidden = !n;
+    if (n) {
+        const first = OUTBOX_PENDING[0];
+        const when = new Date(first.createdAt).toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+        $('outboxText').textContent = `${n} รายการ · บันทึกเมื่อ ${when} น.${first.lastError ? ' · ' + first.lastError : ''}`;
+    }
+    // รายงานที่รอส่งของวันนี้ นับว่าวันนี้ทำแล้ว (กันกดส่งซ้ำ)
+    updateChecklist();
+    renderTodayChip();
+}
+
+async function flushOutbox(manual) {
+    if (!OUTBOX_PENDING.length && !manual) return;
+    if (manual) { $('outboxSend').disabled = true; $('outboxSend').classList.add('is-busy'); }
+    let results = [];
+    try { results = await Outbox.flush(); } catch (e) {}
+    if (manual) { $('outboxSend').disabled = false; $('outboxSend').classList.remove('is-busy'); }
+    await handleOutboxResults(results.filter(r => r.sent).length, results.filter(r => r.rejected).map(r => r.res && r.res.message), manual && results.some(r => r.pending));
+}
+
+async function handleOutboxResults(sent, rejected, stillPending) {
+    await refreshOutbox();
+    if (sent) { toastUser(`ส่งรายงานที่ค้างไว้แล้ว ${sent} รายการ`); loadHistoryData(true); }
+    if (rejected && rejected.length) showMessage({ title: 'ส่งรายงานที่ค้างไว้ไม่ได้', text: rejected[0] || 'กรุณาติดต่อเจ้าหน้าที่', tone: 'warn' });
+    else if (stillPending) showMessage({ title: 'ยังส่งไม่ได้', text: 'ยังไม่มีสัญญาณอินเทอร์เน็ต ระบบจะลองส่งให้อีกครั้งอัตโนมัติ', tone: 'warn' });
+}
+
+function initOutbox() {
+    $('outboxSend').addEventListener('click', () => flushOutbox(true));
+    window.addEventListener('online', () => flushOutbox());
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && navigator.onLine) flushOutbox(); });
+    // service worker ส่งให้ระหว่างปิดแอป แล้วแจ้งผลกลับมา
+    if (navigator.serviceWorker) navigator.serviceWorker.addEventListener('message', e => {
+        if (e.data && e.data.type === 'outbox') handleOutboxResults(e.data.sent, e.data.rejected, false);
+    });
+    setInterval(() => { if (navigator.onLine && OUTBOX_PENDING.length) flushOutbox(); }, 60000);
+}
+
+function toastUser(text) {
+    let t = $('userToast');
+    if (!t) { t = document.createElement('div'); t.id = 'userToast'; t.className = 'toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+    t.textContent = text;
+    t.classList.add('is-show');
+    clearTimeout(t._h);
+    t._h = setTimeout(() => t.classList.remove('is-show'), 3200);
 }
 
 // --- HISTORY HANDLING ---
@@ -585,6 +730,7 @@ function setHistoryLoading(loading) {
     $('historyList').setAttribute('aria-busy', String(loading));
     if (loading) {
         $('historyList').innerHTML = historySkeleton(6);
+        $('sumBars').classList.add('bars');
         $('sumBars').innerHTML = [40, 70, 30, 85, 55, 65, 45].map(h => `<span class="skel" style="height:${h}%"></span>`).join('');
         $('sumAxis').innerHTML = '';
     }
@@ -655,15 +801,20 @@ function formatThaiDate(ts) {
 function updateTodayStatus() {
     const today = new Date();
     const todays = ALL_HISTORY.filter(h => sameDay(new Date(h.timestamp), today));
-    const count = todays.length;
     TODAY_RECORD = todays[0] || null;
     updateChecklist();
     updateAgentMeter();
+    renderTodayChip();
+}
+
+function renderTodayChip() {
+    const count = TODAY_RECORD ? ALL_HISTORY.filter(h => new Date(h.timestamp).toDateString() === new Date().toDateString()).length : 0;
+    const queued = !count && queuedToday();
     document.querySelectorAll('[data-today]').forEach(chip => {
-        chip.className = 'chip ' + (count ? 'is-ok' : 'is-warn');
+        chip.className = 'chip ' + (count ? 'is-ok' : queued ? 'is-info' : 'is-warn');
         chip.innerHTML = count
             ? `${icon('check-circle')} ส่งแล้ววันนี้${count > 1 ? ` <span class="mono">${count}</span> ครั้ง` : ''}`
-            : `${icon('alert')} ยังไม่ส่งวันนี้`;
+            : queued ? `${icon('wifi-off')} รอส่ง (ออฟไลน์)` : `${icon('alert')} ยังไม่ส่งวันนี้`;
     });
 }
 
@@ -681,6 +832,62 @@ function updateAgentMeter() {
     meter.dataset.level = level;
     meter.querySelector('.meter-bar').style.width = Math.min(100, ratio * 100) + '%';
     meter.querySelector('[role="meter"]').setAttribute('aria-valuenow', String(used));
+    // ตัวนับโควตา: 10 ช่อง ใช้แล้ว = ติ๊ก, ที่เหลือ = วงว่าง
+    $('agentDots').innerHTML = Array.from({ length: AGENT_LIMIT }, (_, i) => `<span class="${i < used ? 'is-used' : ''}">${i < used ? icon('check', 'ic-16') : i + 1}</span>`).join('');
+    $('agentLeft').textContent = used >= AGENT_LIMIT ? 'ใช้ครบโควตาเดือนนี้แล้ว' : `เหลืออีก ${AGENT_LIMIT - used} ครั้งในเดือนนี้`;
+    renderCalendar();
+}
+
+// ---------- ปฏิทินของฉัน: วันที่ส่ง (ขายเอง/ตัวแทน) / ขาด ----------
+let CAL_MONTH = null; // Date วันที่ 1 ของเดือนที่แสดง
+function renderCalendar() {
+    const now = new Date();
+    if (!CAL_MONTH) CAL_MONTH = new Date(now.getFullYear(), now.getMonth(), 1);
+    const y = CAL_MONTH.getFullYear(), m = CAL_MONTH.getMonth();
+    const byDay = {};
+    ALL_HISTORY.forEach(h => { const d = new Date(h.timestamp); if (d.getFullYear() === y && d.getMonth() === m) (byDay[d.getDate()] = byDay[d.getDate()] || []).push(h); });
+    // วันที่ "ขาด" นับตั้งแต่วันแรกที่เคยส่ง (ก่อนเริ่มใช้ระบบไม่นับ)
+    const first = ALL_HISTORY.reduce((a, h) => Math.min(a, new Date(h.timestamp).getTime()), Infinity);
+    const firstDay = isFinite(first) ? new Date(new Date(first).toDateString()) : null;
+    const today = new Date(now.toDateString());
+    const days = new Date(y, m + 1, 0).getDate(), lead = new Date(y, m, 1).getDay();
+    let self = 0, agent = 0, missed = 0;
+    const cells = [];
+    for (let i = 0; i < lead; i++) cells.push('<span class="cal-cell is-pad"></span>');
+    for (let d = 1; d <= days; d++) {
+        const date = new Date(y, m, d), list = byDay[d] || [];
+        let cls = '', label = '';
+        if (list.length) {
+            const isAgent = list.some(h => h.type === AGENT_TYPE);
+            cls = isAgent ? 'is-agent' : 'is-self'; label = isAgent ? 'ขายโดยตัวแทน' : 'ขายเอง';
+            isAgent ? agent++ : self++;
+        } else if (date < today && firstDay && date >= firstDay) { cls = 'is-missed'; label = 'ไม่ได้ส่ง'; missed++; }
+        else if (date > today) cls = 'is-future';
+        if (date.getTime() === today.getTime()) cls += ' is-today';
+        cells.push(`<button type="button" class="cal-cell ${cls}" data-day="${d}" aria-label="${d} ${MONTHS[m]}${label ? ' · ' + label : ''}" ${cls.includes('is-future') ? 'disabled' : ''}>${d}</button>`);
+    }
+    $('calTitle').textContent = `${MONTHS[m]} ${y + 543}`;
+    $('calGrid').innerHTML = DAYS_SHORT.map(x => `<span class="cal-dow">${x}</span>`).join('') + cells.join('');
+    $('calStats').innerHTML = `<span><i class="lg lg-self"></i>ขายเอง <b>${self}</b></span><span><i class="lg lg-agent"></i>ตัวแทน <b>${agent}</b></span><span><i class="lg lg-missed"></i>ขาด <b>${missed}</b></span>`;
+    $('calNext').disabled = y === now.getFullYear() && m === now.getMonth();
+    $('calInfo').hidden = true;
+    $('calGrid').querySelectorAll('[data-day]').forEach(b => b.addEventListener('click', () => {
+        $('calGrid').querySelectorAll('.is-picked').forEach(x => x.classList.remove('is-picked'));
+        b.classList.add('is-picked');
+        const d = Number(b.dataset.day), list = byDay[d] || [];
+        const info = $('calInfo');
+        info.hidden = false;
+        const dateText = new Date(y, m, d).toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long' });
+        if (!list.length) { info.innerHTML = `<b>${dateText}</b><span>${b.classList.contains('is-missed') ? 'ไม่ได้ส่งรายงาน' : 'ยังไม่มีรายงาน'}</span>`; return; }
+        const h = list[0];
+        info.innerHTML = `<b>${dateText}</b><span>ส่งเวลา ${settingsEsc(h.time)} น. · ${h.type === AGENT_TYPE ? 'ขายโดยตัวแทน' : 'ขายด้วยตัวเอง'}</span>${h.image || h.fileId ? '<button type="button" class="btn-chip" id="calPhoto">ดูภาพหลักฐาน</button>' : ''}`;
+        const ph = $('calPhoto');
+        if (ph) ph.addEventListener('click', () => openPhotoViewer(h));
+    }));
+}
+function shiftCalendar(delta) {
+    CAL_MONTH = new Date(CAL_MONTH.getFullYear(), CAL_MONTH.getMonth() + delta, 1);
+    renderCalendar();
 }
 
 function changeFilter(type) {
@@ -734,9 +941,20 @@ function updateDashboard(data, weekStart) {
     }
     const counts = new Array(buckets).fill(0);
     data.forEach(item => { const i = bucketOf(new Date(item.timestamp)); if (i >= 0 && i < buckets) counts[i]++; });
-    const max = Math.max(1, ...counts);
-    $('sumBars').innerHTML = counts.map(c => `<span class="${c ? 'is-on' : ''}" style="height:${c ? Math.max(14, (c / max) * 100) : 8}%"></span>`).join('');
-    $('sumAxis').innerHTML = axis.map(a => `<span>${a}</span>`).join('');
+    const agentCounts = new Array(buckets).fill(0);
+    data.forEach(item => { if (item.type === AGENT_TYPE) { const i = bucketOf(new Date(item.timestamp)); if (i >= 0 && i < buckets) agentCounts[i]++; } });
+    const labels = CURRENT_FILTER === 'week' ? DAYS_SHORT.slice() : CURRENT_FILTER === 'year' ? MONTHS_SHORT.slice() : counts.map((_, i) => String(i + 1));
+    const now = new Date();
+    const curIdx = CURRENT_FILTER === 'week' ? now.getDay() : CURRENT_FILTER === 'year' ? (FILTER_YEAR_VAL === now.getFullYear() ? now.getMonth() : null) : (FILTER_MONTH_IDX === now.getMonth() && FILTER_YEAR_VAL === now.getFullYear() ? now.getDate() - 1 : null);
+    $('sumBars').classList.remove('bars');
+    $('sumAxis').innerHTML = '';
+    Charts.bars($('sumBars'), {
+        labels, height: 130, active: curIdx,
+        xLabels: CURRENT_FILTER === 'month' ? [0, Math.floor(buckets / 2) - 1, buckets - 1] : CURRENT_FILTER === 'year' ? [0, 3, 6, 9, 11] : undefined,
+        series: [{ label: 'ขายเอง', values: counts.map((c, i) => c - agentCounts[i]), color: Charts.color('--accent') }, { label: 'โดยตัวแทน', values: agentCounts, color: Charts.color('--warn') }],
+        ariaLabel: 'กราฟจำนวนรายงานในช่วงที่เลือก',
+        tooltip: i => `<small>${CURRENT_FILTER === 'week' ? 'วัน' + ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'][i] : CURRENT_FILTER === 'year' ? MONTHS[i] : 'วันที่ ' + (i + 1)}</small><b>${counts[i]} รายการ</b>${agentCounts[i] ? `<small>โดยตัวแทน ${agentCounts[i]}</small>` : ''}`
+    });
     $('sumLabel').textContent = label;
     $('sumCount').textContent = data.length;
     $('sumDays').textContent = new Set(data.map(h => new Date(h.timestamp).toDateString())).size;
@@ -978,7 +1196,7 @@ function cacheInfo() {
 
 function renderParticipantSettings() {
     const signedIn = !!CURRENT_USER.id;
-    renderSettings($('settingsBody'), [displaySettings()]);
+    renderSettings($('settingsBody'), [{ title: 'แอป', rows: [installSettingsRow()] }, displaySettings()]);
     const sections = [{
         title: 'การส่งรายงาน',
         rows: [
@@ -1043,3 +1261,34 @@ function testGeo() {
         { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
 }
+
+// ---------- แนะนำการใช้งานครั้งแรก (3 หน้าจอ เลื่อนแบบ snap) ----------
+const ONBOARD_KEY = 'HRPM_ONBOARDED';
+function initOnboarding() {
+    const track = $('obTrack'), slides = track.children.length;
+    const index = () => Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+    const go = i => track.scrollTo({ left: i * track.clientWidth, behavior: Prefs.get('motion') ? 'auto' : 'smooth' });
+    const sync = () => {
+        const i = index();
+        $('obDots').querySelectorAll('span').forEach((d, k) => d.classList.toggle('is-on', k === i));
+        $('obNext').textContent = i === slides - 1 ? 'เริ่มใช้งาน' : 'ถัดไป';
+        $('obSkip').textContent = i === 0 ? 'ข้าม' : 'ย้อนกลับ';
+    };
+    track.addEventListener('scroll', () => { clearTimeout(track._t); track._t = setTimeout(sync, 60); }, { passive: true });
+    $('obNext').addEventListener('click', () => { haptic(); const i = index(); if (i >= slides - 1) closeOnboarding(); else go(i + 1); });
+    $('obSkip').addEventListener('click', () => { const i = index(); if (i === 0) closeOnboarding(); else go(i - 1); });
+    $('onboardModal').addEventListener('keydown', e => { if (e.key === 'ArrowRight') go(Math.min(slides - 1, index() + 1)); if (e.key === 'ArrowLeft') go(Math.max(0, index() - 1)); });
+    $('onboardModal').addEventListener('close', () => store.set(ONBOARD_KEY, '1'));
+    document.addEventListener('click', e => { if (e.target.closest('[data-onboard]')) openOnboarding(); });
+    sync();
+}
+function openOnboarding() {
+    const dlg = $('onboardModal');
+    if (dlg.open) return;
+    dlg.showModal();
+    $('obTrack').scrollLeft = 0;
+    $('obTrack').dispatchEvent(new Event('scroll'));
+    $('obNext').focus();
+}
+function closeOnboarding() { $('onboardModal').close(); }
+function maybeOnboard() { if (!store.get(ONBOARD_KEY)) setTimeout(openOnboarding, 400); }

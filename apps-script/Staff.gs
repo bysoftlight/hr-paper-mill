@@ -112,7 +112,7 @@ function readRecords_(participants) {
   const radius = anomalyRadius_();
   const users = {};
   (participants || readParticipants_()).forEach(u => { users[u.id] = u; });
-  return readRows_(SHEET.RECORDS, R_HEADERS.length).map((r, i) => {
+  const records = readRows_(SHEET.RECORDS, R_HEADERS.length).map((r, i) => {
     const ts = toDate_(r[RCOL.TS], r[RCOL.DATE]);
     if (!ts) return null;
     const userId = String(r[RCOL.USER_ID] || '').trim().toUpperCase();
@@ -126,9 +126,52 @@ function readRecords_(participants) {
       type: String(r[RCOL.TYPE] || ''), imageRaw: String(r[RCOL.IMAGE] || ''),
       lat: lat, lng: lng, hasGps: hasGps, distance: distance, anomaly: distance !== null && distance > radius,
       note: String(r[RCOL.NOTE] || ''), status: r[RCOL.STATUS] === 'deleted' ? 'deleted' : 'active',
-      updatedBy: String(r[RCOL.UPDATED_BY] || ''), updatedAt: toDate_(r[RCOL.UPDATED_AT]), source: String(r[RCOL.SOURCE] || 'app')
+      updatedBy: String(r[RCOL.UPDATED_BY] || ''), updatedAt: toDate_(r[RCOL.UPDATED_AT]), source: String(r[RCOL.SOURCE] || 'app'),
+      accuracy: num_(r[RCOL.ACCURACY]), photoHash: String(r[RCOL.PHOTO_HASH] || ''), receivedAt: toDate_(r[RCOL.RECEIVED_AT])
     };
   }).filter(Boolean);
+  markQuality_(records);
+  return records;
+}
+
+// ---------- ตรวจคุณภาพหลักฐาน: รูปซ้ำ + พิกัดความแม่นยำต่ำ ----------
+const DEFAULT_GPS_ACCURACY_MAX = 100; // ม. — GPS บอกความคลาดเคลื่อนมากกว่านี้ถือว่าไม่น่าเชื่อถือ
+const DUP_MAX_BITS = 3;               // ลายนิ้วมือรูป (dHash 64 บิต) ต่างกันไม่เกินนี้ = รูปเดียวกัน
+function gpsAccuracyMax_() {
+  const n = Number(prop_('GPS_ACCURACY_MAX', DEFAULT_GPS_ACCURACY_MAX));
+  return isFinite(n) && n > 0 ? n : DEFAULT_GPS_ACCURACY_MAX;
+}
+function markQuality_(records) {
+  const maxAcc = gpsAccuracyMax_();
+  records.forEach(r => { r.lowAccuracy = r.hasGps && r.accuracy !== null && r.accuracy > maxAcc; r.dupWith = []; });
+  // หาคู่รูปที่คล้ายกัน: แบ่ง hash เป็น 4 ช่วง ช่วงละ 16 บิต — รูปที่ต่างกัน ≤ 3 บิต ต้องมีอย่างน้อย 1 ช่วงที่เหมือนกันทุกบิต
+  const withHash = records.filter(r => r.status === 'active' && /^[0-9a-f]{16}$/.test(r.photoHash));
+  const buckets = {};
+  withHash.forEach((r, i) => { for (let k = 0; k < 4; k++) { const key = k + ':' + r.photoHash.substr(k * 4, 4); (buckets[key] = buckets[key] || []).push(i); } });
+  const seen = {};
+  Object.keys(buckets).forEach(key => {
+    const list = buckets[key];
+    if (list.length < 2 || list.length > 200) return; // ช่วงที่ซ้ำเยอะผิดปกติ (เช่น รูปดำล้วน) ข้าม
+    for (let a = 0; a < list.length; a++) for (let b = a + 1; b < list.length; b++) {
+      const i = list[a], j = list[b], pair = i < j ? i + '-' + j : j + '-' + i;
+      if (seen[pair]) continue;
+      seen[pair] = true;
+      const x = withHash[i], y = withHash[j];
+      if (x.date === y.date && x.userId === y.userId) continue;
+      if (hammingHex_(x.photoHash, y.photoHash) > DUP_MAX_BITS) continue;
+      if (x.dupWith.length < 5) x.dupWith.push({ row: y.row, date: y.date, userId: y.userId, userName: y.userName });
+      if (y.dupWith.length < 5) y.dupWith.push({ row: x.row, date: x.date, userId: x.userId, userName: x.userName });
+    }
+  });
+  records.forEach(r => { r.dup = r.dupWith.length > 0; });
+}
+function hammingHex_(a, b) {
+  let n = 0;
+  for (let k = 0; k < 16; k += 4) {
+    let v = parseInt(a.substr(k, 4), 16) ^ parseInt(b.substr(k, 4), 16);
+    while (v) { v &= v - 1; n++; }
+  }
+  return n;
 }
 
 function recordDto_(r) {
@@ -137,7 +180,9 @@ function recordDto_(r) {
     type: r.type, image: toImageUrl_(r.imageRaw), fileId: toFileId_(r.imageRaw), lat: r.lat, lng: r.lng,
     mapUrl: r.hasGps ? 'https://maps.google.com/maps?q=' + r.lat + ',' + r.lng : '', distance: r.distance, anomaly: r.anomaly,
     hasGps: r.hasGps, note: r.note, status: r.status, source: r.source, updatedBy: r.updatedBy,
-    updatedAt: r.updatedAt ? r.updatedAt.getTime() : null
+    updatedAt: r.updatedAt ? r.updatedAt.getTime() : null,
+    accuracy: r.accuracy, lowAccuracy: !!r.lowAccuracy, dup: !!r.dup, dupWith: r.dupWith || [],
+    receivedAt: r.receivedAt ? r.receivedAt.getTime() : null
   };
 }
 
@@ -159,6 +204,9 @@ function filterRecords_(records, f) {
     if (f.location === 'anomaly' && !r.anomaly) return false;
     if (f.location === 'normal' && !(r.hasGps && !r.anomaly)) return false;
     if (f.location === 'nogps' && r.hasGps) return false;
+    if (f.location === 'duplicate' && !r.dup) return false;
+    if (f.location === 'lowacc' && !r.lowAccuracy) return false;
+    if (f.location === 'review' && !(r.anomaly || !r.hasGps || r.dup || r.lowAccuracy)) return false;
     if (q && (r.userId + ' ' + r.userName + ' ' + r.note + ' ' + r.site).toLowerCase().indexOf(q) === -1) return false;
     return true;
   });
@@ -166,8 +214,10 @@ function filterRecords_(records, f) {
 
 function aggregate_(rows) {
   const users = {}, byDay = {}, bySite = {};
-  let agent = 0, anomalies = 0, nogps = 0;
+  let agent = 0, anomalies = 0, nogps = 0, dups = 0, lowacc = 0;
   rows.forEach(r => {
+    if (r.dup) dups++;
+    if (r.lowAccuracy) lowacc++;
     const isAgent = r.type === SALES_TYPES[1];
     if (isAgent) agent++;
     if (r.anomaly) anomalies++;
@@ -182,7 +232,7 @@ function aggregate_(rows) {
     const u = users[k];
     return { id: u.id, name: u.name, site: u.site, count: u.count, agent: u.agent, anomalies: u.anomalies, days: Object.keys(u.days).length };
   }).sort((a, b) => b.count - a.count);
-  return { total: rows.length, users: byUser.length, self: rows.length - agent, agent: agent, anomalies: anomalies, nogps: nogps, byDay: byDay, bySite: bySite, byUser: byUser };
+  return { total: rows.length, users: byUser.length, self: rows.length - agent, agent: agent, anomalies: anomalies, nogps: nogps, duplicates: dups, lowAccuracy: lowacc, byDay: byDay, bySite: bySite, byUser: byUser };
 }
 
 function staffRecordsList_(req) {
@@ -261,12 +311,13 @@ function staffOverview_() {
       participants: participants.length, reportedToday: Object.keys(reported).filter(id => pMap[id]).length, missingToday: missing.length,
       agentToday: todayRecs.filter(r => r.type === SALES_TYPES[1]).length, anomaliesToday: todayRecs.filter(r => r.anomaly).length,
       nogpsToday: todayRecs.filter(r => !r.hasGps).length,
+      duplicatesToday: todayRecs.filter(r => r.dup).length, lowAccToday: todayRecs.filter(r => r.lowAccuracy).length,
       monthRecords: monthRecs.length, monthRate: expected ? Math.round(monthRecs.length / expected * 100) : 0,
       agentOverLimit: agentWatch.filter(a => a.used > AGENT_LIMIT_PER_MONTH).length
     },
     missing: missing,
     agentWatch: agentWatch,
-    anomalies: todayRecs.filter(r => r.anomaly || !r.hasGps).map(recordDto_),
+    anomalies: todayRecs.filter(r => r.anomaly || !r.hasGps || r.dup || r.lowAccuracy).map(recordDto_),
     trend: trend,
     compare: overviewCompare_(records, participants.length, today),
     hours: overviewHours_(monthRecs),
