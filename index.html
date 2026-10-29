@@ -38,8 +38,8 @@
     /* กันไอคอนขยายเต็มจอ ถ้า stylesheet ยังโหลดไม่เสร็จหรือเป็นเวอร์ชันเก่า (:where = ไม่ทับขนาดใน style.css) */
     :where(svg.ic) { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; }
   </style>
-  <script src="js/settings.js?v=3.20.0"></script>
-  <link rel="stylesheet" href="css/style.css?v=3.20.0">
+  <script src="js/settings.js?v=3.20.1"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.20.1">
 </head>
 <body>
 
@@ -297,9 +297,7 @@
       <video id="camVideo" playsinline muted autoplay></video>
       <div class="cam-guide" aria-hidden="true">
         <span class="g-corner tl"></span><span class="g-corner tr"></span><span class="g-corner bl"></span><span class="g-corner br"></span>
-        <span class="g-zone g-seller"><i>ผู้ขาย</i></span>
-        <span class="g-zone g-card"><i>บัตรประจำร้านค้า</i></span>
-        <span class="g-label g-stall">ให้เห็นล็อคที่ขายทั้งหมดในกรอบ</span>
+        <span class="g-label g-stall">ให้เห็นบัตรประจำร้านค้า ล็อคที่ขาย และผู้ขาย ในภาพเดียว</span>
       </div>
       <div class="cam-top">
         <button type="button" class="cam-btn" id="camClose" aria-label="ปิดกล้อง"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
@@ -308,7 +306,7 @@
       <div class="cam-bottom">
         <p class="cam-stamp" id="camStamp" aria-live="off"></p>
         <div class="cam-controls">
-          <button type="button" class="cam-btn" id="camGallery" aria-label="เลือกรูปจากเครื่องแทน"><svg class="ic" aria-hidden="true"><use href="#i-image"/></svg></button>
+          <span class="cam-btn-space" aria-hidden="true"></span>
           <button type="button" class="cam-shutter" id="camShutter" aria-label="ถ่ายภาพ"><span></span></button>
           <button type="button" class="cam-btn" id="camFlip" aria-label="สลับกล้องหน้า/หลัง"><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg></button>
         </div>
@@ -341,7 +339,7 @@
   <!-- ===== Login ===== -->
   <div id="loginView" class="login">
     <section class="login-intro" aria-labelledby="loginTitle">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.20.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.20.1" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <p class="eyebrow">โครงการใช้สิทธิ์สัมปทานผู้พิการตามมาตรา 35 · ปี 2569</p>
       <h1 id="loginTitle">รายงานการขายประจำวัน<br>ส่งได้ในไม่กี่ขั้นตอน</h1>
       <ol class="intro-steps">
@@ -387,12 +385,12 @@
   <!-- ===== App ===== -->
   <div id="appContainer" class="app is-syncing" hidden>
     <header class="topbar">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.20.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.20.1" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <span class="chip" data-today>&nbsp;</span>
     </header>
 
     <nav class="sidenav" aria-label="เมนูหลัก">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.20.0" alt="" width="36" height="36"><span class="brand-text">HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.20.1" alt="" width="36" height="36"><span class="brand-text">HR Paper Mill</span></div>
       <div class="nav-items">
         <button type="button" class="nav-item" data-tab="form" aria-current="page"><svg class="ic ic-22" aria-hidden="true"><use href="#i-send"/></svg><span>ส่งรายงาน</span></button>
         <button type="button" class="nav-item" data-tab="history"><svg class="ic ic-22" aria-hidden="true"><use href="#i-history"/></svg><span>ประวัติ</span></button>
@@ -426,7 +424,7 @@
           <li data-target="stepPhoto"><button type="button"><span class="st-dot mono">3</span><span class="st-text"><small>ขั้นที่ 3</small><b>ภาพหลักฐาน</b></span></button></li>
           <li data-target="submitCard"><button type="button"><span class="st-dot mono">4</span><span class="st-text"><small>สุดท้าย</small><b>บันทึก</b></span></button></li>
         </ol>
-        <p class="stepper-note" id="stepperNote" aria-live="polite"></p>
+        <p class="stepper-note" id="stepperNote" aria-live="polite"><svg class="ic ic-16" aria-hidden="true"><use href="#i-info"/></svg><span></span></p>
       </nav>
 
       <form id="salesForm" class="form-grid" novalidate>
@@ -492,7 +490,7 @@
               <span class="step-num mono">3</span>
               <h3 id="stepPhotoTitle">ถ่ายภาพหลักฐาน</h3>
             </div>
-            <input type="file" id="evidenceImg" class="sr-only" accept="image/*" capture="environment">
+            <input type="file" id="evidenceImg" class="sr-only" accept="image/*" capture="environment" tabindex="-1">
             <div id="photoEmpty" class="upload-choices">
               <button type="button" class="upload" id="cameraOpen" hidden>
                 <svg class="ic ic-30" aria-hidden="true"><use href="#i-camera"/></svg>
@@ -647,14 +645,14 @@
     </nav>
   </div>
 
-  <script src="js/config.js?v=3.20.0"></script>
-  <script src="js/utils.js?v=3.20.0"></script>
-  <script src="js/api.js?v=3.20.0"></script>
-  <script src="js/notify.js?v=3.20.0"></script>
-  <script src="js/outbox.js?v=3.20.0"></script>
-  <script src="js/camera.js?v=3.20.0"></script>
-  <script src="js/charts.js?v=3.20.0"></script>
-  <script src="js/app.js?v=3.20.0"></script>
-  <script src="js/report.js?v=3.20.0"></script>
+  <script src="js/config.js?v=3.20.1"></script>
+  <script src="js/utils.js?v=3.20.1"></script>
+  <script src="js/api.js?v=3.20.1"></script>
+  <script src="js/notify.js?v=3.20.1"></script>
+  <script src="js/outbox.js?v=3.20.1"></script>
+  <script src="js/camera.js?v=3.20.1"></script>
+  <script src="js/charts.js?v=3.20.1"></script>
+  <script src="js/app.js?v=3.20.1"></script>
+  <script src="js/report.js?v=3.20.1"></script>
 </body>
 </html>

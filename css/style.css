@@ -1075,7 +1075,13 @@ h1, h2, h3 { font-weight: 500; letter-spacing: -.01em; }
 .stepper li.is-done .st-text small { color: var(--ok); }
 .stepper li.is-current button { border-top-color: var(--accent); }
 .stepper li.is-current .st-text small, .stepper li.is-current .st-text b { color: var(--accent); }
-.stepper-note { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+.stepper-note { display: flex; align-items: center; gap: 6px; margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+.stepper-note .ic { flex: none; }
+.stepper-note.is-done, .stepper-note.is-queued {
+    padding: 8px 12px; border-radius: 999px; font-weight: 500; font-size: 14px; width: fit-content; max-width: 100%;
+}
+.stepper-note.is-done { background: var(--ok-soft); color: var(--ok); }
+.stepper-note.is-queued { background: var(--accent-soft); color: var(--on-accent-soft); }
 .step, .submit-card { scroll-margin-top: calc(56px + 92px + env(safe-area-inset-top)); }
 html:has(#formView:not([hidden])) { scroll-snap-type: y proximity; }
 #formView .step, #formView .submit-card { scroll-snap-align: start; }
@@ -1189,7 +1195,8 @@ dialog.camera::backdrop { background: #000; }
 .g-zone i, .g-label { font-style: normal; font-size: 12px; font-weight: 500; padding: 3px 10px; border-radius: 999px; background: rgba(0, 0, 0, .55); color: #fff; transform: translateY(-50%); white-space: nowrap; }
 .g-seller { left: 50%; width: min(38%, 220px); aspect-ratio: 3 / 4; top: 22%; transform: translateX(-50%); border-radius: 45% 45% 22% 22%; }
 .g-card { left: 10%; width: 32%; bottom: 27%; aspect-ratio: 1.58; }
-.g-label { position: absolute; left: 50%; top: 16%; transform: translate(-50%, -140%); }
+.g-label { position: absolute; left: 50%; top: 16%; transform: translate(-50%, -140%); max-width: 86%; white-space: normal; text-align: center; font-size: 13px; }
+.cam-btn-space { width: 48px; height: 48px; }
 .cam-top { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 12px; padding: calc(12px + env(safe-area-inset-top)) 16px 24px; background: linear-gradient(rgba(0, 0, 0, .55), transparent); }
 .cam-profile { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .cam-profile small { display: block; font-size: 11px; opacity: .8; }

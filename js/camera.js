@@ -61,7 +61,6 @@ const Camera = (() => {
         el('camFlip').addEventListener('click', async () => { facing = facing === 'environment' ? 'user' : 'environment'; try { await start(); } catch (e) { facing = 'environment'; } });
         el('camRetake').addEventListener('click', () => { el('camReview').hidden = true; shot = null; el('camShutter').focus(); });
         el('camUse').addEventListener('click', () => finish(shot));
-        el('camGallery').addEventListener('click', () => finish('gallery'));
         el('cameraModal').addEventListener('cancel', e => { e.preventDefault(); finish(null); });
         document.addEventListener('visibilitychange', () => { if (document.hidden && stream && el('cameraModal').open) stop(); else if (!document.hidden && el('cameraModal').open && !stream) start().catch(() => {}); });
     }
