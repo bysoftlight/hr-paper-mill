@@ -8,7 +8,7 @@ const Charts = (() => {
     const NS = 'http://www.w3.org/2000/svg';
     const registry = new Map();
     const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-    const reduced = () => (window.Prefs && Prefs.get('motion')) || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    const reduced = () => (typeof Prefs !== 'undefined' && Prefs.get('motion')) || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
     const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const fmt = n => Number(n).toLocaleString('th-TH');
 

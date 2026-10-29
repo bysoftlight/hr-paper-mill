@@ -246,7 +246,7 @@ function initDialogs() {
 // store = {} ของแต่ละหน้า จำค่าล่าสุดตาม key → ข้อมูลอัปเดตสด นับจากค่าเก่าไปค่าใหม่ ไม่เริ่มจาก 0 ทุกครั้ง
 // เริ่มนับเมื่อเลื่อนมาเห็นตัวเลข · ปิดการเคลื่อนไหว (ตั้งค่า/ระบบ) = แสดงค่าทันที
 const Counting = (() => {
-    const reduced = () => (window.Prefs && Prefs.get('motion')) || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    const reduced = () => (typeof Prefs !== 'undefined' && Prefs.get('motion')) || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
     const fmt = (n, d) => Number(n).toLocaleString('th-TH', { minimumFractionDigits: d, maximumFractionDigits: d });
     const ease = p => 1 - Math.pow(1 - p, 3);
 

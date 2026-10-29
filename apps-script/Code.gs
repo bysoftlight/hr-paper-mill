@@ -4,7 +4,7 @@
 //      - หน้าผู้ใช้สิทธิ์ (index.html): login / history / submit / image
 //      - หน้าเจ้าหน้าที่ (staff.html): staff.* และ admin.* (ดู Staff.gs, Admin.gs)
 //   2) หน้าเว็บของ Apps Script เอง (Index.html) → เรียกผ่าน google.script.run
-// ไฟล์ในโปรเจกต์: Code.gs, Schema.gs, Auth.gs, Staff.gs, Admin.gs, Export.gs, Notify.gs (+ Index.html) — วิธีติดตั้งดู apps-script/README.md
+// ไฟล์ในโปรเจกต์: Code.gs, Schema.gs, Auth.gs, Staff.gs, Admin.gs, Export.gs, Notify.gs, Analytics.gs (+ Index.html) — วิธีติดตั้งดู apps-script/README.md
 // หลังแก้โค้ด: Deploy → Manage deployments → Edit (รูปดินสอ) → Version: New version → Deploy
 // ตั้งค่า deployment: Execute as = Me, Who has access = Anyone
 
@@ -38,6 +38,14 @@ function doPost(e) {
   // ข้อผิดพลาดที่เกิดบนเครื่องผู้ใช้ (หน้าเว็บส่งมาเอง) → Logs เป็น client.error
   if (req.action === 'log.error') {
     try { return json_(logClientError_(req)); } catch (err) { return json_({ success: false }); }
+  }
+
+  // สถิติการใช้งาน (ดู Analytics.gs) — ไม่ระบุตัวตน ส่งมาเป็นชุด
+  if (req.action === 'analytics.track') {
+    try {
+      if (typeof analyticsTrack_ !== 'function') return json_({ success: false, message: 'ยังไม่ได้เพิ่มไฟล์ Analytics.gs' });
+      return json_(analyticsTrack_(req));
+    } catch (err) { return json_({ success: false }); }
   }
 
   // การแจ้งเตือนของผู้ใช้สิทธิ์ และ service worker (ดู Notify.gs)
@@ -116,7 +124,8 @@ function healthCheck_() {
     'Staff.gs': typeof staffLogoutEverywhere_ === 'function',
     'Admin.gs': typeof adminStaffDelete_ === 'function',
     'Export.gs': typeof staffExportGsheet_ === 'function',
-    'Notify.gs': typeof handleNotifyRequest_ === 'function'
+    'Notify.gs': typeof handleNotifyRequest_ === 'function',
+    'Analytics.gs': typeof analyticsTrack_ === 'function'
   };
   const sheets = {};
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);

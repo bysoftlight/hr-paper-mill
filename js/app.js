@@ -39,6 +39,7 @@ const $ = (id) => document.getElementById(id);
 ErrorLog.identify = () => ({ who: CURRENT_USER.id || '', whoName: CURRENT_USER.name || '', role: 'participant' });
 
 window.addEventListener('DOMContentLoaded', () => {
+    Analytics.init({ app: 'user', role: 'participant' });
     initDialogs();
     initRules();
     initLogin();
@@ -59,6 +60,7 @@ window.addEventListener('DOMContentLoaded', () => {
             performLogin(savedId, true);
         }
     } else {
+        Analytics.page('login');
         showRulesModal(true);
     }
 
@@ -165,6 +167,7 @@ function showAppSkeleton() {
 }
 
 function backToLogin() {
+    Analytics.page('login');
     $('appContainer').hidden = true;
     $('appContainer').classList.remove('is-booting');
     $('loginView').hidden = false;
@@ -209,6 +212,7 @@ async function performLogin(userId, isAuto, background = false) {
     if (!isAuto) setLoginBusy(false);
 
     if (res.success) {
+        if (!isAuto) Analytics.track('login', { l: 'manual' });
         userStore.set(USER_KEY, res.data.id);
         CURRENT_USER = res.data;
         if (!isAuto) maybeOnboard();
@@ -235,6 +239,7 @@ async function performLogin(userId, isAuto, background = false) {
         userStore.remove(CACHE_KEY);
         if (isAuto) backToLogin();
         setLoginId(isAuto ? '' : $('loginId').value);
+        Analytics.track('login_fail', { l: res.code || 'not_found' });
         setLoginError(res.message || 'ไม่พบรหัสผู้ใช้สิทธิ์นี้ กรุณาตรวจสอบอีกครั้ง');
         if (isAuto) showRulesModal(true);
     }
@@ -365,6 +370,7 @@ function switchTab(tab, pushHash = true) {
     });
     if (pushHash && location.hash !== '#' + tab) setUrl('#' + tab, true);
     window.scrollTo({ top: 0 });
+    Analytics.page(tab);
     if (tab === 'history' && !HISTORY_LOADED) loadHistoryData();
 }
 
@@ -398,7 +404,7 @@ function initForm() {
     // แถบขั้นตอน: แตะเพื่อเลื่อนไปขั้นนั้นอย่างนุ่มนวล
     document.querySelectorAll('#stepper li').forEach(li => li.querySelector('button').addEventListener('click', () => scrollToStep(li.dataset.target)));
     // ทำขั้นตอนเสร็จ → เลื่อนไปขั้นถัดไปที่ยังไม่เสร็จ
-    document.querySelectorAll('input[name="salesTypeRadio"]').forEach(r => r.addEventListener('change', () => advanceStep('stepType')));
+    document.querySelectorAll('input[name="salesTypeRadio"]').forEach(r => r.addEventListener('change', () => { advanceStep('stepType'); trackType(); }));
     updateChecklist();
 }
 
@@ -437,6 +443,7 @@ function getLocation() {
             $('locRefresh').disabled = false;
             $('stepLocation').classList.remove('is-error');
             updateChecklist();
+            Analytics.track('location_ok', { p: 'form', v: accuracy, l: accuracy > 100 ? 'low_accuracy' : 'ok' });
         },
         (err) => {
             const denied = err && err.code === 1;
@@ -444,6 +451,7 @@ function getLocation() {
                 denied ? 'เปิดสิทธิ์ตำแหน่งในการตั้งค่าเบราว์เซอร์ แล้วกด "ลองใหม่"' : 'กรุณาเปิด GPS แล้วกด "ลองใหม่"');
             $('locRefresh').disabled = false;
             updateChecklist();
+            Analytics.track('location_fail', { p: 'form', l: denied ? 'denied' : err && err.code === 3 ? 'timeout' : 'unavailable' });
         },
         { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
@@ -469,6 +477,7 @@ async function updateFileName(opts = {}) {
         const result = await compressImage(file, ...photoSize(), { stamp: stampLines(), profile: stampProfile(), hash: true });
         if (token !== compressToken) return;
         COMPRESSED = Object.assign(result, { withGps: !!GPS_FIX });
+        if (!opts.restamp) Analytics.track('photo_ok', { p: 'form', l: PICKED_FILE ? 'camera' : 'file', v: Math.round(result.bytes / 1024) });
         // แสดงรูปที่ประทับวัน-เวลา-พิกัดแล้ว (รูปนี้คือรูปที่จะส่งจริง)
         $('photoPreview').src = 'data:image/jpeg;base64,' + result.base64;
         $('fileNameDisplay').textContent = `${file.name} · ${formatBytes(file.size)} → ${formatBytes(result.bytes)} · ประทับวัน-เวลา${GPS_FIX ? '-พิกัด' : ''}แล้ว`;
@@ -497,13 +506,22 @@ async function openCamera() {
         profile: { name: CURRENT_USER.name, id: CURRENT_USER.id, pic: CURRENT_USER.pic },
         stampPreview: () => { const l = stampLines(); return [l[1].replace(/:\d\d น\.$/, ' น.'), GPS_FIX ? `±${Math.round(GPS_FIX.acc)} ม.` : 'รอพิกัด GPS']; }
     });
-    if (res && res.error) { await showMessage({ title: 'เปิดกล้องไม่ได้', text: res.error, tone: 'warn' }); return $('evidenceImg').click(); }
+    if (res && res.error) { Analytics.track('camera_error', { p: 'form', l: res.error.slice(0, 40) }); await showMessage({ title: 'เปิดกล้องไม่ได้', text: res.error, tone: 'warn' }); return $('evidenceImg').click(); }
     if (res instanceof File) {
         PICKED_FILE = res;
         CAPTURE_AT = Date.now();
         $('evidenceImg').value = '';
         updateFileName();
     }
+}
+
+// ประเภทการขาย: นับครั้งเดียวต่อรายงาน (เปลี่ยนเองหรือใช้ค่าเริ่มต้นตอนกดบันทึก)
+let TYPE_TRACKED = false;
+function trackType() {
+    if (TYPE_TRACKED) return;
+    TYPE_TRACKED = true;
+    const v = document.querySelector('input[name="salesTypeRadio"]:checked');
+    Analytics.track('type_select', { p: 'form', l: v && v.value === AGENT_TYPE ? 'agent' : 'self' });
 }
 
 function formState() {
@@ -598,22 +616,28 @@ async function handleFormSubmit(e) {
         return;
     }
     if (TODAY_RECORD) {
+        Analytics.track('submit_blocked', { p: 'form', l: 'already_sent' });
         await showMessage({ title: 'วันนี้ส่งรายงานแล้ว', text: `ส่งไปเมื่อเวลา ${TODAY_RECORD.time} น. ระบบรับรายงานวันละหนึ่งครั้ง ส่งครั้งถัดไปได้พรุ่งนี้`, tone: 'ok' });
         return;
     }
     const s = formState();
     if (!s.location) {
+        Analytics.track('submit_blocked', { p: 'form', l: 'no_location' });
         flagStep('stepLocation');
         await showMessage({ title: 'ยังไม่ได้รับพิกัด', text: 'กรุณาเปิด GPS แล้วกด "ลองใหม่" ในขั้นตอนที่ 1', tone: 'warn' });
         if ($('locRefresh').disabled === false) getLocation();
         return;
     }
     if (!s.photo) {
+        Analytics.track('submit_blocked', { p: 'form', l: 'no_photo' });
         flagStep('stepPhoto');
         await showMessage({ title: 'ยังไม่ได้ถ่ายภาพหลักฐาน', text: 'ถ่ายภาพให้เห็นบัตรประจำร้านค้าผู้พิการ ล็อคที่ขาย และผู้ที่ขาย', tone: 'warn' });
         return;
     }
     const selectedSalesType = document.querySelector('input[name="salesTypeRadio"]:checked')?.value;
+    trackType();
+    Analytics.track('submit', { p: 'form', l: navigator.onLine === false ? 'offline' : 'online' });
+    const t0 = Date.now();
 
     SUBMITTING = true;
     $('submitBtn').disabled = true;
@@ -637,18 +661,22 @@ async function handleFormSubmit(e) {
         if (session !== SESSION) return;
 
         if (res.success) {
+            Analytics.track('submit_success', { p: 'form', l: selectedSalesType === AGENT_TYPE ? 'agent' : 'self', v: Date.now() - t0 });
             const time = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
             await showMessage({ title: 'บันทึกรายงานแล้ว', text: `${res.message || 'บันทึกข้อมูลเรียบร้อย'} · ${selectedSalesType} · ${time} น.`, tone: 'ok', okText: 'ดูประวัติ' });
             resetReportForm();
             loadHistoryData(true);
             switchTab('history');
         } else if (res.networkError && !res.serverError) {
+            Analytics.track('submit_queued', { p: 'form' });
             await queueReport(formData);
         } else {
+            Analytics.track('submit_fail', { p: 'form', l: String(res.code || res.message || 'error').slice(0, 60) });
             showMessage({ title: 'บันทึกไม่สำเร็จ', text: res.message || 'กรุณาลองใหม่อีกครั้ง', tone: 'bad' });
         }
     } catch (error) {
         showLoading(false);
+        Analytics.track('submit_fail', { p: 'form', l: 'client: ' + String(error && error.message || error).slice(0, 50) });
         showMessage({ title: 'เกิดข้อผิดพลาด', text: 'Client Error: ' + error.toString(), tone: 'bad' });
     } finally {
         SUBMITTING = false;
@@ -658,6 +686,7 @@ async function handleFormSubmit(e) {
 
 function resetReportForm() {
     $('salesForm').reset();
+    TYPE_TRACKED = false;
     PICKED_FILE = null;
     CAPTURE_AT = 0;
     updateFileName();
@@ -709,6 +738,8 @@ async function flushOutbox(manual) {
 }
 
 async function handleOutboxResults(sent, rejected, stillPending) {
+    if (sent) Analytics.track('outbox_sent', { v: sent });
+    if (rejected.length) Analytics.track('outbox_rejected', { v: rejected.length, l: String(rejected[0] || '').slice(0, 60) });
     await refreshOutbox();
     if (sent) { toastUser(`ส่งรายงานที่ค้างไว้แล้ว ${sent} รายการ`); loadHistoryData(true); }
     if (rejected && rejected.length) showMessage({ title: 'ส่งรายงานที่ค้างไว้ไม่ได้', text: rejected[0] || 'กรุณาติดต่อเจ้าหน้าที่', tone: 'warn' });
@@ -928,11 +959,13 @@ function renderCalendar() {
     }));
 }
 function shiftCalendar(delta) {
+    Analytics.track('calendar_nav', { l: delta < 0 ? 'prev' : 'next' });
     CAL_MONTH = new Date(CAL_MONTH.getFullYear(), CAL_MONTH.getMonth() + delta, 1);
     renderCalendar();
 }
 
 function changeFilter(type) {
+    if (type !== CURRENT_FILTER) Analytics.track('history_filter', { l: type });
     CURRENT_FILTER = type;
     document.querySelectorAll('[data-filter]').forEach(btn => {
         const on = btn.dataset.filter === type;
@@ -1332,5 +1365,5 @@ function openOnboarding() {
     $('obTrack').dispatchEvent(new Event('scroll'));
     $('obNext').focus();
 }
-function closeOnboarding() { $('onboardModal').close(); }
+function closeOnboarding() { if ($('onboardModal').open) Analytics.track('onboarding_close'); $('onboardModal').close(); }
 function maybeOnboard() { if (!store.get(ONBOARD_KEY)) setTimeout(openOnboarding, 400); }
