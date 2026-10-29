@@ -239,3 +239,58 @@ function initDialogs() {
         }
     });
 }
+
+// ---------- ตัวเลขนับขึ้น (Counting Number) ----------
+// Counting.to(el, 123)           → นับจากค่าเดิมของ el (ครั้งแรก = 0) ไปถึง 123
+// cnum(123, 'key')               → HTML <span data-count> สำหรับใส่ในเทมเพลต แล้วเรียก Counting.scan(root, store)
+// store = {} ของแต่ละหน้า จำค่าล่าสุดตาม key → ข้อมูลอัปเดตสด นับจากค่าเก่าไปค่าใหม่ ไม่เริ่มจาก 0 ทุกครั้ง
+// เริ่มนับเมื่อเลื่อนมาเห็นตัวเลข · ปิดการเคลื่อนไหว (ตั้งค่า/ระบบ) = แสดงค่าทันที
+const Counting = (() => {
+    const reduced = () => (window.Prefs && Prefs.get('motion')) || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    const fmt = (n, d) => Number(n).toLocaleString('th-TH', { minimumFractionDigits: d, maximumFractionDigits: d });
+    const ease = p => 1 - Math.pow(1 - p, 3);
+
+    function to(el, value, opts = {}) {
+        if (!el) return;
+        value = Number(value) || 0;
+        const d = opts.decimals || 0, duration = opts.duration || 900;
+        const from = opts.from !== undefined ? Number(opts.from) || 0 : el._countVal !== undefined ? el._countVal : 0;
+        el._countVal = value;
+        cancelAnimationFrame(el._countRaf);
+        if (el._countIo) el._countIo.disconnect();
+        clearTimeout(el._countT);
+        if (from === value || reduced() || !window.requestAnimationFrame) { el.textContent = fmt(value, d); return; }
+        el.textContent = fmt(from, d);
+        const live = el.closest('[aria-live]');
+        const run = () => {
+            // ระหว่างนับ ไม่ให้โปรแกรมอ่านหน้าจออ่านตัวเลขที่กำลังเปลี่ยน
+            if (live) live.setAttribute('aria-busy', 'true');
+            const t0 = performance.now();
+            const step = now => {
+                const p = Math.min(1, (now - t0) / duration);
+                el.textContent = fmt(from + (value - from) * ease(p), d);
+                if (p < 1) el._countRaf = requestAnimationFrame(step);
+                else { el.textContent = fmt(value, d); if (live) live.removeAttribute('aria-busy'); }
+            };
+            el._countRaf = requestAnimationFrame(step);
+        };
+        const later = () => { el._countT = setTimeout(run, opts.delay || 0); };
+        if ('IntersectionObserver' in window) {
+            el._countIo = new IntersectionObserver(es => { if (es.some(x => x.isIntersecting)) { el._countIo.disconnect(); later(); } });
+            el._countIo.observe(el);
+        } else later();
+    }
+
+    function scan(root, store) {
+        if (!root) return;
+        root.querySelectorAll('[data-count]').forEach((el, i) => {
+            const key = el.dataset.countKey || String(i), v = Number(el.dataset.count) || 0;
+            to(el, v, { from: store && key in store ? store[key] : 0, decimals: Number(el.dataset.decimals) || 0, delay: Math.min(i, 6) * 70 });
+            if (store) store[key] = v;
+        });
+    }
+    return { to, scan, fmt };
+})();
+function cnum(n, key, decimals = 0) {
+    return `<span class="count" data-count="${Number(n) || 0}"${key ? ` data-count-key="${key}"` : ''}${decimals ? ` data-decimals="${decimals}"` : ''}>${Counting.fmt(Number(n) || 0, decimals)}</span>`;
+}

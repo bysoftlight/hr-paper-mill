@@ -104,6 +104,7 @@ b { font-weight: 600; }
     clip: rect(0 0 0 0); white-space: nowrap;
 }
 
+.count { font-variant-numeric: tabular-nums; }
 .mono { font-family: var(--mono); font-weight: 500; font-variant-numeric: tabular-nums; }
 .muted-text { color: var(--muted); font-size: 13px; }
 .label { font-size: 14px; font-weight: 500; }

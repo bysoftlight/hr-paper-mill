@@ -185,9 +185,10 @@ VIEWS.participants = {
         const meta = ST.participantMeta || { daysSoFar: now.d, agentLimit: 10 };
         $('pStats').innerHTML = `
           <div class="kpi ${p.reportedToday ? 'is-ok' : 'is-bad'}"><small>วันนี้</small><b>${p.reportedToday ? 'ส่งแล้ว' : 'ยังไม่ส่ง'}</b></div>
-          <div class="kpi"><small>เดือนนี้</small><b>${Math.min(p.monthCount, meta.daysSoFar)}<span class="of">/${meta.daysSoFar} วัน</span></b></div>
-          <div class="kpi ${p.monthAgent > meta.agentLimit ? 'is-bad' : p.monthAgent >= meta.agentLimit * 0.5 ? 'is-warn' : ''}"><small>ขายโดยตัวแทน</small><b>${p.monthAgent}<span class="of">/${meta.agentLimit}</span></b></div>
-          <div class="kpi"><small>ทั้งปี</small><b>${fmtNum(p.yearCount)}<span class="of"> รายการ</span></b></div>`;
+          <div class="kpi"><small>เดือนนี้</small><b>${cnum(Math.min(p.monthCount, meta.daysSoFar))}<span class="of">/${meta.daysSoFar} วัน</span></b></div>
+          <div class="kpi ${p.monthAgent > meta.agentLimit ? 'is-bad' : p.monthAgent >= meta.agentLimit * 0.5 ? 'is-warn' : ''}"><small>ขายโดยตัวแทน</small><b>${cnum(p.monthAgent)}<span class="of">/${meta.agentLimit}</span></b></div>
+          <div class="kpi"><small>ทั้งปี</small><b>${cnum(p.yearCount)}<span class="of"> รายการ</span></b></div>`;
+        Counting.scan($('pStats'));
         $('pKv').innerHTML = [
             ['จุดขาย', esc(p.site || '-')],
             ['พิกัดจุดขาย', p.siteLat !== null ? `<a href="https://maps.google.com/maps?q=${p.siteLat},${p.siteLng}" target="_blank" rel="noopener" class="mono">${Number(p.siteLat).toFixed(5)}, ${Number(p.siteLng).toFixed(5)}</a>` : 'ยังไม่ได้ระบุ'],
