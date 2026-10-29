@@ -169,10 +169,13 @@ document.addEventListener('DOMContentLoaded', watchScrollGlass);
 // ใช้กับการเลื่อนด้วยนิ้วเท่านั้น (เมาส์/ทัชแพดเลื่อนตามปกติ) · แตะจอระหว่างเลื่อน = หยุดทันที
 const SoftSnap = (() => {
     const SEL = '.view:not([hidden]) > .view-head, .view:not([hidden]) section.card, .view:not([hidden]) .card.step, .view:not([hidden]) .submit-card, .view:not([hidden]) .kpis, .view:not([hidden]) > .toolbar';
-    let touching = false, touchedAt = 0, lastY = 0, dir = 0, timer = 0, raf = 0, animating = false;
+    // armed = นิ้วเพิ่งปล่อยหลังปัดจริง (ทำได้ครั้งเดียวต่อการปัด) · dir มาจากทิศของนิ้ว ไม่ใช่จาก scroll event
+    // (ตอนเด้งที่ขอบล่างของ iPhone หน้าเลื่อนย้อนขึ้นเอง ถ้าใช้ทิศจาก scroll จะถูกดึงกลับขึ้นไป)
+    let armed = false, dir = 0, startY = 0, timer = 0, raf = 0, animating = false;
     const on = () => Prefs.get('snap') && !document.querySelector('dialog[open]');
     const reduced = () => Prefs.get('motion') || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
     const busyInput = () => { const a = document.activeElement; return a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.type !== 'checkbox' && a.type !== 'radio'; };
+    const maxY = () => document.documentElement.scrollHeight - window.innerHeight;
 
     function cancel() { cancelAnimationFrame(raf); animating = false; }
     function glide(to) {
@@ -190,40 +193,45 @@ const SoftSnap = (() => {
         };
         raf = requestAnimationFrame(step);
     }
-    // หาจุดหยุดที่ใกล้ที่สุดตามทิศที่เลื่อน
+    // เลื่อนต่อไปข้างหน้า (ทางเดียวกับนิ้ว) ให้หัวข้อที่ "ใกล้" ชิดใต้แถบบน — ไม่ดึงย้อนกลับ ไม่ทำใกล้ขอบล่าง
     function settle() {
-        if (touching || animating || !on() || busyInput()) return;
-        if (Date.now() - touchedAt > 2500) return; // ไม่ได้เลื่อนด้วยนิ้ว (เมาส์/คีย์บอร์ด/โค้ด)
-        const y = window.scrollY, vh = window.innerHeight, max = document.documentElement.scrollHeight - vh;
-        if (y <= 0 || y >= max - 2) return; // บนสุด/ล่างสุดอยู่แล้ว
-        const ahead = vh * 0.32, behind = vh * 0.12; // ระยะ "ใกล้" ทางที่เลื่อนไป / ย้อนกลับเล็กน้อย
+        if (!armed || animating || !on() || busyInput() || !dir) return;
+        armed = false;
+        const y = window.scrollY, vh = window.innerHeight, max = maxY();
+        if (max < vh * 0.6) return;                       // หน้าสั้น: ไม่ต้องจัด
+        if (y <= 0 || y >= max - vh * 0.15) return;       // บนสุด / ใกล้ล่างสุด (รวมตอนเด้ง)
+        const reach = vh * 0.25;
         let best = null;
         document.querySelectorAll(SEL).forEach(el => {
-            if (!el.offsetParent && el.getClientRects().length === 0) return;
+            if (el.getClientRects().length === 0) return;
             const t = Math.min(max, Math.max(0, Math.round(el.getBoundingClientRect().top + y - (parseFloat(getComputedStyle(el).scrollMarginTop) || 0))));
-            const d = t - y;
-            const okRange = dir >= 0 ? (d >= -behind && d <= ahead) : (d <= behind && d >= -ahead);
-            if (okRange && (!best || Math.abs(d) < Math.abs(best.d))) best = { t, d };
+            const d = (t - y) * dir;                       // > 0 = อยู่ข้างหน้าตามทิศที่ปัด
+            if (d > 2 && d <= reach && (!best || d < best.d)) best = { t, d };
         });
-        if (best && Math.abs(best.d) >= 2) glide(best.t);
+        if (best) glide(best.t);
     }
     function onScroll() {
-        const y = window.scrollY;
-        if (y !== lastY) dir = y > lastY ? 1 : -1;
-        lastY = y;
-        if (animating) return;
+        if (animating || !armed) return;
         clearTimeout(timer);
-        timer = setTimeout(settle, 140); // แรงเหวี่ยงหยุดแล้ว (ไม่มีการเลื่อนเพิ่ม 140ms)
+        timer = setTimeout(settle, 160); // แรงเหวี่ยงหยุดแล้ว
     }
     function init() {
-        lastY = window.scrollY;
         window.addEventListener('scroll', onScroll, { passive: true });
-        document.addEventListener('touchstart', () => { touching = true; touchedAt = Date.now(); cancel(); clearTimeout(timer); }, { passive: true });
-        const up = () => { touching = false; touchedAt = Date.now(); clearTimeout(timer); timer = setTimeout(settle, 140); };
+        document.addEventListener('touchstart', e => {
+            cancel(); clearTimeout(timer); armed = false;
+            startY = e.touches && e.touches[0] ? e.touches[0].clientY : 0;
+        }, { passive: true });
+        const up = e => {
+            const t = e.changedTouches && e.changedTouches[0];
+            const moved = t ? startY - t.clientY : (e.detail && e.detail.dy) || 0; // > 0 = ปัดขึ้น (เลื่อนหน้าลง)
+            dir = Math.abs(moved) > 12 ? Math.sign(moved) : 0;
+            armed = !!dir;
+            clearTimeout(timer);
+            if (armed) timer = setTimeout(settle, 160);
+        };
         document.addEventListener('touchend', up, { passive: true });
-        document.addEventListener('touchcancel', up, { passive: true });
-        // เมาส์/คีย์บอร์ดระหว่างเลื่อนอัตโนมัติ = หยุด
-        ['wheel', 'keydown', 'mousedown'].forEach(t => window.addEventListener(t, cancel, { passive: true }));
+        document.addEventListener('touchcancel', () => { armed = false; }, { passive: true });
+        ['wheel', 'keydown', 'mousedown'].forEach(t => window.addEventListener(t, () => { cancel(); armed = false; }, { passive: true }));
     }
     return { init, settle, glide };
 })();
