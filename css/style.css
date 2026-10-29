@@ -1187,18 +1187,19 @@ dialog.camera::backdrop { background: #000; }
 .camera.is-flash .cam-stage::after { content: ""; position: absolute; inset: 0; background: #fff; opacity: .7; pointer-events: none; }
 .cam-guide { position: absolute; inset: 0; pointer-events: none; }
 .g-corner { position: absolute; width: 34px; height: 34px; border: 3px solid rgba(255, 255, 255, .9); }
-.g-corner.tl { top: 16%; left: 7%; border-right: 0; border-bottom: 0; border-top-left-radius: 14px; }
-.g-corner.tr { top: 16%; right: 7%; border-left: 0; border-bottom: 0; border-top-right-radius: 14px; }
-.g-corner.bl { bottom: 24%; left: 7%; border-right: 0; border-top: 0; border-bottom-left-radius: 14px; }
-.g-corner.br { bottom: 24%; right: 7%; border-left: 0; border-top: 0; border-bottom-right-radius: 14px; }
-.g-zone { position: absolute; border: 2px dashed rgba(255, 255, 255, .75); border-radius: 16px; display: flex; align-items: flex-start; justify-content: center; }
-.g-zone i, .g-label { font-style: normal; font-size: 12px; font-weight: 500; padding: 3px 10px; border-radius: 999px; background: rgba(0, 0, 0, .55); color: #fff; transform: translateY(-50%); white-space: nowrap; }
-.g-seller { left: 50%; width: min(38%, 220px); aspect-ratio: 3 / 4; top: 22%; transform: translateX(-50%); border-radius: 45% 45% 22% 22%; }
-.g-card { left: 10%; width: 32%; bottom: 27%; aspect-ratio: 1.58; }
-.g-label { position: absolute; left: 50%; top: 16%; transform: translate(-50%, -140%); max-width: 86%; white-space: normal; text-align: center; font-size: 13px; }
+.g-corner.tl { top: var(--guide-top, 16%); left: 7%; border-right: 0; border-bottom: 0; border-top-left-radius: 14px; }
+.g-corner.tr { top: var(--guide-top, 16%); right: 7%; border-left: 0; border-bottom: 0; border-top-right-radius: 14px; }
+.g-corner.bl { bottom: var(--guide-bottom, 24%); left: 7%; border-right: 0; border-top: 0; border-bottom-left-radius: 14px; }
+.g-corner.br { bottom: var(--guide-bottom, 24%); right: 7%; border-left: 0; border-top: 0; border-bottom-right-radius: 14px; }
 .cam-btn-space { width: 48px; height: 48px; }
-.cam-top { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 12px; padding: calc(12px + env(safe-area-inset-top)) 16px 24px; background: linear-gradient(rgba(0, 0, 0, .55), transparent); }
-.cam-profile { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.cam-top { position: absolute; top: 0; left: 0; right: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; padding: calc(12px + env(safe-area-inset-top)) 16px 24px; background: linear-gradient(rgba(0, 0, 0, .55), transparent); }
+.cam-profile { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 0; }
+/* คำแนะนำ: บรรทัดของตัวเองใต้แถบโปรไฟล์ (จอแนวนอนกว้างพอ = อยู่ขวามือในแถวเดียวกัน) */
+.cam-hint { flex: 1 1 100%; margin: 0; padding: 7px 14px; border-radius: 14px; background: rgba(0, 0, 0, .5); font-size: 13px; line-height: 1.45; text-align: center; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+@media (orientation: landscape) and (min-width: 700px) {
+    .cam-top { flex-wrap: nowrap; }
+    .cam-hint { flex: 0 1 auto; max-width: 46%; }
+}
 .cam-profile small { display: block; font-size: 11px; opacity: .8; }
 .cam-profile b { display: block; font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cam-avatar { display: grid; place-items: center; flex: none; width: 46px; height: 46px; border-radius: 50%; overflow: hidden; border: 2px solid #fff; background: #0850D1; font-weight: 600; }
@@ -1214,11 +1215,6 @@ dialog.camera::backdrop { background: #000; }
 .cam-review img { flex: 1; min-height: 0; width: 100%; object-fit: contain; }
 .cam-review-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 14px 16px calc(16px + env(safe-area-inset-bottom)); }
 .cam-review-actions .btn-outline { background: transparent; color: #fff; border-color: rgba(255, 255, 255, .6); }
-@media (orientation: landscape) and (max-height: 560px) {
-    .g-seller { top: 14%; bottom: 30%; left: 38%; right: 38%; }
-    .g-card { width: 22%; bottom: 18%; }
-    .g-corner.tl, .g-corner.tr { top: 10%; } .g-corner.bl, .g-corner.br { bottom: 16%; }
-}
 
 /* --- รายงานรอส่ง (ออฟไลน์) + toast ของหน้าผู้ใช้สิทธิ์ --- */
 .outbox-banner { align-items: center; margin-bottom: 14px; }

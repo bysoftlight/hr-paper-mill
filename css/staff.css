@@ -344,6 +344,10 @@ button.feed-item, button.person { cursor: pointer; }
     .view-toggle { flex: 1 1 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .head-actions .btn-chip { flex: 1; }
     .head-actions { width: 100%; }
+    /* ปุ่มเล็ก (เช่น รีเฟรช) อยู่บรรทัดเดียวกับหัวเรื่อง ชิดขวาบน */
+    .view-head-row:has(.head-inline) { flex-wrap: nowrap; }
+    .view-head-row:has(.head-inline) > div:first-child { flex: 1 1 auto; min-width: 0; }
+    .head-actions.head-inline { width: auto; flex: none; margin-top: 2px; }
 }
 @media (prefers-reduced-motion: reduce) {
     .live-dot, .thumb.is-loading { animation: none; }
@@ -423,7 +427,7 @@ button.feed-item, button.person { cursor: pointer; }
 .rank-bar b { font-size: 12px; min-width: 2.5em; text-align: right; }
 /* KPI: บอกว่ากดดูรายการได้ */
 .kpi { position: relative; transition: transform .15s, box-shadow .15s, border-color .15s; }
-.kpi-go { display: inline-flex; align-items: center; gap: 2px; margin-top: 6px; font-size: 12px; font-weight: 500; color: var(--accent); }
+.kpi-go { display: inline-flex; align-items: center; gap: 2px; margin-top: auto; padding-top: 8px; align-self: flex-start; font-size: 12px; font-weight: 500; color: var(--accent); }
 .kpi-go .ic { width: 14px; height: 14px; }
 @media (hover: hover) { button.kpi:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0, 0, 0, .08); border-color: var(--accent); } }
 button.kpi:active { transform: scale(.98); }

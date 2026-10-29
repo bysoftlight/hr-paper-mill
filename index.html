@@ -38,8 +38,8 @@
     /* กันไอคอนขยายเต็มจอ ถ้า stylesheet ยังโหลดไม่เสร็จหรือเป็นเวอร์ชันเก่า (:where = ไม่ทับขนาดใน style.css) */
     :where(svg.ic) { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; }
   </style>
-  <script src="js/settings.js?v=3.21.0"></script>
-  <link rel="stylesheet" href="css/style.css?v=3.21.0">
+  <script src="js/settings.js?v=3.22.0"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.22.0">
 </head>
 <body>
 
@@ -297,11 +297,11 @@
       <video id="camVideo" playsinline muted autoplay></video>
       <div class="cam-guide" aria-hidden="true">
         <span class="g-corner tl"></span><span class="g-corner tr"></span><span class="g-corner bl"></span><span class="g-corner br"></span>
-        <span class="g-label g-stall">ให้เห็นบัตรประจำร้านค้า ล็อคที่ขาย และผู้ขาย ในภาพเดียว</span>
       </div>
       <div class="cam-top">
         <button type="button" class="cam-btn" id="camClose" aria-label="ปิดกล้อง"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
         <div class="cam-profile"><span class="cam-avatar" id="camProfile"></span><span><small>เทียบใบหน้ากับรูปโปรไฟล์</small><b id="camProfileText"></b></span></div>
+        <p class="cam-hint">ให้เห็นบัตรประจำร้านค้า ล็อคที่ขาย และผู้ขาย ในภาพเดียว</p>
       </div>
       <div class="cam-bottom">
         <p class="cam-stamp" id="camStamp" aria-live="off"></p>
@@ -339,7 +339,7 @@
   <!-- ===== Login ===== -->
   <div id="loginView" class="login">
     <section class="login-intro" aria-labelledby="loginTitle">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.21.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.22.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <p class="eyebrow">โครงการใช้สิทธิ์สัมปทานผู้พิการตามมาตรา 35 · ปี 2569</p>
       <h1 id="loginTitle">รายงานการขายประจำวัน<br>ส่งได้ในไม่กี่ขั้นตอน</h1>
       <ol class="intro-steps">
@@ -385,12 +385,12 @@
   <!-- ===== App ===== -->
   <div id="appContainer" class="app is-syncing" hidden>
     <header class="topbar">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.21.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.22.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <span class="chip" data-today>&nbsp;</span>
     </header>
 
     <nav class="sidenav" aria-label="เมนูหลัก">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.21.0" alt="" width="36" height="36"><span class="brand-text">HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.22.0" alt="" width="36" height="36"><span class="brand-text">HR Paper Mill</span></div>
       <div class="nav-items">
         <button type="button" class="nav-item" data-tab="form" aria-current="page"><svg class="ic ic-22" aria-hidden="true"><use href="#i-send"/></svg><span>ส่งรายงาน</span></button>
         <button type="button" class="nav-item" data-tab="history"><svg class="ic ic-22" aria-hidden="true"><use href="#i-history"/></svg><span>ประวัติ</span></button>
@@ -645,14 +645,14 @@
     </nav>
   </div>
 
-  <script src="js/config.js?v=3.21.0"></script>
-  <script src="js/utils.js?v=3.21.0"></script>
-  <script src="js/api.js?v=3.21.0"></script>
-  <script src="js/notify.js?v=3.21.0"></script>
-  <script src="js/outbox.js?v=3.21.0"></script>
-  <script src="js/camera.js?v=3.21.0"></script>
-  <script src="js/charts.js?v=3.21.0"></script>
-  <script src="js/app.js?v=3.21.0"></script>
-  <script src="js/report.js?v=3.21.0"></script>
+  <script src="js/config.js?v=3.22.0"></script>
+  <script src="js/utils.js?v=3.22.0"></script>
+  <script src="js/api.js?v=3.22.0"></script>
+  <script src="js/notify.js?v=3.22.0"></script>
+  <script src="js/outbox.js?v=3.22.0"></script>
+  <script src="js/camera.js?v=3.22.0"></script>
+  <script src="js/charts.js?v=3.22.0"></script>
+  <script src="js/app.js?v=3.22.0"></script>
+  <script src="js/report.js?v=3.22.0"></script>
 </body>
 </html>
