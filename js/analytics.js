@@ -119,6 +119,8 @@ const Analytics = (() => {
 
     function flush(beacon) {
         if (!enabled() || typeof CONFIG === 'undefined' || !CONFIG.API_URL) return Promise.resolve();
+        // เบราว์เซอร์อัตโนมัติ (ชุดทดสอบ): ตอนปิดหน้าไม่ส่ง — คำขอหลังปิดหน้าดักไม่ได้ ข้อมูลทดสอบจะหลุดเข้าชีตจริง (เก็บไว้ในคิวแทน)
+        if (beacon && navigator.webdriver) return Promise.resolve();
         if (navigator.onLine === false) return Promise.resolve();
         const q = queue();
         if (!q.length) return Promise.resolve();
@@ -134,7 +136,7 @@ const Analytics = (() => {
         });
         saveQueue(rest);
         let sent = false;
-        if (beacon && navigator.sendBeacon && !navigator.webdriver) { // เบราว์เซอร์อัตโนมัติ/ชุดทดสอบ: ใช้ fetch ที่ดักได้ ข้อมูลทดสอบจะไม่หลุดเข้าชีตจริง
+        if (beacon && navigator.sendBeacon) {
             try { sent = navigator.sendBeacon(CONFIG.API_URL, new Blob([body], { type: 'text/plain;charset=utf-8' })); } catch (e) { sent = false; }
         }
         let done = Promise.resolve();
