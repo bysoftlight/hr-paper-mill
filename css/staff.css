@@ -500,3 +500,6 @@ button.kpi:active { transform: scale(.98); }
     .part-quick::-webkit-scrollbar { display: none; }
     .qchip { flex: none; scroll-snap-align: start; }
 }
+
+/* ตัวเลขนับขึ้นในหัวตัวเลขใหญ่: ใช้ขนาด/สี/น้ำหนักของตัวเลขเดิม (ไม่โดนสไตล์ข้อความรองของการ์ด) */
+.kpi b > .count, .cmp-stats b > .count, .stat b > .count { font-size: inherit; color: inherit; font-weight: inherit; line-height: inherit; }

@@ -1084,9 +1084,19 @@ h1, h2, h3 { font-weight: 500; letter-spacing: -.01em; }
 }
 .stepper-note.is-done { background: var(--ok-soft); color: var(--ok); }
 .stepper-note.is-queued { background: var(--accent-soft); color: var(--on-accent-soft); }
-.step, .submit-card { scroll-margin-top: calc(56px + 92px + env(safe-area-inset-top)); }
-html:has(#formView:not([hidden])) { scroll-snap-type: y proximity; }
-#formView .step, #formView .submit-card { scroll-snap-align: start; }
+/* --- เลื่อนทีละส่วน (Scroll Snap) ทั้งเว็บ ---
+   proximity: หยุดพอดีที่ต้นส่วนเมื่อปล่อยนิ้วใกล้ขอบส่วน ส่วนที่ยาวกว่าจอยังเลื่อนอ่านได้อิสระ
+   --snap-top = ระยะที่เว้นไว้ใต้แถบด้านบน (ไม่ให้หัวส่วนถูกแถบบนบัง) · ปิดได้ในการตั้งค่า */
+:root { --snap-top: calc(56px + env(safe-area-inset-top) + 12px); }
+#formView { --snap-top: calc(56px + 92px + env(safe-area-inset-top)); }
+html[data-snap="on"] { scroll-snap-type: y proximity; }
+.view > .view-head, .view section.card, .view .card.step, .view .submit-card, .view .kpis, .view .table-card, .view > .toolbar, .view .banner {
+    scroll-margin-top: var(--snap-top);
+}
+/* ตารางยาวไม่เป็นจุดหยุด: ส่วนที่สูงกว่าจอ เบราว์เซอร์จะดึงกลับให้ขอบล่างของส่วนพอดีจอ ทำให้เลื่อนไปถึงปุ่มเปลี่ยนหน้าใต้ตารางไม่ได้ */
+html[data-snap="on"] :is(.view > .view-head, .view section.card, .view .card.step, .view .submit-card, .view .kpis, .view > .toolbar) {
+    scroll-snap-align: start;
+}
 
 @media (min-width: 768px) {
     .stepper { top: 0; margin: 0 0 20px; padding: 12px 16px 10px; border-radius: var(--r-lg); background: var(--field); backdrop-filter: none; }
@@ -1098,7 +1108,7 @@ html:has(#formView:not([hidden])) { scroll-snap-type: y proximity; }
     }
     .stepper li.is-done .st-dot { background: var(--ok); border-color: var(--ok); color: var(--on-ok); }
     .stepper li.is-current .st-dot { background: linear-gradient(135deg, #126EE4, #0850D1); border-color: transparent; color: #fff; }
-    .step, .submit-card { scroll-margin-top: 24px; }
+    :root, #formView { --snap-top: 24px; }
 }
 @media (min-width: 1024px) { .stepper { position: static; } }
 

@@ -6,6 +6,7 @@ const PREF_DEFAULTS = {
     theme: 'system',   // system | light | dark
     text: 'm',         // m | l | xl
     motion: false,     // true = ลดภาพเคลื่อนไหว
+    snap: true,        // เลื่อนหน้าแล้วหยุดพอดีทีละส่วน
     haptic: true,      // สั่นเบาๆ เมื่อแตะเมนู
     // หน้าผู้ใช้สิทธิ์
     photo: 'std',      // save | std | hi
@@ -38,6 +39,7 @@ function applyPrefs() {
     root.dataset.theme = p.theme;
     root.dataset.text = p.text;
     root.dataset.motion = p.motion ? 'reduce' : 'system';
+    root.dataset.snap = p.snap ? 'on' : 'off';
     const dark = p.theme === 'dark' || (p.theme === 'system' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.content = dark ? '#131314' : '#FFFFFF';
@@ -126,7 +128,8 @@ function displaySettings() {
             { icon: 'contrast', tone: 'gray', label: 'ธีม', desc: 'โหมดมืดช่วยถนอมสายตาเวลากลางคืน', control: { type: 'seg', key: 'theme', options: [['system', 'ตามเครื่อง'], ['light', 'สว่าง'], ['dark', 'มืด']] } },
             { icon: 'type', tone: 'purple', label: 'ขนาดตัวอักษร', desc: 'ขยายตัวอักษรและปุ่มให้อ่านและกดง่ายขึ้น', control: { type: 'seg', key: 'text', options: [['m', 'ปกติ'], ['l', 'ใหญ่'], ['xl', 'ใหญ่มาก']] } },
             { icon: 'haptic', tone: 'amber', label: 'สั่นเมื่อแตะเมนู', desc: 'สั่นเบาๆ เมื่อเปลี่ยนหน้า (Android และ iPhone iOS 18 ขึ้นไป)', control: { type: 'switch', key: 'haptic' } },
-            { icon: 'motion', tone: 'teal', label: 'ลดภาพเคลื่อนไหว', desc: 'ปิดแอนิเมชัน เหมาะกับเครื่องรุ่นเก่าหรือผู้ที่เวียนหัวง่าย', control: { type: 'switch', key: 'motion' } }
+            { icon: 'motion', tone: 'teal', label: 'ลดภาพเคลื่อนไหว', desc: 'ปิดแอนิเมชัน เหมาะกับเครื่องรุ่นเก่าหรือผู้ที่เวียนหัวง่าย', control: { type: 'switch', key: 'motion' } },
+            { icon: 'snap', tone: 'blue', label: 'เลื่อนทีละส่วน', desc: 'เลื่อนหน้าจอแล้วหยุดพอดีที่หัวข้อของแต่ละส่วน', control: { type: 'switch', key: 'snap' } }
         ]
     };
 }
