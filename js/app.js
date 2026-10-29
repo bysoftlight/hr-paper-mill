@@ -556,6 +556,8 @@ function updateStepper(s) {
     // สถานะแยกเด่นใต้แถบขั้นตอน: ส่งแล้ว (เขียว) / รอส่ง (ฟ้า) / เหลือกี่ขั้น
     const state = TODAY_RECORD ? 'done' : queuedToday() ? 'queued' : 'todo';
     const note = $('stepperNote');
+    // ส่งแล้ว: แสดงที่แถบ "วันนี้ส่งแล้ว" ในฟอร์มที่เดียว ไม่ซ้ำใต้แถบขั้นตอน
+    note.hidden = state === 'done';
     note.className = 'stepper-note is-' + state;
     note.querySelector('use').setAttribute('href', state === 'done' ? '#i-check-circle' : state === 'queued' ? '#i-wifi-off' : '#i-info');
     note.querySelector('span').textContent = state === 'done' ? `ส่งรายงานของวันนี้แล้ว · เวลา ${TODAY_RECORD.time} น. — ส่งครั้งถัดไปได้พรุ่งนี้`
