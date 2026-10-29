@@ -879,6 +879,7 @@ function updateAgentMeter() {
 }
 
 // ---------- ปฏิทินของฉัน: วันที่ส่ง (ขายเอง/ตัวแทน) / ขาด ----------
+const CAL_COUNTS = {}; // ค่าล่าสุดของตัวเลขใต้ปฏิทิน (เปลี่ยนเดือน = นับจากค่าเดิม)
 let CAL_MONTH = null; // Date วันที่ 1 ของเดือนที่แสดง
 function renderCalendar() {
     const now = new Date();
@@ -908,7 +909,8 @@ function renderCalendar() {
     }
     $('calTitle').textContent = `${MONTHS[m]} ${y + 543}`;
     $('calGrid').innerHTML = DAYS_SHORT.map(x => `<span class="cal-dow">${x}</span>`).join('') + cells.join('');
-    $('calStats').innerHTML = `<span><i class="lg lg-self"></i>ขายเอง <b>${self}</b></span><span><i class="lg lg-agent"></i>ตัวแทน <b>${agent}</b></span><span><i class="lg lg-missed"></i>ขาด <b>${missed}</b></span>`;
+    $('calStats').innerHTML = `<span><i class="lg lg-self"></i>ขายเอง <b>${cnum(self, 'self')}</b></span><span><i class="lg lg-agent"></i>ตัวแทน <b>${cnum(agent, 'agent')}</b></span><span><i class="lg lg-missed"></i>ขาด <b>${cnum(missed, 'missed')}</b></span>`;
+    Counting.scan($('calStats'), CAL_COUNTS);
     $('calNext').disabled = y === now.getFullYear() && m === now.getMonth();
     $('calInfo').hidden = true;
     $('calGrid').querySelectorAll('[data-day]').forEach(b => b.addEventListener('click', () => {
@@ -996,11 +998,11 @@ function updateDashboard(data, weekStart) {
         tooltip: i => `<small>${CURRENT_FILTER === 'week' ? 'วัน' + ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'][i] : CURRENT_FILTER === 'year' ? MONTHS[i] : 'วันที่ ' + (i + 1)}</small><b>${counts[i]} รายการ</b>${agentCounts[i] ? `<small>โดยตัวแทน ${agentCounts[i]}</small>` : ''}`
     });
     $('sumLabel').textContent = label;
-    $('sumCount').textContent = data.length;
-    $('sumDays').textContent = new Set(data.map(h => new Date(h.timestamp).toDateString())).size;
+    Counting.to($('sumCount'), data.length);
+    Counting.to($('sumDays'), new Set(data.map(h => new Date(h.timestamp).toDateString())).size);
     const self = data.filter(h => h.type === SELF_TYPE).length;
-    $('sumSelf').textContent = self;
-    $('sumAgent').textContent = data.length - self;
+    Counting.to($('sumSelf'), self);
+    Counting.to($('sumAgent'), data.length - self);
 }
 
 function renderList() {

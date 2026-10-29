@@ -57,21 +57,22 @@ VIEWS.overview = {
         const review = d.anomalies.length;
         $('ovKpis').innerHTML = `
           <button type="button" class="kpi is-ok" data-ov-filter="today">
-            <small>ส่งแล้ววันนี้</small><b>${fmtNum(k.reportedToday)}<span class="of"> / ${fmtNum(k.participants)}</span></b>
-            <span>${rate}% ของผู้ใช้สิทธิ์ที่ใช้งาน</span><div class="kpi-meter"><i style="width:${rate}%"></i></div>
+            <small>ส่งแล้ววันนี้</small><b>${cnum(k.reportedToday, 'today')}<span class="of"> / ${fmtNum(k.participants)}</span></b>
+            <span>${cnum(rate, 'rate')}% ของผู้ใช้สิทธิ์ที่ใช้งาน</span><div class="kpi-meter"><i style="width:${rate}%"></i></div>
           </button>
           <button type="button" class="kpi ${k.missingToday ? 'is-bad' : 'is-ok'}" data-ov-filter="missing">
-            <small>ยังไม่ส่งวันนี้</small><b>${fmtNum(k.missingToday)}</b><span>คน · แตะเพื่อดูรายชื่อ</span>
+            <small>ยังไม่ส่งวันนี้</small><b>${cnum(k.missingToday, 'missing')}</b><span>คน · แตะเพื่อดูรายชื่อ</span>
           </button>
           <button type="button" class="kpi" data-ov-filter="agentToday">
-            <small>ขายโดยตัวแทนวันนี้</small><b>${fmtNum(k.agentToday)}</b><span>${k.agentOverLimit ? `<b class="text-bad">${k.agentOverLimit} คน</b> เกิน ${ST.config && ST.config.agentLimit || 10} ครั้ง/เดือน` : 'ไม่มีผู้เกินโควตาเดือนนี้'}</span>
+            <small>ขายโดยตัวแทนวันนี้</small><b>${cnum(k.agentToday, 'agent')}</b><span>${k.agentOverLimit ? `<b class="text-bad">${k.agentOverLimit} คน</b> เกิน ${ST.config && ST.config.agentLimit || 10} ครั้ง/เดือน` : 'ไม่มีผู้เกินโควตาเดือนนี้'}</span>
           </button>
           <button type="button" class="kpi ${review ? 'is-warn' : ''}" data-ov-filter="anomaly">
-            <small>ต้องตรวจสอบวันนี้</small><b>${fmtNum(review)}</b><span>ตำแหน่งผิดปกติ ${k.anomaliesToday} · ไม่มี GPS ${k.nogpsToday}${k.duplicatesToday !== undefined ? ` · รูปซ้ำ ${k.duplicatesToday} · GPS ไม่แม่น ${k.lowAccToday}` : ''}</span>
+            <small>ต้องตรวจสอบวันนี้</small><b>${cnum(review, 'review')}</b><span>ตำแหน่งผิดปกติ ${k.anomaliesToday} · ไม่มี GPS ${k.nogpsToday}${k.duplicatesToday !== undefined ? ` · รูปซ้ำ ${k.duplicatesToday} · GPS ไม่แม่น ${k.lowAccToday}` : ''}</span>
           </button>
           <button type="button" class="kpi" data-ov-filter="month">
-            <small>อัตราการส่งเดือนนี้</small><b>${k.monthRate}<span class="of">%</span></b><span>${fmtNum(k.monthRecords)} รายการ</span>
+            <small>อัตราการส่งเดือนนี้</small><b>${cnum(k.monthRate, 'monthRate')}<span class="of">%</span></b><span>${cnum(k.monthRecords, 'monthRecords')} รายการ</span>
           </button>`;
+        Counting.scan($('ovKpis'), this.counts || (this.counts = {}));
         $('ovKpis').querySelectorAll('[data-ov-filter]').forEach(b => {
             b.insertAdjacentHTML('beforeend', `<span class="kpi-go" aria-hidden="true">ดูรายการ ${icon('chevron-right')}</span>`);
             b.addEventListener('click', () => { haptic(); this.drill(b.dataset.ovFilter); });
@@ -151,9 +152,10 @@ VIEWS.overview = {
         const pct = (a, b) => (b ? Math.round((a - b) / b * 100) : null);
         const delta = (a, b, unit = '') => { const p = pct(a, b); return p === null ? '' : `<span class="delta ${p >= 0 ? 'is-up' : 'is-down'}">${p >= 0 ? '▲' : '▼'} ${Math.abs(p)}%${unit}</span>`; };
         $('cmpStats').innerHTML = `
-          <div><small>รายงาน 1–${c.today} ${mName(c.thisMonth)}</small><b>${fmtNum(c.totals.current)}</b>${delta(c.totals.current, c.totals.previousSamePeriod)}<span>เดือนก่อนช่วงเดียวกัน ${fmtNum(c.totals.previousSamePeriod)}</span></div>
-          <div><small>อัตราการส่ง</small><b>${c.rate.current}%</b><span class="delta ${c.rate.current >= c.rate.previous ? 'is-up' : 'is-down'}">${c.rate.current >= c.rate.previous ? '▲' : '▼'} ${Math.abs(c.rate.current - c.rate.previous)} จุด</span><span>เดือนก่อน ${c.rate.previous}%</span></div>
-          <div><small>ขายโดยตัวแทน</small><b>${fmtNum(c.agent.current)}</b>${delta(c.agent.current, c.agent.previous)}<span>เดือนก่อน ${fmtNum(c.agent.previous)}</span></div>`;
+          <div><small>รายงาน 1–${c.today} ${mName(c.thisMonth)}</small><b>${cnum(c.totals.current, 'cmpTotal')}</b>${delta(c.totals.current, c.totals.previousSamePeriod)}<span>เดือนก่อนช่วงเดียวกัน ${fmtNum(c.totals.previousSamePeriod)}</span></div>
+          <div><small>อัตราการส่ง</small><b>${cnum(c.rate.current, 'cmpRate')}%</b><span class="delta ${c.rate.current >= c.rate.previous ? 'is-up' : 'is-down'}">${c.rate.current >= c.rate.previous ? '▲' : '▼'} ${Math.abs(c.rate.current - c.rate.previous)} จุด</span><span>เดือนก่อน ${c.rate.previous}%</span></div>
+          <div><small>ขายโดยตัวแทน</small><b>${cnum(c.agent.current, 'cmpAgent')}</b>${delta(c.agent.current, c.agent.previous)}<span>เดือนก่อน ${fmtNum(c.agent.previous)}</span></div>`;
+        Counting.scan($('cmpStats'), this.counts || (this.counts = {}));
         const labels = Array.from({ length: n }, (_, i) => String(i + 1));
         Charts.area($('ovCompare'), {
             labels, height: 200, active: c.current.length - 1, ariaLabel: 'กราฟเทียบจำนวนรายงานเดือนนี้กับเดือนก่อน',
