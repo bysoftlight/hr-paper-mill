@@ -35,7 +35,10 @@ function analyticsTrack_(req) {
   const cache = CacheService.getScriptCache();
   const vKey = 'an:v:' + vid + ':' + Math.floor(Date.now() / 3600000), gKey = 'an:g:' + Math.floor(Date.now() / 60000);
   const vN = Number(cache.get(vKey) || 0), gN = Number(cache.get(gKey) || 0);
-  if (vN + list.length > 600 || gN + list.length > 3000) return { success: true, throttled: true };
+  if (vN + list.length > 600 || gN + list.length > 3000) {
+    if (typeof threatOnAnalytics_ === 'function' && vN + list.length > 600) threatOnAnalytics_(Object.assign({}, ctx, { vid, app }), list, true);
+    return { success: true, throttled: true };
+  }
   cache.put(vKey, String(vN + list.length), 3700);
   cache.put(gKey, String(gN + list.length), 120);
 
@@ -56,6 +59,7 @@ function analyticsTrack_(req) {
       word(ctx.ref, 60), ev.n ? 1 : 0]);
   });
   if (!rows.length) return { success: true, saved: 0 };
+  if (typeof threatOnAnalytics_ === 'function') { try { threatOnAnalytics_(Object.assign({}, ctx, { vid, app, did: String(ctx.did || '').replace(/[^\w-]/g, '').slice(0, 32) }), list, false); } catch (e) { /* ไม่ให้การตรวจจับทำให้การบันทึกล้ม */ } }
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(8000)) return { success: false, message: 'ระบบไม่ว่าง' };
   try {

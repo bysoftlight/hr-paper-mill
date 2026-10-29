@@ -98,6 +98,14 @@ function handleStaffRequest_(req) {
     case 'admin.security.shield':
       requirePerm_(staff, 'admin');
       return guardSetShield_(!!req.on, staff, ua);
+    case 'admin.security.block':
+      requirePerm_(staff, 'admin');
+      if (typeof threatBlock_ !== 'function') return { success: false, message: 'ต้องเพิ่มไฟล์ Threats.gs ใน Apps Script ก่อน' };
+      return threatBlock_(req.device, !!req.on, req.reason, staff, ua, Number(req.days) || 30);
+    case 'admin.security.threat':
+      requirePerm_(staff, 'admin');
+      if (typeof threatSetStatus_ !== 'function') return { success: false, message: 'ต้องเพิ่มไฟล์ Threats.gs ใน Apps Script ก่อน' };
+      return threatSetStatus_(req.row, req.status, staff, ua);
     case 'admin.staff.list':
       requirePerm_(staff, 'admin');
       return adminStaffList_();

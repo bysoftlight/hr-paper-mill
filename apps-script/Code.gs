@@ -4,7 +4,7 @@
 //      - หน้าผู้ใช้สิทธิ์ (index.html): login / history / submit / image
 //      - หน้าเจ้าหน้าที่ (staff.html): staff.* และ admin.* (ดู Staff.gs, Admin.gs)
 //   2) หน้าเว็บของ Apps Script เอง (Index.html) → เรียกผ่าน google.script.run
-// ไฟล์ในโปรเจกต์: Code.gs, Schema.gs, Auth.gs, Staff.gs, Admin.gs, Export.gs, Notify.gs, Analytics.gs (+ Index.html) — วิธีติดตั้งดู apps-script/README.md
+// ไฟล์ในโปรเจกต์: Code.gs, Schema.gs, Auth.gs, Staff.gs, Admin.gs, Export.gs, Notify.gs, Analytics.gs, Threats.gs (+ Index.html) — วิธีติดตั้งดู apps-script/README.md
 // หลังแก้โค้ด: Deploy → Manage deployments → Edit (รูปดินสอ) → Version: New version → Deploy
 // ตั้งค่า deployment: Execute as = Me, Who has access = Anyone
 
@@ -89,6 +89,7 @@ function doPost(e) {
         if (!user) return json_({ success: false, code: 'NOT_FOUND', message: 'ไม่พบรหัสผู้ใช้สิทธิ์นี้ กรุณาตรวจสอบอีกครั้ง' });
         // ส่งประวัติมาพร้อมกัน ลดการเรียก API จาก 2 ครั้งเหลือ 1 ครั้งตอนเปิดแอป
         const trust = guardTrust_(req, user.id);
+        if (HAS_THREATS_()) threatOnLogin_(guardDevice_(req), user.id, Number(guardCache_().get('g:f:' + guardDevice_(req)) || 0), guardClient_(req));
         return json_(req.withHistory ? { success: true, data: user, history: getUserHistory(user.id), trust: trust } : { success: true, data: user, trust: trust });
       }
       case 'history':
@@ -152,8 +153,15 @@ function guardShieldUntil_() { return Number(PropertiesService.getScriptProperti
 function guardShieldOn_() { return guardShieldUntil_() > Date.now(); }
 
 // ก่อนทำคำขอ: เครื่องถูกล็อก? ต้องผ่านการตรวจความปลอดภัยก่อนหรือไม่?
+const HAS_THREATS_ = () => typeof threat_ === 'function'; // ไฟล์ Threats.gs (ไม่มีก็ทำงานต่อได้)
+function guardClient_(req) { return HAS_THREATS_() ? uaSummary_(req.ua || req.userAgent) : ''; }
+
 function guardBefore_(req) {
   const c = guardCache_(), dev = guardDevice_(req), now = Date.now();
+  if (HAS_THREATS_() && threatIsBlocked_(dev)) {
+    threat_('blocked_attempt', dev, { device: dev, userId: String(req.userId || '').slice(0, 20), client: guardClient_(req), detail: 'เครื่องที่ถูกบล็อกพยายามใช้คำสั่ง ' + req.action });
+    return { success: false, code: 'BLOCKED', message: 'เครื่องนี้ถูกระงับการใช้งานเพื่อความปลอดภัย กรุณาติดต่อเจ้าหน้าที่' };
+  }
   const lockedUntil = Number(c.get('g:lock:' + dev) || 0);
   if (lockedUntil > now) {
     const min = Math.ceil((lockedUntil - now) / 60000);
@@ -192,12 +200,14 @@ function guardFail_(req) {
     log_(actor, req.action === 'login' ? 'participant.login_failed' : 'participant.unknown_id', id, { reason: 'ไม่พบรหัสนี้ในระบบ', action: req.action, device: dev.slice(0, 12), attempt: fails }, String(req.userAgent || '').slice(0, 200));
   }
 
+  if (HAS_THREATS_()) threatOnFail_(dev, id, guardClient_(req));
   if (!shield && total >= GUARD.SHIELD_FAILS) guardShield_(total, minute);
   const lockAt = guardShieldOn_() ? GUARD.SHIELD_LOCK_AT : GUARD.LOCK_AT;
   if (fails >= lockAt && !(Number(c.get('g:lock:' + dev) || 0) > now)) {
     c.put('g:lock:' + dev, String(now + GUARD.LOCK_MIN * 60000), GUARD.LOCK_MIN * 60);
     guardNote_('device_locked', { device: dev.slice(0, 12), fails: fails, lastId: id });
     log_(actor, 'security.device_locked', dev.slice(0, 12), { fails: fails, minutes: GUARD.LOCK_MIN, lastTried: id }, String(req.userAgent || '').slice(0, 200));
+    if (HAS_THREATS_()) threat_('device_locked', dev, { device: dev, userId: id, client: guardClient_(req), detail: 'กรอกรหัสที่ไม่มีในระบบ ' + fails + ' ครั้ง ล็อก ' + GUARD.LOCK_MIN + ' นาที' });
   }
   if (req.action === 'login') return { success: false, code: 'NOT_FOUND', message: 'ไม่พบรหัสผู้ใช้สิทธิ์นี้ กรุณาตรวจสอบอีกครั้ง' };
   return { success: false, code: 'NOT_FOUND', message: 'ไม่พบรหัสผู้ใช้สิทธิ์ กรุณาเข้าสู่ระบบใหม่' };
@@ -229,7 +239,9 @@ function guardShield_(total, minute) {
   for (let i = 0; i < GUARD.SHIELD_WINDOW_MIN; i++) (c.get('g:devs:' + (minute - i)) || '').split(',').filter(Boolean).forEach(d => { devs[d] = 1; });
   guardNote_('shield_on', { fails: total, devices: Object.keys(devs).length, minutes: GUARD.SHIELD_MIN });
   log_({ id: '', name: 'ระบบป้องกัน', role: 'system' }, 'security.shield_on', 'ทั้งระบบ', { fails10min: total, devices: Object.keys(devs).length, minutes: GUARD.SHIELD_MIN }, '');
-  if (!c.get('g:alerted')) {
+  if (HAS_THREATS_()) {
+    threat_('shield', 'all', { device: Object.keys(devs).length + ' เครื่อง', detail: 'กรอกรหัสที่ไม่มีในระบบ ' + total + ' ครั้งใน ' + GUARD.SHIELD_WINDOW_MIN + ' นาที จาก ' + Object.keys(devs).length + ' เครื่อง · เปิดโหมดป้องกัน ' + GUARD.SHIELD_MIN + ' นาที (ผู้ที่เคยเข้าจากเครื่องเดิมใช้งานได้ตามปกติ)' });
+  } else if (!c.get('g:alerted')) {
     c.put('g:alerted', '1', 3600);
     try {
       const to = String(prop_('ADMIN_EMAILS') || '').split(',').map(x => x.trim()).filter(Boolean);
@@ -286,7 +298,9 @@ function guardStatus_() {
   const perMin = keys.map(k => Number(got[k] || 0)).reverse();
   let events = [];
   try { events = JSON.parse(PropertiesService.getScriptProperties().getProperty('GUARD_EVENTS') || '[]'); } catch (e) { events = []; }
-  return { success: true, shieldUntil: guardShieldUntil_(), shieldOn: guardShieldOn_(), failsLastHour: perMin.reduce((a, b) => a + b, 0),
+  const t = HAS_THREATS_();
+  return { success: true, threats: t ? threatList_(60) : null, blocks: t ? threatBlocksList_() : [], threatsReady: t,
+    shieldUntil: guardShieldUntil_(), shieldOn: guardShieldOn_(), failsLastHour: perMin.reduce((a, b) => a + b, 0),
     fails10min: guardFails10_(), hardPause: guardShieldOn_() && guardFails10_() >= GUARD.HARD_FAILS, perMinute: perMin, events: events, settings: GUARD };
 }
 function guardSetShield_(on, staff, ua) {
@@ -308,7 +322,8 @@ function healthCheck_() {
     'Admin.gs': typeof adminStaffDelete_ === 'function',
     'Export.gs': typeof staffExportGsheet_ === 'function',
     'Notify.gs': typeof handleNotifyRequest_ === 'function',
-    'Analytics.gs': typeof analyticsTrack_ === 'function'
+    'Analytics.gs': typeof analyticsTrack_ === 'function',
+    'Threats.gs': typeof threat_ === 'function'
   };
   const sheets = {};
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);

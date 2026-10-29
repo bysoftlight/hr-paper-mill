@@ -68,7 +68,7 @@ const Guard = (() => {
 
 async function callApi(action, payload = {}) {
     // แนบรหัสเครื่องและบัตรเครื่องที่เชื่อถือได้ (ถ้ามี) ให้ทุกคำขอของผู้ใช้สิทธิ์
-    payload = Object.assign({ device: Guard.device() }, payload);
+    payload = Object.assign({ device: Guard.device(), ua: String(navigator.userAgent || '').slice(0, 160) }, payload);
     if (payload.userId && !payload.trust) { const t = Guard.trustFor(payload.userId); if (t) payload.trust = t; }
     let res = await callApiRaw(action, payload);
     // ระบบขอให้ตรวจความปลอดภัย: คำนวณแล้วส่งใหม่ (ครั้งเดียว)
