@@ -222,6 +222,7 @@ async function performLogin(userId, isAuto, background = false) {
     if (!isAuto) setLoginBusy(false);
 
     if (res.success) {
+        Analytics.setUser(res.data.id);
         if (!isAuto) Analytics.track('login', { l: 'manual' });
         userStore.set(USER_KEY, res.data.id);
         CURRENT_USER = res.data;
@@ -249,7 +250,7 @@ async function performLogin(userId, isAuto, background = false) {
         userStore.remove(CACHE_KEY);
         if (isAuto) backToLogin();
         setLoginId(isAuto ? '' : $('loginId').value);
-        Analytics.track('login_fail', { l: res.code || 'not_found' });
+        Analytics.track('login_fail', { l: res.code || 'not_found', d: { id: String(userId || '').slice(0, 20), auto: isAuto ? 1 : undefined } });
         setLoginError(res.message || 'ไม่พบรหัสผู้ใช้สิทธิ์นี้ กรุณาตรวจสอบอีกครั้ง');
         if (isAuto) showRulesModal(true);
     }
@@ -272,6 +273,7 @@ function endSession() {
     userStore.remove(USER_KEY);
     userStore.remove(CACHE_KEY);
     CURRENT_USER = {};
+    Analytics.setUser('');
     ALL_HISTORY = [];
     HISTORY_LOADED = false;
     TODAY_RECORD = null;
@@ -445,6 +447,7 @@ function getLocation() {
             $('long').value = longitude;
             const hadGps = !!GPS_FIX;
             GPS_FIX = { lat: latitude, lng: longitude, acc: accuracy };
+            Analytics.setLocation(latitude, longitude, accuracy);
             // ถ่ายรูปก่อนได้พิกัด: ประทับใหม่ให้มีพิกัด
             if (!hadGps && photoFile() && !(COMPRESSED && COMPRESSED.withGps)) updateFileName({ restamp: true });
             setLocStatus('ok', 'check-circle', 'ระบุตำแหน่งแล้ว', `${latitude.toFixed(5)}, ${longitude.toFixed(5)} · ±${Math.round(accuracy)} ม.`);

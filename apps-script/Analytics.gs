@@ -1,15 +1,20 @@
 // HR Paper Mill — สถิติการใช้งาน (คล้าย Google Analytics แต่เก็บในชีตของเราเอง ไม่ส่งข้อมูลไปที่อื่น)
-// เก็บ: หน้าที่เปิด · เหตุการณ์ (เช่น ส่งรายงานสำเร็จ) · อุปกรณ์/ระบบ/เบราว์เซอร์ · ที่มา — แบบไม่ระบุตัวตน
-//   ผู้เยี่ยมชม = รหัสสุ่มของเครื่อง (ไม่ใช่รหัสผู้ใช้สิทธิ์/อีเมล) · เซสชัน = ช่วงใช้งานต่อเนื่อง (ว่างเกิน 30 นาทีนับใหม่)
-// หน้าเว็บส่งมาเป็นชุด: analytics.track { ctx: {...}, events: [{ t, e, p, l, v, n }] }
+// เก็บ: หน้าที่เปิด · เหตุการณ์ (เช่น ส่งรายงานสำเร็จ) · อุปกรณ์/รุ่น/ระบบ/เบราว์เซอร์ · ที่มา
+//   ผู้เยี่ยมชม = รหัสสุ่มของเบราว์เซอร์ · เซสชัน = ช่วงใช้งานต่อเนื่อง (ว่างเกิน 30 นาทีนับใหม่)
+//   หลังเข้าสู่ระบบ: ผูกกับรหัสผู้ใช้สิทธิ์ (+ชื่อ) หรืออีเมลเจ้าหน้าที่ · พิกัดเฉพาะที่แอปได้มาแล้ว (ตอนส่งรายงาน) + ชื่อพื้นที่
+// หน้าเว็บส่งมาเป็นชุด: analytics.track { ctx: {...}, events: [{ t, e, p, l, v, n, u, g: [lat,lng,acc], d: '{json}' }] }
 // ผู้ดูแลระบบดูรายงาน: staff.analytics.report { days | from,to, app } (สิทธิ์ admin)
 // เก็บย้อนหลัง ANALYTICS_KEEP_DAYS วัน (ลบอัตโนมัติทุกเช้าพร้อม morningHealthCheck)
 
 const ANALYTICS_SHEET = 'Analytics';
+// คอลัมน์ใหม่ต่อท้ายเสมอ (แถวเก่ายังตรงคอลัมน์เดิม)
 const A_HEADERS = ['เวลา', 'วันที่', 'ชั่วโมง', 'แอป', 'กลุ่ม', 'ผู้เยี่ยมชม', 'เซสชัน', 'เหตุการณ์', 'หน้า', 'ป้าย', 'ค่า',
-  'อุปกรณ์', 'ระบบ', 'เบราว์เซอร์', 'แอปบนหน้าจอ', 'ความกว้างจอ', 'ที่มา', 'ผู้ใช้ใหม่'];
+  'อุปกรณ์', 'ระบบ', 'เบราว์เซอร์', 'แอปบนหน้าจอ', 'ความกว้างจอ', 'ที่มา', 'ผู้ใช้ใหม่',
+  'รหัสผู้ใช้', 'ชื่อ', 'รหัสเครื่อง', 'รุ่นอุปกรณ์', 'เวอร์ชันระบบ', 'เวอร์ชันเบราว์เซอร์', 'ภาษา', 'เขตเวลา',
+  'ละติจูด', 'ลองจิจูด', 'ความแม่นยำ (ม.)', 'พื้นที่', 'รายละเอียด'];
 const AC = { TS: 0, DATE: 1, HOUR: 2, APP: 3, ROLE: 4, VID: 5, SID: 6, EVENT: 7, PAGE: 8, LABEL: 9, VALUE: 10,
-  DEVICE: 11, OS: 12, BROWSER: 13, PWA: 14, SCREEN: 15, REF: 16, NEW: 17 };
+  DEVICE: 11, OS: 12, BROWSER: 13, PWA: 14, SCREEN: 15, REF: 16, NEW: 17,
+  UID: 18, NAME: 19, DID: 20, MODEL: 21, OS_VER: 22, BR_VER: 23, LANG: 24, TZ: 25, LAT: 26, LNG: 27, ACC: 28, AREA: 29, DETAIL: 30 };
 const ANALYTICS_APPS = ['user', 'staff', 'quote'];
 const ANALYTICS_KEEP_DAYS = 400;
 
@@ -18,10 +23,44 @@ function analyticsSheet_() {
   let sh = ss.getSheetByName(ANALYTICS_SHEET);
   if (!sh) {
     sh = ss.insertSheet(ANALYTICS_SHEET);
-    sh.getRange(1, 1, 1, A_HEADERS.length).setValues([A_HEADERS]);
     sh.setFrozenRows(1);
   }
+  // ชีตใหม่/รุ่นเก่า (18 คอลัมน์): เติมคอลัมน์ + หัวคอลัมน์ใหม่ + ให้คอลัมน์ "เวลา" แสดงถึงวินาที (ทำครั้งเดียว)
+  if (sh.getLastColumn() < A_HEADERS.length) {
+    if (sh.getMaxColumns() < A_HEADERS.length) sh.insertColumnsAfter(sh.getMaxColumns(), A_HEADERS.length - sh.getMaxColumns());
+    sh.getRange(1, 1, 1, A_HEADERS.length).setValues([A_HEADERS]);
+    sh.getRange('A:A').setNumberFormat('dd/MM/yyyy HH:mm:ss');
+  }
   return sh;
+}
+
+// ชื่อผู้ใช้สิทธิ์จากรหัส (จำไว้ 6 ชม.) — รหัสที่ไม่มีในระบบได้ชื่อว่าง
+function analyticsName_(uid, cache) {
+  if (!/^[A-Z0-9]{6}$/i.test(uid) || typeof findUser_ !== 'function') return '';
+  const k = 'an:n:' + uid.toUpperCase(), hit = cache.get(k);
+  if (hit !== null) return hit;
+  let name = '';
+  try { const u = findUser_(uid, true); name = u ? u.name : ''; } catch (e) { name = ''; }
+  cache.put(k, name, 21600);
+  return name;
+}
+
+// ชื่อพื้นที่ (ตำบล/อำเภอ จังหวัด) จากพิกัด ด้วย Maps ของ Apps Script — จำไว้ต่อจุด ~100 ม. ไม่เกิน 3 จุดใหม่ต่อครั้ง
+function analyticsArea_(lat, lng, cache, budget) {
+  const k = 'an:geo:' + lat.toFixed(3) + ',' + lng.toFixed(3), hit = cache.get(k);
+  if (hit !== null) return hit;
+  if (budget.n <= 0 || typeof Maps === 'undefined') return '';
+  budget.n--;
+  let area = '';
+  try {
+    const res = Maps.newGeocoder().setLanguage('th').reverseGeocode(lat, lng);
+    const comps = (res && res.results && res.results[0] && res.results[0].address_components) || [];
+    const pick = t => { const c = comps.find(x => x.types.indexOf(t) !== -1); return c ? c.long_name : ''; };
+    area = [pick('sublocality_level_2') || pick('locality'), pick('sublocality_level_1') || pick('administrative_area_level_2'), pick('administrative_area_level_1')]
+      .filter((x, i, a) => x && a.indexOf(x) === i).join(', ');
+  } catch (e) { area = ''; }
+  cache.put(k, area, 21600);
+  return area;
 }
 
 // ---------- รับเหตุการณ์จากหน้าเว็บ ----------
@@ -45,6 +84,9 @@ function analyticsTrack_(req) {
   const now = Date.now();
   const word = (s, n) => String(s == null ? '' : s).replace(/[^\w.\-:/ ]/g, '').slice(0, n);
   const device = ['mobile', 'tablet', 'desktop'].indexOf(ctx.device) === -1 ? 'desktop' : ctx.device;
+  const did = String(ctx.did || '').replace(/[^\w-]/g, '').slice(0, 32);
+  const env = [did, clean_(ctx.model, 40), word(ctx.osVer, 16), word(ctx.brVer, 16), word(ctx.lang, 16), word(ctx.tz, 40)];
+  const geoBudget = { n: 3 };
   const rows = [];
   list.forEach(ev => {
     const e = String(ev && ev.e || '');
@@ -56,10 +98,10 @@ function analyticsTrack_(req) {
     rows.push([d, fmtDate_(d), Number(fmtDate_(d, 'HH:mm').slice(0, 2)), app, clean_(ctx.role, 16), vid, sid, e,
       clean_(ev.p, 60), clean_(ev.l, 80), isFinite(v) ? Math.round(v) : '',
       device, word(ctx.os, 16), word(ctx.browser, 16), ctx.standalone ? 1 : 0, Math.min(9999, Math.max(0, Number(ctx.screen) || 0)),
-      word(ctx.ref, 60), ev.n ? 1 : 0]);
+      word(ctx.ref, 60), ev.n ? 1 : 0].concat(analyticsWho_(app, ev.u, cache), env, analyticsGeo_(ev.g, cache, geoBudget), [analyticsDetail_(ev.d)]));
   });
   if (!rows.length) return { success: true, saved: 0 };
-  if (typeof threatOnAnalytics_ === 'function') { try { threatOnAnalytics_(Object.assign({}, ctx, { vid, app, did: String(ctx.did || '').replace(/[^\w-]/g, '').slice(0, 32) }), list, false); } catch (e) { /* ไม่ให้การตรวจจับทำให้การบันทึกล้ม */ } }
+  if (typeof threatOnAnalytics_ === 'function') { try { threatOnAnalytics_(Object.assign({}, ctx, { vid, app, did }), list, false); } catch (e) { /* ไม่ให้การตรวจจับทำให้การบันทึกล้ม */ } }
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(8000)) return { success: false, message: 'ระบบไม่ว่าง' };
   try {
@@ -69,6 +111,30 @@ function analyticsTrack_(req) {
     lock.releaseLock();
   }
   return { success: true, saved: rows.length };
+}
+
+// ผู้ใช้: รหัสผู้ใช้สิทธิ์ (+ชื่อจากชีต Users) หรืออีเมลเจ้าหน้าที่ — หน้าเว็บเป็นผู้ส่งมา ใช้ประกอบการตรวจสอบ ไม่ใช่หลักฐานยืนยันตัวตน
+function analyticsWho_(app, u, cache) {
+  const uid = String(u || '').trim();
+  if (!uid) return ['', ''];
+  if (app === 'user') return /^[A-Z0-9]{6}$/i.test(uid) ? [uid.toUpperCase(), analyticsName_(uid, cache)] : ['', ''];
+  return [/^[^@\s]{1,40}@[\w.-]{1,40}$/.test(uid) ? uid.toLowerCase() : '', ''];
+}
+function analyticsGeo_(g, cache, budget) {
+  if (!Array.isArray(g)) return ['', '', '', ''];
+  const lat = Number(g[0]), lng = Number(g[1]), acc = Number(g[2]);
+  if (!isFinite(lat) || !isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180 || (lat === 0 && lng === 0)) return ['', '', '', ''];
+  const r5 = x => Math.round(x * 1e5) / 1e5;
+  return [r5(lat), r5(lng), isFinite(acc) ? Math.max(0, Math.round(acc)) : '', analyticsArea_(lat, lng, cache, budget)];
+}
+// ข้อมูลเพิ่มเติมของเหตุการณ์ (JSON สั้นๆ เช่น {"id":"ZZ0001"} ของ login_fail) → แสดงเป็น key=value อ่านง่าย
+function analyticsDetail_(d) {
+  if (!d) return '';
+  let o;
+  try { o = JSON.parse(String(d).slice(0, 300)); } catch (e) { return ''; }
+  if (!o || typeof o !== 'object' || Array.isArray(o)) return '';
+  return clean_(Object.keys(o).slice(0, 8).filter(k => o[k] !== null && o[k] !== undefined && o[k] !== '')
+    .map(k => String(k).replace(/[^\w]/g, '').slice(0, 20) + '=' + String(o[k]).slice(0, 60)).join(' · '), 200);
 }
 
 // ---------- อ่านข้อมูลตามช่วงวัน (ข้อมูลเรียงตามเวลา → หาแถวแรกด้วยคอลัมน์วันที่อย่างเดียว เร็วกว่าอ่านทั้งชีต) ----------
@@ -244,4 +310,11 @@ function pruneAnalytics() {
   while (n < dates.length && String(dates[n][0]) < cut) n++;
   if (n) sh.deleteRows(2, n);
   return n;
+}
+
+// ---------- ทดสอบชื่อพื้นที่ (กด ▶ Run ในหน้า Apps Script หนึ่งครั้งหลังวางไฟล์ ถ้าระบบขอสิทธิ์ให้กดอนุญาต) ----------
+function testAnalyticsArea() {
+  const area = analyticsArea_(13.97, 101.53, { get: () => null, put: () => {} }, { n: 1 });
+  Logger.log(area ? 'ใช้งานได้: ' + area : 'ยังหาชื่อพื้นที่ไม่ได้ (ระบบยังบันทึกพิกัดได้ตามปกติ)');
+  return area;
 }

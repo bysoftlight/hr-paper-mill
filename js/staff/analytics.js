@@ -1,5 +1,5 @@
 // js/staff/analytics.js — สถิติการใช้งาน (คล้าย Google Analytics) สำหรับผู้ดูแลระบบ
-// ข้อมูลจาก staff.analytics.report (Analytics.gs) · ไม่ระบุตัวตน
+// ข้อมูลจาก staff.analytics.report (Analytics.gs) · รายงานเป็นภาพรวม (รายบุคคลดูในชีต Analytics)
 
 const AN_APPS = { user: 'ผู้ใช้สิทธิ์', staff: 'Staff', quote: 'ใบเสนอราคา' };
 const AN_PAGES = {
