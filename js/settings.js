@@ -163,6 +163,72 @@ function watchScrollGlass() {
 }
 document.addEventListener('DOMContentLoaded', watchScrollGlass);
 
+// ---------- เลื่อนทีละส่วนแบบนุ่ม (Soft snap) ----------
+// แทน CSS scroll-snap (บน iPhone กระตุก/หยุดผิดที่): รอให้นิ้วปล่อยและแรงเหวี่ยงหยุดก่อน
+// แล้วค่อยเลื่อนนุ่มๆ ให้หัวข้อของส่วนที่ "ใกล้" ไปชิดใต้แถบบน — ไกลเกินไปไม่ขยับ (อ่านกลางการ์ดยาวได้อิสระ)
+// ใช้กับการเลื่อนด้วยนิ้วเท่านั้น (เมาส์/ทัชแพดเลื่อนตามปกติ) · แตะจอระหว่างเลื่อน = หยุดทันที
+const SoftSnap = (() => {
+    const SEL = '.view:not([hidden]) > .view-head, .view:not([hidden]) section.card, .view:not([hidden]) .card.step, .view:not([hidden]) .submit-card, .view:not([hidden]) .kpis, .view:not([hidden]) > .toolbar';
+    let touching = false, touchedAt = 0, lastY = 0, dir = 0, timer = 0, raf = 0, animating = false;
+    const on = () => Prefs.get('snap') && !document.querySelector('dialog[open]');
+    const reduced = () => Prefs.get('motion') || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    const busyInput = () => { const a = document.activeElement; return a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.type !== 'checkbox' && a.type !== 'radio'; };
+
+    function cancel() { cancelAnimationFrame(raf); animating = false; }
+    function glide(to) {
+        cancel();
+        const from = window.scrollY, dist = to - from;
+        if (Math.abs(dist) < 2) return;
+        if (reduced()) { window.scrollTo(0, to); return; }
+        const dur = Math.min(420, 220 + Math.abs(dist) * 0.6), t0 = performance.now();
+        const ease = p => 1 - Math.pow(1 - p, 3);
+        animating = true;
+        const step = now => {
+            const p = Math.min(1, (now - t0) / dur);
+            window.scrollTo(0, Math.round(from + dist * ease(p)));
+            if (p < 1 && animating) raf = requestAnimationFrame(step); else animating = false;
+        };
+        raf = requestAnimationFrame(step);
+    }
+    // หาจุดหยุดที่ใกล้ที่สุดตามทิศที่เลื่อน
+    function settle() {
+        if (touching || animating || !on() || busyInput()) return;
+        if (Date.now() - touchedAt > 2500) return; // ไม่ได้เลื่อนด้วยนิ้ว (เมาส์/คีย์บอร์ด/โค้ด)
+        const y = window.scrollY, vh = window.innerHeight, max = document.documentElement.scrollHeight - vh;
+        if (y <= 0 || y >= max - 2) return; // บนสุด/ล่างสุดอยู่แล้ว
+        const ahead = vh * 0.32, behind = vh * 0.12; // ระยะ "ใกล้" ทางที่เลื่อนไป / ย้อนกลับเล็กน้อย
+        let best = null;
+        document.querySelectorAll(SEL).forEach(el => {
+            if (!el.offsetParent && el.getClientRects().length === 0) return;
+            const t = Math.min(max, Math.max(0, Math.round(el.getBoundingClientRect().top + y - (parseFloat(getComputedStyle(el).scrollMarginTop) || 0))));
+            const d = t - y;
+            const okRange = dir >= 0 ? (d >= -behind && d <= ahead) : (d <= behind && d >= -ahead);
+            if (okRange && (!best || Math.abs(d) < Math.abs(best.d))) best = { t, d };
+        });
+        if (best && Math.abs(best.d) >= 2) glide(best.t);
+    }
+    function onScroll() {
+        const y = window.scrollY;
+        if (y !== lastY) dir = y > lastY ? 1 : -1;
+        lastY = y;
+        if (animating) return;
+        clearTimeout(timer);
+        timer = setTimeout(settle, 140); // แรงเหวี่ยงหยุดแล้ว (ไม่มีการเลื่อนเพิ่ม 140ms)
+    }
+    function init() {
+        lastY = window.scrollY;
+        window.addEventListener('scroll', onScroll, { passive: true });
+        document.addEventListener('touchstart', () => { touching = true; touchedAt = Date.now(); cancel(); clearTimeout(timer); }, { passive: true });
+        const up = () => { touching = false; touchedAt = Date.now(); clearTimeout(timer); timer = setTimeout(settle, 140); };
+        document.addEventListener('touchend', up, { passive: true });
+        document.addEventListener('touchcancel', up, { passive: true });
+        // เมาส์/คีย์บอร์ดระหว่างเลื่อนอัตโนมัติ = หยุด
+        ['wheel', 'keydown', 'mousedown'].forEach(t => window.addEventListener(t, cancel, { passive: true }));
+    }
+    return { init, settle, glide };
+})();
+document.addEventListener('DOMContentLoaded', SoftSnap.init);
+
 // ติดตั้งเป็นแอป: service worker (แคชไฟล์ ออฟไลน์ แจ้งเตือน) + ขอให้เบราว์เซอร์เก็บข้อมูลถาวร
 // (ลดโอกาสที่ Safari ลบข้อมูลในเครื่อง เช่น รายงานที่รอส่ง เมื่อไม่ได้เปิดเว็บนาน)
 let INSTALL_PROMPT = null;
