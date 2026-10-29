@@ -355,10 +355,12 @@ function initForm() {
     $('evidenceImg').addEventListener('change', () => { PICKED_FILE = null; CAPTURE_AT = Date.now(); updateFileName(); });
     $('photoRemove').addEventListener('click', () => { $('evidenceImg').value = ''; PICKED_FILE = null; updateFileName(); });
     // กล้องในแอป (มีกรอบนำถ่าย) — เบราว์เซอร์ที่ไม่รองรับใช้ช่องเลือกรูปเดิม
+    // มีกล้องในแอป: ถ่าย ณ ขณะนั้นเท่านั้น (ไม่มีตัวเลือกรูปจากเครื่อง)
+    // ไม่มี/เปิดกล้องไม่ได้: ใช้ช่องถ่ายภาพของเครื่อง (capture="environment" เปิดกล้องบนมือถือ)
     if (Camera.supported()) {
         $('cameraOpen').hidden = false;
+        $('photoPick').hidden = true;
         $('photoEmpty').classList.add('has-camera');
-        $('photoPick').querySelector('b').textContent = 'หรือเลือกรูปจากเครื่อง';
     }
     $('cameraOpen').addEventListener('click', openCamera);
     $('photoRetake').addEventListener('click', () => (Camera.supported() ? openCamera() : $('evidenceImg').click()));
@@ -468,7 +470,6 @@ async function openCamera() {
         profile: { name: CURRENT_USER.name, id: CURRENT_USER.id, pic: CURRENT_USER.pic },
         stampPreview: () => { const l = stampLines(); return [l[1].replace(/:\d\d น\.$/, ' น.'), GPS_FIX ? `±${Math.round(GPS_FIX.acc)} ม.` : 'รอพิกัด GPS']; }
     });
-    if (res === 'gallery') return $('evidenceImg').click();
     if (res && res.error) { await showMessage({ title: 'เปิดกล้องไม่ได้', text: res.error, tone: 'warn' }); return $('evidenceImg').click(); }
     if (res instanceof File) {
         PICKED_FILE = res;
@@ -525,7 +526,14 @@ function updateStepper(s) {
         li.querySelector('button').setAttribute('aria-current', id === current ? 'step' : 'false');
     });
     const left = STEP_ORDER.filter(id => !done[id]).length;
-    $('stepperNote').textContent = TODAY_RECORD ? 'ส่งรายงานของวันนี้แล้ว' : queuedToday() ? 'รายงานวันนี้รอส่งอยู่ในเครื่อง — จะส่งเองเมื่อมีสัญญาณ' : left === 1 ? 'เหลือขั้นตอนสุดท้าย — กดบันทึกรายงาน' : `เหลืออีก ${left} ขั้นตอน`;
+    // สถานะแยกเด่นใต้แถบขั้นตอน: ส่งแล้ว (เขียว) / รอส่ง (ฟ้า) / เหลือกี่ขั้น
+    const state = TODAY_RECORD ? 'done' : queuedToday() ? 'queued' : 'todo';
+    const note = $('stepperNote');
+    note.className = 'stepper-note is-' + state;
+    note.querySelector('use').setAttribute('href', state === 'done' ? '#i-check-circle' : state === 'queued' ? '#i-wifi-off' : '#i-info');
+    note.querySelector('span').textContent = state === 'done' ? `ส่งรายงานของวันนี้แล้ว · เวลา ${TODAY_RECORD.time} น. — ส่งครั้งถัดไปได้พรุ่งนี้`
+        : state === 'queued' ? 'รายงานวันนี้รอส่งอยู่ในเครื่อง — จะส่งเองเมื่อมีสัญญาณ'
+        : left === 1 ? 'เหลือขั้นตอนสุดท้าย — กดบันทึกรายงาน' : `เหลืออีก ${left} ขั้นตอน`;
 }
 function scrollToStep(id) {
     const el = $(id);
