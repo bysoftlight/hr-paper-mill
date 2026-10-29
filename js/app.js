@@ -299,6 +299,33 @@ function renderUser() {
     document.querySelectorAll('[data-user="id"]').forEach(el => el.textContent = CURRENT_USER.id || '-');
     document.querySelectorAll('[data-user="status"]').forEach(el => el.textContent = CURRENT_USER.status || '-');
     document.querySelectorAll('[data-user="avatar"]').forEach(renderAvatar);
+    loadStampAvatar();
+}
+
+// รูปโปรไฟล์สำหรับแถบโปรไฟล์บนรูปหลักฐาน: ต้องโหลดแบบ CORS (ไม่งั้นวาดลง canvas แล้วส่งออกไม่ได้)
+// โหลดตรงไม่ได้ → ขอผ่าน API เป็น dataUrl → ไม่ได้อีก ใช้ตัวอักษรแรกของชื่อแทน
+let STAMP_AVATAR = null;
+function loadStampAvatar() {
+    STAMP_AVATAR = null;
+    const pic = CURRENT_USER.pic, uid = CURRENT_USER.id;
+    if (!pic) return;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => { if (CURRENT_USER.id === uid) STAMP_AVATAR = img; };
+    img.onerror = () => {
+        const m = String(pic).match(/[?&]id=([\w-]{20,})/);
+        if (!m) return;
+        callApi('image', { userId: uid, fileId: m[1], thumb: true }).then(r => {
+            if (!r.success || !r.dataUrl) return;
+            const d = new Image();
+            d.onload = () => { if (CURRENT_USER.id === uid) STAMP_AVATAR = d; };
+            d.src = r.dataUrl;
+        }).catch(() => {});
+    };
+    img.src = String(pic).replace(/([?&]sz=)w\d+/, '$1w240');
+}
+function stampProfile() {
+    return { name: CURRENT_USER.name || '', id: CURRENT_USER.id || '', img: STAMP_AVATAR };
 }
 
 function renderAvatar(el) {
@@ -439,7 +466,7 @@ async function updateFileName(opts = {}) {
     $('fileNameDisplay').textContent = `${file.name} · ${formatBytes(file.size)} · กำลังย่อขนาด…`;
     if (!opts.restamp) advanceStep('stepPhoto');
     try {
-        const result = await compressImage(file, ...photoSize(), { stamp: stampLines(), hash: true });
+        const result = await compressImage(file, ...photoSize(), { stamp: stampLines(), profile: stampProfile(), hash: true });
         if (token !== compressToken) return;
         COMPRESSED = Object.assign(result, { withGps: !!GPS_FIX });
         // แสดงรูปที่ประทับวัน-เวลา-พิกัดแล้ว (รูปนี้คือรูปที่จะส่งจริง)
@@ -591,7 +618,7 @@ async function handleFormSubmit(e) {
     showLoading(true, 'กำลังบันทึกข้อมูล…');
     try {
         const file = photoFile();
-        const image = COMPRESSED || await compressImage(file, ...photoSize(), { stamp: stampLines(), hash: true });
+        const image = COMPRESSED || await compressImage(file, ...photoSize(), { stamp: stampLines(), profile: stampProfile(), hash: true });
         const formData = {
             userName: CURRENT_USER.name, salesType: selectedSalesType,
             lat: $('lat').value, long: $('long').value,
@@ -857,9 +884,9 @@ function renderCalendar() {
     const y = CAL_MONTH.getFullYear(), m = CAL_MONTH.getMonth();
     const byDay = {};
     ALL_HISTORY.forEach(h => { const d = new Date(h.timestamp); if (d.getFullYear() === y && d.getMonth() === m) (byDay[d.getDate()] = byDay[d.getDate()] || []).push(h); });
-    // วันที่ "ขาด" นับตั้งแต่วันแรกที่เคยส่ง (ก่อนเริ่มใช้ระบบไม่นับ)
+    // วันที่ "ขาด" นับตั้งแต่วันที่ 1 ของเดือนแรกที่เริ่มใช้ระบบ (ยังไม่เคยส่งเลย = นับตั้งแต่ต้นเดือนนี้)
     const first = ALL_HISTORY.reduce((a, h) => Math.min(a, new Date(h.timestamp).getTime()), Infinity);
-    const firstDay = isFinite(first) ? new Date(new Date(first).toDateString()) : null;
+    const firstDay = isFinite(first) ? new Date(new Date(first).getFullYear(), new Date(first).getMonth(), 1) : new Date(now.getFullYear(), now.getMonth(), 1);
     const today = new Date(now.toDateString());
     const days = new Date(y, m + 1, 0).getDate(), lead = new Date(y, m, 1).getDay();
     let self = 0, agent = 0, missed = 0;

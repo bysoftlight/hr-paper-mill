@@ -2,6 +2,7 @@
 
 // ฟังก์ชันย่อรูป: คืนค่า base64 (ไม่มี prefix) และขนาดไฟล์หลังย่อเป็น byte
 // opts.stamp = ['บรรทัด 1', ...] → ประทับข้อความ (วัน-เวลา-พิกัด) ลงแถบล่างของรูป
+// opts.profile = { name, id, img } → แถบโปรไฟล์จางๆ มุมซ้ายบน (เทียบตัวผู้ขายกับเจ้าของบัญชี)
 // opts.hash = true → คืน hash (dHash 64 บิต) ของรูปก่อนประทับ ใช้ตรวจรูปซ้ำ
 function compressImage(file, maxWidth = 1024, quality = 0.6, opts = {}) {
     return new Promise((resolve, reject) => {
@@ -16,6 +17,7 @@ function compressImage(file, maxWidth = 1024, quality = 0.6, opts = {}) {
                 const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
                 const hash = opts.hash ? dHash(canvas) : '';
                 if (opts.stamp && opts.stamp.length) stampImage(ctx, width, height, opts.stamp);
+                if (opts.profile) { try { stampProfileBar(ctx, width, opts.profile); } catch (e) { /* รูปโปรไฟล์ใช้ไม่ได้: ข้ามแถบนี้ */ } }
                 const base64 = canvas.toDataURL('image/jpeg', quality).split(',')[1];
                 resolve({ base64, bytes: Math.round(base64.length * 3 / 4), hash });
             };
@@ -62,6 +64,48 @@ function stampImage(ctx, w, h, lines) {
         ctx.fillText(t, pad, h - barH + pad + lh * i, w - pad * 2);
     });
     ctx.shadowBlur = 0;
+}
+
+// แถบโปรไฟล์มุมซ้ายบน: พื้นโปร่ง ~20% ไม่บังเนื้อหาของรูป
+function stampProfileBar(ctx, w, p) {
+    const fs = Math.max(12, Math.round(w / 46)), av = Math.round(fs * 2.3), pad = Math.round(fs * 0.55), m = Math.round(fs * 0.8);
+    const font = '"Google Sans", "Noto Sans Thai", system-ui, sans-serif';
+    ctx.save();
+    ctx.font = `600 ${fs}px ${font}`;
+    const nameW = ctx.measureText(p.name).width;
+    ctx.font = `${Math.round(fs * 0.85)}px ${font}`;
+    const idW = ctx.measureText(p.id).width;
+    const bw = Math.min(w - m * 2, pad * 3 + av + Math.max(nameW, idW) + pad), bh = av + pad * 2;
+    // พื้นแถบ
+    ctx.fillStyle = 'rgba(0,0,0,.2)';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(m, m, bw, bh, bh / 2); else ctx.rect(m, m, bw, bh);
+    ctx.fill();
+    // รูปโปรไฟล์ (วงกลม) หรือตัวอักษรแรก
+    const cx = m + pad + av / 2, cy = m + pad + av / 2;
+    ctx.globalAlpha = 0.8;
+    ctx.beginPath(); ctx.arc(cx, cy, av / 2, 0, Math.PI * 2); ctx.closePath();
+    if (p.img && p.img.naturalWidth) {
+        ctx.save(); ctx.clip();
+        const s = Math.min(p.img.naturalWidth, p.img.naturalHeight);
+        ctx.drawImage(p.img, (p.img.naturalWidth - s) / 2, (p.img.naturalHeight - s) / 2, s, s, cx - av / 2, cy - av / 2, av, av);
+        ctx.restore();
+    } else {
+        ctx.fillStyle = 'rgba(8,80,209,.85)'; ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.font = `600 ${Math.round(av * 0.45)}px ${font}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText((p.name || '?').trim().charAt(0), cx, cy + 1);
+        ctx.textAlign = 'left';
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = Math.max(1, fs / 8);
+    ctx.beginPath(); ctx.arc(cx, cy, av / 2, 0, Math.PI * 2); ctx.stroke();
+    // ชื่อ + รหัส
+    const tx = m + pad * 2 + av, maxW = bw - (tx - m) - pad;
+    ctx.textBaseline = 'top'; ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 2;
+    ctx.fillStyle = '#fff'; ctx.font = `600 ${fs}px ${font}`;
+    ctx.fillText(p.name, tx, cy - fs * 1.08, maxW);
+    ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.font = `${Math.round(fs * 0.85)}px ${font}`;
+    ctx.fillText(p.id, tx, cy + fs * 0.12, maxW);
+    ctx.restore();
 }
 
 function formatBytes(bytes) {

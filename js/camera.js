@@ -24,6 +24,14 @@ const Camera = (() => {
         stream = null;
     }
 
+    // กรอบนำถ่ายอยู่ระหว่างแถบบน (โปรไฟล์ + คำแนะนำ) กับแถบล่าง ไม่ทับข้อความ
+    function fitGuide() {
+        const stage = document.querySelector('#cameraModal .cam-stage');
+        if (!stage || !el('cameraModal').open) return;
+        stage.style.setProperty('--guide-top', (document.querySelector('#cameraModal .cam-top').offsetHeight + 10) + 'px');
+        stage.style.setProperty('--guide-bottom', (document.querySelector('#cameraModal .cam-bottom').offsetHeight + 10) + 'px');
+    }
+
     function finish(file) {
         stop();
         clearInterval(tick);
@@ -62,6 +70,7 @@ const Camera = (() => {
         el('camRetake').addEventListener('click', () => { el('camReview').hidden = true; shot = null; el('camShutter').focus(); });
         el('camUse').addEventListener('click', () => finish(shot));
         el('cameraModal').addEventListener('cancel', e => { e.preventDefault(); finish(null); });
+        window.addEventListener('resize', fitGuide);
         document.addEventListener('visibilitychange', () => { if (document.hidden && stream && el('cameraModal').open) stop(); else if (!document.hidden && el('cameraModal').open && !stream) start().catch(() => {}); });
     }
 
@@ -78,6 +87,7 @@ const Camera = (() => {
         const upd = () => { stampEl.textContent = (opts.stampPreview ? opts.stampPreview() : []).join('  ·  '); };
         upd(); tick = setInterval(upd, 1000);
         dlg.showModal();
+        fitGuide();
         try {
             await start();
         } catch (e) {
