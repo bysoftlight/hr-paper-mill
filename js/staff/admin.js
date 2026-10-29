@@ -41,10 +41,64 @@ VIEWS.admin = {
         $('admTabs').querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.t === t)));
         $('admStaff').hidden = t !== 'staff';
         $('admLogs').hidden = t !== 'logs';
-        if (t === 'staff') this.loadStaff(); else this.loadLogs();
+        $('admSecurity').hidden = t !== 'security';
+        if (t === 'staff') this.loadStaff(); else if (t === 'security') this.loadSecurity(); else this.loadLogs();
     },
 
-    onLive() { if (ST.view === 'admin' && this.tab === 'logs' && this.logPage === 1 && !document.querySelector('dialog[open]')) this.loadLogs(true); },
+    onLive() {
+        if (ST.view !== 'admin' || document.querySelector('dialog[open]')) return;
+        if (this.tab === 'logs' && this.logPage === 1) this.loadLogs(true);
+        if (this.tab === 'security') this.loadSecurity(true);
+    },
+
+    // ---------- ความปลอดภัย: ป้องกันการเดารหัสผู้ใช้สิทธิ์ ----------
+    async loadSecurity(silent) {
+        if (!silent && !this.sec) $('secStatus').innerHTML = '<span class="skel skel-text" style="width:50%"></span>';
+        const r = await api('admin.security.status');
+        if (!r.success) { if (!silent) $('secStatus').innerHTML = `<p class="muted-text">${esc(r.message || 'โหลดไม่สำเร็จ — อัปเดตไฟล์ Code.gs และ Staff.gs ใน Apps Script')}</p>`; return; }
+        this.sec = r;
+        this.renderSecurity();
+    },
+    renderSecurity() {
+        const r = this.sec, g = r.settings;
+        const state = r.hardPause ? 'bad' : r.shieldOn ? 'warn' : 'ok';
+        const title = r.hardPause ? 'ถูกโจมตีหนัก — พักการเข้าระบบจากเครื่องใหม่' : r.shieldOn ? 'โหมดป้องกันเปิดอยู่' : 'ปกติ';
+        const detail = r.shieldOn ? `ถึง ${thTime(r.shieldUntil)} น. · ผู้ใช้สิทธิ์ที่เคยเข้าระบบจากเครื่องเดิมใช้งานได้ตามปกติ` : 'ไม่พบการไล่เดารหัสในช่วงนี้';
+        $('secStatus').className = 'card sec-status is-' + state;
+        $('secStatus').innerHTML = `
+          <div class="sec-top"><span class="sec-dot" aria-hidden="true"></span><div><b>${title}</b><small>${detail}</small></div>
+            <button type="button" class="btn-chip ${r.shieldOn ? '' : 'btn-chip-bad'}" id="secToggle">${r.shieldOn ? 'ปิดโหมดป้องกัน' : 'เปิดโหมดป้องกันเอง'}</button></div>
+          <div class="sec-stats"><div><small>10 นาทีล่าสุด</small><b>${cnum(r.fails10min, 'f10')}</b><span>ครั้ง (เปิดโหมดป้องกันที่ ${g.SHIELD_FAILS})</span></div>
+            <div><small>1 ชั่วโมงล่าสุด</small><b>${cnum(r.failsLastHour, 'f60')}</b><span>ครั้ง</span></div></div>`;
+        Counting.scan($('secStatus'), this.secCounts || (this.secCounts = {}));
+        $('secToggle').onclick = async () => {
+            const on = !this.sec.shieldOn;
+            if (!await showMessage({ title: on ? 'เปิดโหมดป้องกัน?' : 'ปิดโหมดป้องกัน?', text: on ? `ทุกการเข้าระบบจากเครื่องใหม่ต้องผ่านการตรวจความปลอดภัย ${g.SHIELD_MIN} นาที (ผู้ที่เคยเข้าจากเครื่องเดิมไม่กระทบ)` : 'กลับสู่การป้องกันปกติ (ยังล็อกเครื่องที่กรอกรหัสผิดบ่อยเหมือนเดิม)', tone: on ? 'warn' : 'ok', okText: on ? 'เปิด' : 'ปิด', cancelText: 'ยกเลิก' })) return;
+            const res = await api('admin.security.shield', { on });
+            if (!res.success) return toast(res.message || 'ทำไม่สำเร็จ');
+            this.sec = res; this.renderSecurity(); toast(on ? 'เปิดโหมดป้องกันแล้ว' : 'ปิดโหมดป้องกันแล้ว');
+        };
+        const pm = r.perMinute;
+        Charts.bars($('secChart'), {
+            labels: pm.map((_, i) => String(pm.length - 1 - i)), height: 110, xLabels: [0, 30, pm.length - 1], ariaLabel: 'จำนวนรหัสที่ไม่มีในระบบต่อนาที',
+            series: [{ label: 'ครั้ง', values: pm, color: Charts.color('--bad') }],
+            tooltip: i => `<small>${pm.length - 1 - i === 0 ? 'นาทีนี้' : (pm.length - 1 - i) + ' นาทีก่อน'}</small><b>${pm[i]} ครั้ง</b>`
+        });
+        const label = { shield_on: 'เปิดโหมดป้องกันอัตโนมัติ', shield_on_manual: 'เปิดโหมดป้องกัน (ผู้ดูแล)', shield_off_manual: 'ปิดโหมดป้องกัน (ผู้ดูแล)', device_locked: 'ล็อกเครื่องที่กรอกรหัสผิดบ่อย' };
+        $('secEvents').innerHTML = r.events.length ? r.events.slice(0, 12).map(e => `<li><span class="badge ${e.type === 'device_locked' ? 'is-warn' : e.type.startsWith('shield_on') ? 'is-bad' : 'is-ok'}">${esc(label[e.type] || e.type)}</span>
+            <span class="sec-ev-text">${e.type === 'device_locked' ? `เครื่อง ${esc(e.device || '')} · ผิด ${e.fails} ครั้ง · ล่าสุดลอง ${esc(e.lastId || '-')}` : e.type === 'shield_on' ? `ผิด ${e.fails} ครั้งใน ${g.SHIELD_WINDOW_MIN} นาที จาก ${e.devices} เครื่อง` : esc(e.by || '')}<small>${thDateTime(e.t)}</small></span></li>`).join('')
+            : '<li class="muted-text">ยังไม่มีเหตุการณ์</li>';
+        $('secHow').innerHTML = [
+            `กรอกรหัสที่ไม่มีในระบบ ${g.CHALLENGE_AT} ครั้งใน ${g.WINDOW_MIN} นาที → เครื่องนั้นต้องผ่าน "ตรวจความปลอดภัย" ก่อนลองครั้งต่อไป (เครื่องคำนวณเองประมาณ 1–2 วินาที)`,
+            `ผิด ${g.LOCK_AT} ครั้ง → ล็อกเครื่องนั้น ${g.LOCK_MIN} นาที`,
+            `ทั้งระบบผิดเกิน ${g.SHIELD_FAILS} ครั้งใน ${g.SHIELD_WINDOW_MIN} นาที → เปิดโหมดป้องกัน ${g.SHIELD_MIN} นาที: เครื่องใหม่ทุกเครื่องต้องผ่านการตรวจ (ยากขึ้น) ผิด ${g.SHIELD_LOCK_AT} ครั้งล็อกทันที และแจ้งอีเมลผู้ดูแล`,
+            `ผิดเกิน ${g.HARD_FAILS} ครั้งใน ${g.SHIELD_WINDOW_MIN} นาที → พักการเข้าระบบจากเครื่องใหม่ชั่วคราว (เดารหัสถูกก็ไม่รู้ผล)`,
+            `ผู้ใช้สิทธิ์ที่เคยเข้าระบบจากเครื่องเดิม (ภายใน ${g.TRUST_DAYS} วัน) ใช้งานได้ตามปกติตลอด`,
+            `Log บันทึกการกรอกผิดทีละรายการไม่เกิน ${g.LOG_PER_DEVICE} ครั้งต่อเครื่อง ที่เหลือสรุปเป็นเหตุการณ์ด้านบน (Log ไม่ล้น)`
+        ].map(x => `<li>${x}</li>`).join('');
+        $('secLogs').onclick = () => { this.setTab('logs'); $('logSearch').value = 'security'; this.logPage = 1; this.loadLogs(); };
+        $('secBadge').hidden = !r.shieldOn;
+    },
 
     async refreshBadge() {
         const r = await api('admin.staff.list');

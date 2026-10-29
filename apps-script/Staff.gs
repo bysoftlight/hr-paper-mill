@@ -92,6 +92,12 @@ function handleStaffRequest_(req) {
       if (['export.pdf', 'export.xlsx', 'export.logs'].indexOf(req.logAction) === -1) fail_('INVALID', 'ไม่รู้จักการกระทำ');
       log_(staff, req.logAction, req.target || '', req.details || '', ua);
       return { success: true };
+    case 'admin.security.status':
+      requirePerm_(staff, 'admin');
+      return guardStatus_();
+    case 'admin.security.shield':
+      requirePerm_(staff, 'admin');
+      return guardSetShield_(!!req.on, staff, ua);
     case 'admin.staff.list':
       requirePerm_(staff, 'admin');
       return adminStaffList_();
