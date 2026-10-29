@@ -7,7 +7,7 @@ const PREF_DEFAULTS = {
     text: 'm',         // m | l | xl
     motion: false,     // true = ลดภาพเคลื่อนไหว
     snap: true,        // เลื่อนหน้าแล้วหยุดพอดีทีละส่วน
-    analytics: true,   // ส่งสถิติการใช้งานแบบไม่ระบุตัวตน (js/analytics.js)
+    analytics: true,   // ส่งสถิติการใช้งาน (js/analytics.js)
     haptic: true,      // สั่นเบาๆ เมื่อแตะเมนู
     // หน้าผู้ใช้สิทธิ์
     photo: 'std',      // save | std | hi
@@ -131,7 +131,7 @@ function displaySettings() {
             { icon: 'haptic', tone: 'amber', label: 'สั่นเมื่อแตะเมนู', desc: 'สั่นเบาๆ เมื่อเปลี่ยนหน้า (Android และ iPhone iOS 18 ขึ้นไป)', control: { type: 'switch', key: 'haptic' } },
             { icon: 'motion', tone: 'teal', label: 'ลดภาพเคลื่อนไหว', desc: 'ปิดแอนิเมชัน เหมาะกับเครื่องรุ่นเก่าหรือผู้ที่เวียนหัวง่าย', control: { type: 'switch', key: 'motion' } },
             { icon: 'snap', tone: 'blue', label: 'เลื่อนทีละส่วน', desc: 'เลื่อนหน้าจอแล้วหยุดพอดีที่หัวข้อของแต่ละส่วน', control: { type: 'switch', key: 'snap' } },
-            { icon: 'chart', tone: 'indigo', label: 'ส่งสถิติการใช้งาน', desc: 'ไม่ระบุตัวตน — ช่วยให้รู้ว่าขั้นตอนไหนใช้ยาก เพื่อปรับปรุงระบบ', control: { type: 'switch', key: 'analytics' } }
+            { icon: 'chart', tone: 'indigo', label: 'ส่งสถิติการใช้งาน', desc: 'หน้าที่เปิด อุปกรณ์ และตำแหน่งตอนส่งรายงาน ผูกกับรหัสที่เข้าสู่ระบบ — ใช้ปรับปรุงระบบและดูแลความปลอดภัย', control: { type: 'switch', key: 'analytics' } }
         ]
     };
 }

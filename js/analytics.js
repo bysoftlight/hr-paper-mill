@@ -1,14 +1,16 @@
-// js/analytics.js — สถิติการใช้งาน (ไม่ระบุตัวตน) ใช้ร่วมกัน: หน้าผู้ใช้สิทธิ์ · หน้า Staff · โปรแกรมใบเสนอราคา
+// js/analytics.js — สถิติการใช้งาน ใช้ร่วมกัน: หน้าผู้ใช้สิทธิ์ · หน้า Staff · โปรแกรมใบเสนอราคา
 //   Analytics.init({ app: 'user' | 'staff' | 'quote', role })
 //   Analytics.page('form')                       — เปิดหน้า/แท็บ (บันทึกเวลาที่อยู่บนหน้าก่อนหน้าให้ด้วย)
-//   Analytics.track('submit_success', { l: 'ป้าย', v: 123 })
-// ผู้เยี่ยมชม = รหัสสุ่มของเครื่องนี้ (ไม่ใช่รหัสผู้ใช้สิทธิ์/อีเมล) · เซสชัน = ใช้งานต่อเนื่อง (ว่างเกิน 30 นาทีนับใหม่)
+//   Analytics.track('submit_success', { l: 'ป้าย', v: 123, d: { ข้อมูลเพิ่มเติม } })
+//   Analytics.setUser('REN001' | 'staff@…')     — ผูกเหตุการณ์หลังเข้าสู่ระบบกับรหัสผู้ใช้ ('' = ออกจากระบบ)
+//   Analytics.setLocation(lat, lng, acc)         — พิกัดที่แอปได้มาแล้ว (ไม่ขอสิทธิ์ตำแหน่งเพิ่ม) ใช้กับเหตุการณ์ใน 30 นาที
+// ผู้เยี่ยมชม = รหัสสุ่มของเบราว์เซอร์นี้ · เซสชัน = ใช้งานต่อเนื่อง (ว่างเกิน 30 นาทีนับใหม่)
 // ส่งเป็นชุดทุก ~8 วินาที และตอนปิด/สลับแอป (sendBeacon) · ออฟไลน์เก็บคิวไว้ในเครื่องแล้วค่อยส่ง
 // ปิดได้ในหน้าตั้งค่า ("ส่งสถิติการใช้งาน") — ปิดแล้วไม่เก็บ/ไม่ส่งอะไรเลย
 
 const Analytics = (() => {
-    const VID_KEY = 'HRPM_VID', Q_KEY = 'HRPM_AQ', SESSION_IDLE = 30 * 60000, MAX_QUEUE = 300;
-    let app = '', role = '', page = '', pageStart = 0, visibleSince = 0, timer = 0, ready = false;
+    const VID_KEY = 'HRPM_VID', Q_KEY = 'HRPM_AQ', UAH_KEY = 'HRPM_UAH', LOC_FRESH = 30 * 60000, SESSION_IDLE = 30 * 60000, MAX_QUEUE = 300;
+    let app = '', role = '', user = '', loc = null, page = '', pageStart = 0, visibleSince = 0, timer = 0, ready = false;
 
     const ls = {
         get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
@@ -50,7 +52,32 @@ const Analytics = (() => {
             if (q) ref = q.slice(0, 40);
             else if (document.referrer) { const h = new URL(document.referrer).hostname; if (h && h !== location.hostname) ref = h.replace(/^www\./, ''); }
         } catch (e) { /* ไม่ทราบที่มา */ }
-        return { device, os, browser, standalone, screen: Math.round(window.screen ? screen.width : innerWidth), ref };
+        // รุ่น/เวอร์ชัน: iOS บอกได้แค่ iPhone/iPad · Android บน Chrome ได้รุ่นจริงจาก userAgentData (โหลดครั้งแรกแล้วจำไว้)
+        const m = ua.match(/(?:iPhone|CPU) OS (\d+)[_.](\d+)/) || ua.match(/Android (\d+(?:\.\d+)?)/) || ua.match(/Windows NT (\d+\.\d+)/) || ua.match(/Mac OS X (\d+)[_.](\d+)/);
+        const osVer = m ? m.slice(1).filter(Boolean).join('.') : '';
+        const bm = ua.match(/(?:Edg|SamsungBrowser|Line|Firefox|FxiOS|CriOS|Chrome|Version)\/(\d+(?:\.\d+)?)/);
+        const andModel = (ua.match(/Android [\d.]+; ([^;)]+?)(?: Build|\))/) || [])[1];
+        const model = /iPad/.test(ua) || touchMac ? 'iPad' : /iPhone/.test(ua) ? 'iPhone' : andModel && andModel !== 'K' ? andModel : /Macintosh/.test(ua) ? 'Mac' : '';
+        let hint = {};
+        try { hint = JSON.parse(ls.get(UAH_KEY) || '{}') || {}; } catch (e) { hint = {}; }
+        let lang = '', tz = '';
+        try { lang = navigator.language || ''; tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { /* ไม่ทราบ */ }
+        return { device, os, browser, standalone, screen: Math.round(window.screen ? screen.width : innerWidth), ref,
+            model: hint.model || model, osVer: hint.osVer || osVer, brVer: bm ? bm[1] : '', lang, tz };
+    }
+    // Chrome/Edge: ขอรุ่นเครื่อง + เวอร์ชันระบบจริง (เบราว์เซอร์ไม่ถามผู้ใช้) แล้วจำไว้ใช้ครั้งต่อไป
+    function loadHints() {
+        try {
+            const uad = navigator.userAgentData;
+            if (!uad || !uad.getHighEntropyValues) return;
+            uad.getHighEntropyValues(['model', 'platformVersion']).then(h => {
+                const v = { model: String(h.model || '').slice(0, 40), osVer: String(h.platformVersion || '').split('.').slice(0, 2).join('.') };
+                if (ENV && ENV.os === 'Windows' && v.osVer) v.osVer = Number(v.osVer.split('.')[0]) >= 13 ? '11' : '10';
+                if (!v.model) delete v.model;
+                ls.set(UAH_KEY, JSON.stringify(v));
+                if (ENV) { if (v.model) ENV.model = v.model; if (v.osVer) ENV.osVer = v.osVer; }
+            }).catch(() => { /* ไม่รองรับ */ });
+        } catch (e) { /* ไม่รองรับ */ }
     }
     let ENV = null;
 
@@ -59,7 +86,10 @@ const Analytics = (() => {
     function saveQueue(q) { ls.set(Q_KEY, JSON.stringify(q.slice(-MAX_QUEUE))); }
     function push(e, o) {
         const q = queue();
-        q.push({ app, t: Date.now(), e, p: o.p !== undefined ? String(o.p).slice(0, 60) : page, l: o.l !== undefined ? String(o.l).slice(0, 80) : undefined, v: o.v, n: o.n });
+        const now = Date.now(), g = loc && now - loc.at < LOC_FRESH ? [loc.lat, loc.lng, loc.acc] : undefined;
+        let d;
+        if (o.d && typeof o.d === 'object') { try { d = JSON.stringify(o.d).slice(0, 300); } catch (err) { d = undefined; } }
+        q.push({ app, t: now, e, p: o.p !== undefined ? String(o.p).slice(0, 60) : page, l: o.l !== undefined ? String(o.l).slice(0, 80) : undefined, v: o.v, n: o.n, u: user || undefined, g, d });
         saveQueue(q);
     }
     function schedule(ms) { clearTimeout(timer); timer = setTimeout(() => flush(false), ms); }
@@ -100,11 +130,11 @@ const Analytics = (() => {
         const body = JSON.stringify({
             action: 'analytics.track', secret: CONFIG.API_SECRET,
             ctx: Object.assign({ app: appOf, role, vid: visitor(), sid: sid || rid(), did: typeof Guard !== 'undefined' ? Guard.device() : '' }, ENV || env()),
-            events: batch.map(x => ({ t: x.t, e: x.e, p: x.p, l: x.l, v: x.v, n: x.n }))
+            events: batch.map(x => ({ t: x.t, e: x.e, p: x.p, l: x.l, v: x.v, n: x.n, u: x.u, g: x.g, d: x.d }))
         });
         saveQueue(rest);
         let sent = false;
-        if (beacon && navigator.sendBeacon) {
+        if (beacon && navigator.sendBeacon && !navigator.webdriver) { // เบราว์เซอร์อัตโนมัติ/ชุดทดสอบ: ใช้ fetch ที่ดักได้ ข้อมูลทดสอบจะไม่หลุดเข้าชีตจริง
             try { sent = navigator.sendBeacon(CONFIG.API_URL, new Blob([body], { type: 'text/plain;charset=utf-8' })); } catch (e) { sent = false; }
         }
         let done = Promise.resolve();
@@ -121,6 +151,7 @@ const Analytics = (() => {
         app = o.app; role = o.role || '';
         ENV = env();
         ready = true;
+        loadHints();
         if (!enabled()) { saveQueue([]); return; }
         visitor();
         session();
@@ -146,5 +177,10 @@ const Analytics = (() => {
         schedule(4000);
     }
 
-    return { init, track, page: pageView, setRole: r => { role = r || ''; }, flush };
+    return {
+        init, track, page: pageView, flush,
+        setRole: r => { role = r || ''; },
+        setUser: u => { user = String(u || '').slice(0, 60); },
+        setLocation: (lat, lng, acc) => { if (isFinite(lat) && isFinite(lng)) loc = { lat: Math.round(lat * 1e5) / 1e5, lng: Math.round(lng * 1e5) / 1e5, acc: Math.round(acc) || 0, at: Date.now() }; }
+    };
 })();

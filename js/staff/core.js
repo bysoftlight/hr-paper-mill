@@ -288,6 +288,7 @@ async function logout() {
 function endSession(message) {
     store.remove(TOKEN_KEY);
     Object.assign(ST, { token: null, me: null, perms: new Set(), participants: null, participantsReq: null, participantMeta: null, prefetch: null, lastSeen: 0, view: null });
+    Analytics.setUser('');
     clearInterval(liveTimer); clearInterval(liveTextTimer); clearInterval(pendingTimer);
     // สลับไปหน้าเข้าสู่ระบบก่อนเสมอ แล้วจึงเก็บกวาด — ขั้นใดผิดพลาดในบางเบราว์เซอร์ก็ไม่ค้างหน้าเดิม
     $('appContainer').hidden = true;
@@ -310,6 +311,7 @@ function enter(me) {
     ST.me = me;
     ST.perms = new Set(me.permissions || []);
     Analytics.setRole(me.role || 'staff');
+    Analytics.setUser(me.email || '');
     $('authView').hidden = true;
     if (me.status !== 'active' || !ST.perms.size) return showPending(me);
     $('pendingView').hidden = true;
