@@ -41,7 +41,7 @@ const Outbox = (() => {
                     const r = await fetch(CONFIG.API_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify({ action: 'submit', secret: CONFIG.API_SECRET, userId: item.userId, formData: item.formData })
+                        body: JSON.stringify({ action: 'submit', secret: CONFIG.API_SECRET, userId: item.userId, formData: item.formData, device: item.device, trust: item.trust })
                     });
                     res = await r.json();
                 } catch (e) {

@@ -27,6 +27,7 @@ function doGet(e) {
 
 // API สำหรับเว็บภายนอก (GitHub Pages)
 function doPost(e) {
+  USERS_DATA_ = null; // อ่านชีต Users ใหม่ทุกคำขอ
   let req;
   try {
     req = JSON.parse(e.postData.contents);
