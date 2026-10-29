@@ -610,3 +610,19 @@ details.an-ev > summary::-webkit-details-marker { display: none; }
 .sec-ev-text small { font-size: 12px; color: var(--muted); }
 .sec-how ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 6px; font-size: 14px; color: var(--ink-2); }
 .sec-stats b > .count { font-size: inherit; color: inherit; font-weight: inherit; }
+
+/* ผู้ต้องสงสัย / เครื่องที่ถูกบล็อก */
+.sec-note { margin: -4px 0 10px; }
+.threats { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.threat { display: grid; gap: 6px; padding: 12px 14px; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line-soft); border-left: 4px solid var(--outline); min-width: 0; }
+.threat.sev-critical { border-left-color: var(--bad); }
+.threat.sev-high { border-left-color: var(--warn); }
+.threat-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.threat-top b { font-size: 15px; font-weight: 500; flex: 1 1 10em; min-width: 0; }
+.threat-st { font-size: 12px; color: var(--muted); }
+.threat-st.is-new { color: var(--bad); font-weight: 600; }
+.threat-detail { margin: 0; font-size: 14px; color: var(--ink-2); overflow-wrap: anywhere; }
+.threat-meta { margin: 0; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.threat-meta code, .threat-top code { font-family: var(--mono); font-size: 12px; }
+.threat-tip { margin: 0; padding: 8px 10px; border-radius: 10px; background: var(--field); font-size: 13px; color: var(--ink-2); }
+.threat-actions { display: flex; flex-wrap: wrap; gap: 6px; }

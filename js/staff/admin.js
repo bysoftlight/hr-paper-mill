@@ -52,6 +52,70 @@ VIEWS.admin = {
     },
 
     // ---------- ความปลอดภัย: ป้องกันการเดารหัสผู้ใช้สิทธิ์ ----------
+    threatFilter: 'open',
+    renderThreats() {
+        const r = this.sec;
+        $('secThreatFilter').onclick = e => {
+            const b = e.target.closest('[data-f]'); if (!b) return;
+            this.threatFilter = b.dataset.f;
+            $('secThreatFilter').querySelectorAll('button').forEach(x => x.setAttribute('aria-checked', String(x === b)));
+            this.renderThreats();
+        };
+        if (!r.threatsReady) {
+            $('secThreats').innerHTML = '<li class="muted-text">ต้องเพิ่มไฟล์ Threats.gs ใน Apps Script ก่อน จึงจะตรวจจับและแจ้งเตือนได้</li>';
+            $('secBlocks').innerHTML = ''; return;
+        }
+        const all = r.threats || [], open = all.filter(t => t.status === 'ใหม่');
+        $('secThreatCount').hidden = !open.length; $('secThreatCount').textContent = open.length;
+        $('secBadge').hidden = !r.shieldOn && !open.some(t => t.sev !== 'medium');
+        const list = this.threatFilter === 'open' ? open : all;
+        const blocked = new Set((r.blocks || []).map(b => b.device));
+        const sevCls = { critical: 'is-bad', high: 'is-warn', medium: '' };
+        const isDev = d => /^[\w-]{8,32}$/.test(d || '') && d !== 'anon';
+        $('secThreats').innerHTML = list.length ? list.slice(0, 30).map(t => `
+          <li class="threat sev-${t.sev}" data-row="${t.row}" data-device="${esc(t.device)}">
+            <div class="threat-top"><span class="badge ${sevCls[t.sev]}">${esc(t.level)}</span><b>${esc(t.label)}</b><span class="threat-st ${t.status === 'ใหม่' ? 'is-new' : ''}">${esc(t.status)}${t.by ? ' · ' + esc(t.by) : ''}</span></div>
+            <p class="threat-detail">${esc(t.detail)}</p>
+            <p class="threat-meta">${[t.device && `เครื่อง <code>${esc(String(t.device).slice(0, 14))}</code>`, t.client && esc(t.client), t.userId && `รหัส <b class="mono">${esc(t.userId)}</b>`, thDateTime(t.t)].filter(Boolean).join(' · ')}</p>
+            ${t.tip ? `<p class="threat-tip">${esc(t.tip)}</p>` : ''}
+            <div class="threat-actions">
+              ${t.status === 'ใหม่' ? '<button type="button" class="btn-chip" data-ta="review">ตรวจแล้ว</button>' : '<button type="button" class="btn-chip" data-ta="reopen">ยังไม่ตรวจ</button>'}
+              ${isDev(t.device) ? (blocked.has(t.device) ? '<span class="badge is-bad">บล็อกอยู่</span>' : '<button type="button" class="btn-chip btn-chip-bad" data-ta="block">บล็อกเครื่องนี้</button>') : ''}
+              ${t.userId ? `<button type="button" class="btn-chip" data-ta="person">ดูรหัส ${esc(t.userId)}</button>` : ''}
+            </div>
+          </li>`).join('') : `<li class="muted-text">${this.threatFilter === 'open' ? 'ไม่มีรายการที่ยังไม่ตรวจ' : 'ยังไม่พบพฤติกรรมเสี่ยง'}</li>`;
+        $('secThreats').onclick = async e => {
+            const b = e.target.closest('[data-ta]'); if (!b) return;
+            const li = b.closest('[data-row]'), row = Number(li.dataset.row), dev = li.dataset.device, t = all.find(x => x.row === row);
+            if (b.dataset.ta === 'person') return VIEWS.participants.openDetail ? (switchTab('participants'), VIEWS.participants.openDetail(t.userId)) : null;
+            if (b.dataset.ta === 'block') {
+                const reason = await VIEWS.records.askReason({ title: 'บล็อกเครื่องนี้ 30 วัน?', text: `เครื่อง ${dev.slice(0, 14)} (${t.client || 'ไม่ทราบอุปกรณ์'}) จะใช้หน้าผู้ใช้สิทธิ์ไม่ได้ · ปลดบล็อกได้ภายหลัง`, okText: 'บล็อก' });
+                if (!reason) return;
+                const res = await api('admin.security.block', { device: dev, on: true, reason });
+                if (!res.success) return toast(res.message || 'บล็อกไม่สำเร็จ');
+                await api('admin.security.threat', { row, status: 'บล็อกแล้ว' });
+                toast('บล็อกเครื่องแล้ว'); return this.loadSecurity(true);
+            }
+            const res = await api('admin.security.threat', { row, status: b.dataset.ta === 'review' ? 'ตรวจแล้ว' : 'ใหม่' });
+            if (!res.success) return toast(res.message || 'บันทึกไม่สำเร็จ');
+            this.loadSecurity(true);
+        };
+        const bl = r.blocks || [];
+        $('secBlocks').innerHTML = bl.length ? bl.map(b => `<li class="threat" data-device="${esc(b.device)}">
+            <div class="threat-top"><span class="badge is-bad">บล็อก</span><b><code>${esc(b.device.slice(0, 14))}</code></b><span class="threat-st">ถึง ${thDate(b.until)}</span></div>
+            <p class="threat-meta">${esc(b.reason || '-')} · โดย ${esc(b.by || '-')} · ${thDateTime(b.at)}</p>
+            <div class="threat-actions"><button type="button" class="btn-chip" data-unblock>ปลดบล็อก</button></div></li>`).join('')
+            : '<li class="muted-text">ไม่มีเครื่องที่ถูกบล็อก</li>';
+        $('secBlocks').onclick = async e => {
+            const b = e.target.closest('[data-unblock]'); if (!b) return;
+            const dev = b.closest('[data-device]').dataset.device;
+            if (!await showMessage({ title: 'ปลดบล็อกเครื่องนี้?', text: dev.slice(0, 14), tone: 'warn', okText: 'ปลดบล็อก', cancelText: 'ยกเลิก' })) return;
+            const res = await api('admin.security.block', { device: dev, on: false });
+            if (!res.success) return toast(res.message || 'ไม่สำเร็จ');
+            toast('ปลดบล็อกแล้ว'); this.loadSecurity(true);
+        };
+    },
+
     async loadSecurity(silent) {
         if (!silent && !this.sec) $('secStatus').innerHTML = '<span class="skel skel-text" style="width:50%"></span>';
         const r = await api('admin.security.status');
@@ -96,8 +160,8 @@ VIEWS.admin = {
             `ผู้ใช้สิทธิ์ที่เคยเข้าระบบจากเครื่องเดิม (ภายใน ${g.TRUST_DAYS} วัน) ใช้งานได้ตามปกติตลอด`,
             `Log บันทึกการกรอกผิดทีละรายการไม่เกิน ${g.LOG_PER_DEVICE} ครั้งต่อเครื่อง ที่เหลือสรุปเป็นเหตุการณ์ด้านบน (Log ไม่ล้น)`
         ].map(x => `<li>${x}</li>`).join('');
+        this.renderThreats();
         $('secLogs').onclick = () => { this.setTab('logs'); $('logSearch').value = 'security'; this.logPage = 1; this.loadLogs(); };
-        $('secBadge').hidden = !r.shieldOn;
     },
 
     async refreshBadge() {

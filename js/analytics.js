@@ -99,7 +99,7 @@ const Analytics = (() => {
         try { sid = (JSON.parse(ls.get('HRPM_SID_' + appOf) || 'null') || {}).id || ''; } catch (e) { /* ไม่มีเซสชัน */ }
         const body = JSON.stringify({
             action: 'analytics.track', secret: CONFIG.API_SECRET,
-            ctx: Object.assign({ app: appOf, role, vid: visitor(), sid: sid || rid() }, ENV || env()),
+            ctx: Object.assign({ app: appOf, role, vid: visitor(), sid: sid || rid(), did: typeof Guard !== 'undefined' ? Guard.device() : '' }, ENV || env()),
             events: batch.map(x => ({ t: x.t, e: x.e, p: x.p, l: x.l, v: x.v, n: x.n }))
         });
         saveQueue(rest);

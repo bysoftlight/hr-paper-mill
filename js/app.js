@@ -235,7 +235,7 @@ async function performLogin(userId, isAuto, background = false) {
         $('histUpdated').textContent = res.networkError ? 'เชื่อมต่อไม่ได้ · แสดงข้อมูลที่บันทึกไว้' : 'ระบบขัดข้องชั่วคราว · แสดงข้อมูลที่บันทึกไว้';
     } else if (!isAccountGone(res)) {
         // เน็ตหลุด/ระบบขัดข้อง ไม่ใช่รหัสผิด: บันทึกสาเหตุ (ส่งเมื่อเน็ตกลับมา) แล้วให้ลองใหม่
-        if (res.code !== 'LOCKED' && res.code !== 'PAUSED') reportClientError('login', (res.serverError ? 'ระบบหลังบ้านตอบผิดรูปแบบ: ' : res.networkError ? 'เชื่อมต่อไม่ได้: ' : '') + (res.message || 'เข้าสู่ระบบไม่สำเร็จ'), 'รหัส ' + userId + (isAuto ? ' (เข้าอัตโนมัติ)' : ''));
+        if (!['LOCKED', 'PAUSED', 'BLOCKED'].includes(res.code)) reportClientError('login', (res.serverError ? 'ระบบหลังบ้านตอบผิดรูปแบบ: ' : res.networkError ? 'เชื่อมต่อไม่ได้: ' : '') + (res.message || 'เข้าสู่ระบบไม่สำเร็จ'), 'รหัส ' + userId + (isAuto ? ' (เข้าอัตโนมัติ)' : ''));
         if (isAuto) {
             const retry = await showMessage({ title: res.networkError ? 'เชื่อมต่อไม่ได้' : 'ระบบขัดข้องชั่วคราว', text: res.message || 'กรุณาลองใหม่อีกครั้ง', tone: 'warn', okText: 'ลองอีกครั้ง', cancelText: 'ปิด' });
             if (retry) return performLogin(userId, true);
