@@ -1,9 +1,50 @@
 // js/staff/participants.js — รายชื่อผู้ใช้สิทธิ์, สถิติ, ปฏิทินการส่งรายเดือน, เพิ่ม/แก้ไข
 
+// คอลัมน์ที่เรียงได้: [คีย์, หัวตาราง, ทิศเริ่มต้น (1 = น้อย→มาก), ค่าที่ใช้เรียง]
+const PART_COLS = [
+    ['name', 'ผู้ใช้สิทธิ์', 1, p => p.name],
+    ['site', 'จุดขาย', 1, p => p.site || '\uffff'],
+    ['today', 'วันนี้', 1, p => !p.active ? 2 : p.reportedToday ? 1 : 0],
+    ['month', 'เดือนนี้', 1, p => p.monthCount],
+    ['agent', 'ขายโดยตัวแทน', -1, p => p.monthAgent],
+    ['last', 'ล่าสุด', -1, p => p.lastReport || 0],
+    ['status', 'สถานะ', 1, p => p.active ? 0 : 1]
+];
+const PART_SORT_LABEL = {
+    name: ['ชื่อ ก → ฮ', 'ชื่อ ฮ → ก'], site: ['จุดขาย ก → ฮ', 'จุดขาย ฮ → ก'],
+    today: ['ยังไม่ส่งวันนี้ก่อน', 'ส่งแล้ววันนี้ก่อน'], month: ['ส่งน้อยสุดเดือนนี้ก่อน', 'ส่งมากสุดเดือนนี้ก่อน'],
+    agent: ['ใช้ตัวแทนน้อยสุดก่อน', 'ใช้ตัวแทนมากสุดก่อน'], last: ['ส่งนานที่สุดก่อน', 'ส่งล่าสุดก่อน'],
+    status: ['ใช้งานก่อน', 'ปิดใช้งานก่อน']
+};
+const PART_QUICK = [
+    ['active', 'ใช้งานอยู่'], ['missing', 'ยังไม่ส่งวันนี้'], ['agent', 'ตัวแทนใกล้ครบ'],
+    ['nogps', 'ไม่มีพิกัด'], ['inactive', 'ปิดใช้งาน'], ['all', 'ทั้งหมด']
+];
+
 VIEWS.participants = {
-    state: 'active', loaded: false,
+    state: 'active', loaded: false, sort: { key: 'name', dir: 1 },
 
     init() {
+        try { const s = JSON.parse(localStorage.getItem('HRPM_PART_SORT')); if (s && PART_COLS.some(c => c[0] === s.key)) this.sort = { key: s.key, dir: s.dir === -1 ? -1 : 1 }; } catch (e) { /* ใช้ค่าเริ่มต้น */ }
+        $('partSort').innerHTML = PART_COLS.map(([k]) => [1, -1].map(d => `<option value="${k}:${d}">เรียง: ${PART_SORT_LABEL[k][d === 1 ? 0 : 1]}</option>`).join('')).join('');
+        $('partSort').value = `${this.sort.key}:${this.sort.dir}`;
+        $('partSort').addEventListener('change', e => { const [k, d] = e.target.value.split(':'); this.setSort(k, Number(d)); });
+        $('partQuick').addEventListener('click', e => {
+            const b = e.target.closest('[data-state]');
+            if (!b) return;
+            haptic();
+            this.state = b.dataset.state;
+            $('partState').value = this.state;
+            this.render();
+        });
+        $('partTable').addEventListener('click', e => {
+            const b = e.target.closest('[data-sort]');
+            if (!b) return;
+            const k = b.dataset.sort, col = PART_COLS.find(c => c[0] === k);
+            this.setSort(k, this.sort.key === k ? -this.sort.dir : col[2]);
+            const nb = $('partTable').querySelector(`[data-sort="${k}"]`);
+            if (nb) nb.focus();
+        });
         $('partSearch').addEventListener('input', debounce(() => this.render(), 250));
         $('partSite').addEventListener('change', () => this.render());
         $('partState').addEventListener('change', e => { this.state = e.target.value; this.render(); });
@@ -29,6 +70,24 @@ VIEWS.participants = {
 
     onLive() { this.stale = true; if (ST.view === 'participants' && !document.querySelector('dialog[open]')) this.load(true); },
 
+    setSort(key, dir) {
+        this.sort = { key, dir };
+        $('partSort').value = `${key}:${dir}`;
+        try { localStorage.setItem('HRPM_PART_SORT', JSON.stringify(this.sort)); } catch (e) { /* ไม่เป็นไร */ }
+        this.render();
+    },
+
+    // เงื่อนไขของแต่ละตัวกรองสถานะ (ใช้ทั้งกรองตารางและนับจำนวนบนปุ่มกรองด่วน)
+    matchState(p, state) {
+        const limit = (ST.participantMeta || {}).agentLimit || 10;
+        if (state === 'active') return p.active;
+        if (state === 'inactive') return !p.active;
+        if (state === 'missing') return p.active && !p.reportedToday;
+        if (state === 'agent') return p.active && p.monthAgent >= Math.ceil(limit * 0.5);
+        if (state === 'nogps') return p.active && (p.siteLat === null || p.siteLat === undefined);
+        return true;
+    },
+
     openWith(state) {
         this.state = state;
         $('partState').value = state;
@@ -48,35 +107,56 @@ VIEWS.participants = {
         this.render();
     },
 
-    filtered() {
-        const q = $('partSearch').value.trim().toLowerCase(), site = $('partSite').value, limit = (ST.participantMeta || {}).agentLimit || 10;
+    // ค้นหา + จุดขาย (ยังไม่รวมตัวกรองสถานะ)
+    searched() {
+        const q = $('partSearch').value.trim().toLowerCase(), site = $('partSite').value;
         return (ST.participants || []).filter(p => {
             if (site && p.site !== site) return false;
-            if (q && !(p.id + ' ' + p.name + ' ' + p.phone + ' ' + p.site).toLowerCase().includes(q)) return false;
-            if (this.state === 'active') return p.active;
-            if (this.state === 'inactive') return !p.active;
-            if (this.state === 'missing') return p.active && !p.reportedToday;
-            if (this.state === 'agent') return p.active && p.monthAgent >= Math.ceil(limit * 0.5);
-            return true;
-        }).sort((a, b) => a.name.localeCompare(b.name, 'th'));
+            return !q || (p.id + ' ' + p.name + ' ' + p.phone + ' ' + p.site).toLowerCase().includes(q);
+        });
+    },
+
+    filtered(base) {
+        const col = PART_COLS.find(c => c[0] === this.sort.key) || PART_COLS[0], val = col[3], dir = this.sort.dir;
+        const cmp = (x, y) => typeof x === 'string' ? x.localeCompare(y, 'th') : x - y;
+        return (base || this.searched()).filter(p => this.matchState(p, this.state))
+            .sort((a, b) => cmp(val(a), val(b)) * dir || a.name.localeCompare(b.name, 'th'));
+    },
+
+    renderQuick(base) {
+        $('partQuick').innerHTML = PART_QUICK.map(([k, label]) => {
+            const n = base.filter(p => this.matchState(p, k)).length, on = this.state === k;
+            if (!n && !on && k !== 'all' && k !== 'active') return '';
+            return `<button type="button" class="qchip${on ? ' is-on' : ''}${k === 'missing' && n ? ' is-bad' : ''}" data-state="${k}" aria-pressed="${on}">${label}<span class="count-pill">${fmtNum(n)}</span></button>`;
+        }).join('');
+    },
+
+    head(editable) {
+        const { key, dir } = this.sort;
+        return PART_COLS.map(([k, label]) => {
+            const on = k === key, sort = on ? (dir === 1 ? 'ascending' : 'descending') : 'none';
+            const hint = PART_SORT_LABEL[k][on ? (dir === 1 ? 1 : 0) : (PART_COLS.find(c => c[0] === k)[2] === 1 ? 0 : 1)];
+            return `<th aria-sort="${sort}"><button type="button" class="th-sort${on ? ' is-on' : ''}" data-sort="${k}" title="เรียง: ${hint}">${label}<svg class="ic ic-14 th-arrow${on && dir === -1 ? ' is-desc' : ''}" aria-hidden="true"><use href="#i-${on ? 'arrow-up' : 'sort'}"/></svg></button></th>`;
+        }).join('') + (editable ? '<th><span class="sr-only">จัดการ</span></th>' : '');
     },
 
     render() {
-        const list = this.filtered(), all = ST.participants || [];
+        const all = ST.participants || [], base = this.searched(), list = this.filtered(base);
+        this.renderQuick(base);
         const meta = ST.participantMeta || { daysSoFar: bkkParts().d, agentLimit: 10 };
         const active = all.filter(p => p.active);
         $('partSub').textContent = `ใช้งาน ${fmtNum(active.length)} คน · ส่งแล้ววันนี้ ${fmtNum(active.filter(p => p.reportedToday).length)} · แสดง ${fmtNum(list.length)} คน`;
         if (!list.length) { $('partTable').innerHTML = emptyState(all.length ? 'ไม่พบผู้ใช้สิทธิ์ตามเงื่อนไข' : 'ยังไม่มีผู้ใช้สิทธิ์', 'users'); return; }
         const editable = can('participants.edit');
         $('partTable').innerHTML = `<table class="dtable">
-          <thead><tr><th>ผู้ใช้สิทธิ์</th><th>จุดขาย</th><th>วันนี้</th><th>เดือนนี้</th><th>ขายโดยตัวแทน</th><th>ล่าสุด</th><th>สถานะ</th>${editable ? '<th><span class="sr-only">จัดการ</span></th>' : ''}</tr></thead>
+          <thead><tr>${this.head(editable)}</tr></thead>
           <tbody>${list.map((p, i) => {
             const ratio = p.monthAgent / meta.agentLimit, cls = ratio >= 0.8 ? 'is-bad' : ratio >= 0.5 ? 'is-warn' : '';
             return `<tr data-i="${i}" tabindex="0" aria-label="${esc(p.name)}">
               <td class="td-main"><div class="cell-person">${avatarHtml(p.name, p.pic)}<span><b>${esc(p.name)}</b><small class="mono">${esc(p.id)}${p.phone ? ' · ' + esc(p.phone) : ''}</small></span></div></td>
               <td data-label="จุดขาย">${esc(p.site || '-')}${p.siteLat === null ? ' <span class="badge" title="ยังไม่มีพิกัดจุดขาย">ไม่มีพิกัด</span>' : ''}</td>
               <td data-label="วันนี้">${!p.active ? '-' : p.reportedToday ? `<span class="badge is-ok">${icon('check')}ส่งแล้ว</span>` : '<span class="badge is-bad">ยังไม่ส่ง</span>'}</td>
-              <td data-label="เดือนนี้"><span class="mono">${p.monthCount}/${meta.daysSoFar}</span> <span class="cell-sub">วัน</span>${p.anomaliesMonth ? ` <span class="badge is-bad" title="ตำแหน่งผิดปกติเดือนนี้">${icon('alert')}${p.anomaliesMonth}</span>` : ''}</td>
+              <td data-label="เดือนนี้"><span class="mono">${Math.min(p.monthCount, meta.daysSoFar)}/${meta.daysSoFar}</span> <span class="cell-sub">วัน</span>${p.anomaliesMonth ? ` <span class="badge is-bad" title="ตำแหน่งผิดปกติเดือนนี้">${icon('alert')}${p.anomaliesMonth}</span>` : ''}</td>
               <td data-label="ตัวแทน"><span class="fi-side"><span class="mini-meter ${cls}"><i style="width:${Math.min(100, ratio * 100)}%"></i></span><span class="mono">${p.monthAgent}/${meta.agentLimit}</span></span></td>
               <td data-label="ล่าสุด">${p.lastReport ? relTime(p.lastReport) : '-'}</td>
               <td data-label="สถานะ">${p.active ? '<span class="badge is-ok">ใช้งาน</span>' : '<span class="badge">ปิดใช้งาน</span>'}</td>
@@ -105,7 +185,7 @@ VIEWS.participants = {
         const meta = ST.participantMeta || { daysSoFar: now.d, agentLimit: 10 };
         $('pStats').innerHTML = `
           <div class="kpi ${p.reportedToday ? 'is-ok' : 'is-bad'}"><small>วันนี้</small><b>${p.reportedToday ? 'ส่งแล้ว' : 'ยังไม่ส่ง'}</b></div>
-          <div class="kpi"><small>เดือนนี้</small><b>${p.monthCount}<span class="of">/${meta.daysSoFar} วัน</span></b></div>
+          <div class="kpi"><small>เดือนนี้</small><b>${Math.min(p.monthCount, meta.daysSoFar)}<span class="of">/${meta.daysSoFar} วัน</span></b></div>
           <div class="kpi ${p.monthAgent > meta.agentLimit ? 'is-bad' : p.monthAgent >= meta.agentLimit * 0.5 ? 'is-warn' : ''}"><small>ขายโดยตัวแทน</small><b>${p.monthAgent}<span class="of">/${meta.agentLimit}</span></b></div>
           <div class="kpi"><small>ทั้งปี</small><b>${fmtNum(p.yearCount)}<span class="of"> รายการ</span></b></div>`;
         $('pKv').innerHTML = [
