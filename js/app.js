@@ -174,6 +174,16 @@ function backToLogin() {
 }
 
 // ปุ่มเข้าสู่ระบบแบบกำลังทำงาน (ไม่บังทั้งหน้าจอ)
+// ระบบขอตรวจความปลอดภัย (ใช้เวลา ~1–3 วินาที): บอกผู้ใช้ว่ากำลังทำอะไรอยู่
+window.onSecurityCheck = on => {
+    const btn = $('loginBtn');
+    if (!btn) return;
+    const label = [...btn.childNodes].find(n => n.nodeType === 3 && n.textContent.trim());
+    if (!label) return;
+    if (on) { btn.dataset.label = label.textContent; label.textContent = ' กำลังตรวจความปลอดภัย… '; }
+    else if (btn.dataset.label) { label.textContent = btn.dataset.label; delete btn.dataset.label; }
+};
+
 function setLoginBusy(busy) {
     const btn = $('loginBtn');
     btn.disabled = busy || $('loginId').value.length !== 6;
@@ -225,7 +235,7 @@ async function performLogin(userId, isAuto, background = false) {
         $('histUpdated').textContent = res.networkError ? 'เชื่อมต่อไม่ได้ · แสดงข้อมูลที่บันทึกไว้' : 'ระบบขัดข้องชั่วคราว · แสดงข้อมูลที่บันทึกไว้';
     } else if (!isAccountGone(res)) {
         // เน็ตหลุด/ระบบขัดข้อง ไม่ใช่รหัสผิด: บันทึกสาเหตุ (ส่งเมื่อเน็ตกลับมา) แล้วให้ลองใหม่
-        reportClientError('login', (res.serverError ? 'ระบบหลังบ้านตอบผิดรูปแบบ: ' : res.networkError ? 'เชื่อมต่อไม่ได้: ' : '') + (res.message || 'เข้าสู่ระบบไม่สำเร็จ'), 'รหัส ' + userId + (isAuto ? ' (เข้าอัตโนมัติ)' : ''));
+        if (res.code !== 'LOCKED' && res.code !== 'PAUSED') reportClientError('login', (res.serverError ? 'ระบบหลังบ้านตอบผิดรูปแบบ: ' : res.networkError ? 'เชื่อมต่อไม่ได้: ' : '') + (res.message || 'เข้าสู่ระบบไม่สำเร็จ'), 'รหัส ' + userId + (isAuto ? ' (เข้าอัตโนมัติ)' : ''));
         if (isAuto) {
             const retry = await showMessage({ title: res.networkError ? 'เชื่อมต่อไม่ได้' : 'ระบบขัดข้องชั่วคราว', text: res.message || 'กรุณาลองใหม่อีกครั้ง', tone: 'warn', okText: 'ลองอีกครั้ง', cancelText: 'ปิด' });
             if (retry) return performLogin(userId, true);

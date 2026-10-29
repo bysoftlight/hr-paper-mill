@@ -24,9 +24,9 @@
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <!-- เปลี่ยนเลข ?v= ทุกครั้งที่แก้ CSS/JS -->
-  <script src="js/settings.js?v=3.26.0"></script>
-  <link rel="stylesheet" href="css/style.css?v=3.26.0">
-  <link rel="stylesheet" href="css/staff.css?v=3.26.0">
+  <script src="js/settings.js?v=3.27.0"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.27.0">
+  <link rel="stylesheet" href="css/staff.css?v=3.27.0">
 </head>
 <body class="staff">
 
@@ -409,7 +409,7 @@
   <!-- ===== Sign in ===== -->
   <div id="authView" class="login" hidden>
     <section class="login-intro" aria-labelledby="authTitle">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.26.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.27.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <p class="eyebrow">สำหรับเจ้าหน้าที่ HR และผู้ดูแลระบบ</p>
       <h1 id="authTitle">ติดตามรายงานการขาย<br>ของผู้ใช้สิทธิ์ทุกคนในที่เดียว</h1>
       <ol class="intro-steps">
@@ -459,12 +459,12 @@
   <!-- ===== App ===== -->
   <div id="appContainer" class="app" hidden>
     <header class="topbar">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.26.0" alt="" width="36" height="36"><span>HR Staff</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.27.0" alt="" width="36" height="36"><span>HR Staff</span></div>
       <span class="live" data-live><span class="live-dot"></span><span data-live-text>อัปเดตสด</span></span>
     </header>
 
     <nav class="sidenav" aria-label="เมนูหลัก">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.26.0" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.27.0" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></div>
       <div class="nav-items">
         <button type="button" class="nav-item" data-tab="overview" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-grid"/></svg><span>ภาพรวม</span></button>
         <button type="button" class="nav-item" data-tab="records" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-list"/></svg><span>รายงาน</span></button>
@@ -712,6 +712,7 @@
       <div class="segmented adm-tabs" role="tablist" aria-label="ส่วนผู้ดูแลระบบ" id="admTabs">
         <button type="button" role="tab" data-t="staff" aria-selected="true">บัญชีเจ้าหน้าที่ <span class="count-pill is-bad" data-pending-badge hidden></span></button>
         <button type="button" role="tab" data-t="logs" aria-selected="false">Logs</button>
+        <button type="button" role="tab" data-t="security" aria-selected="false">ความปลอดภัย <span class="count-pill is-bad" id="secBadge" hidden>!</span></button>
       </div>
 
       <div id="admStaff" class="stack">
@@ -730,6 +731,22 @@
             <div><dt>ผู้แก้ไข (Editor)</dt><dd>ดู + เพิ่ม/แก้ไข/ลบรายการ + จัดการผู้ใช้สิทธิ์ + ส่งออก</dd></div>
             <div><dt>ผู้ดูแลระบบ (Admin)</dt><dd>ทุกสิทธิ์ + อนุมัติบัญชี + ดู Log</dd></div>
           </dl>
+        </section>
+      </div>
+
+      <div id="admSecurity" class="stack" hidden>
+        <section class="card sec-status" id="secStatus" aria-live="polite"></section>
+        <section class="card" aria-labelledby="secChartTitle">
+          <div class="card-head"><h3 class="card-title" id="secChartTitle">รหัสผู้ใช้สิทธิ์ที่ไม่มีในระบบ</h3><span class="muted-text">60 นาทีล่าสุด · ครั้งต่อนาที</span></div>
+          <div id="secChart" class="an-chart-sm"></div>
+        </section>
+        <section class="card" aria-labelledby="secEventsTitle">
+          <div class="card-head"><h3 class="card-title" id="secEventsTitle">เหตุการณ์ล่าสุด</h3><button type="button" class="btn-text" id="secLogs">ดูใน Logs</button></div>
+          <ul class="sec-events" id="secEvents"></ul>
+        </section>
+        <section class="card sec-how">
+          <h3 class="card-title">ระบบป้องกันการเดารหัสทำงานอย่างไร</h3>
+          <ol id="secHow"></ol>
         </section>
       </div>
 
@@ -798,19 +815,19 @@
 
   <div id="pdfStage" class="pdf-stage" aria-hidden="true"></div>
 
-  <script src="js/config.js?v=3.26.0"></script>
-  <script src="js/utils.js?v=3.26.0"></script>
-  <script src="js/analytics.js?v=3.26.0"></script>
-  <script src="js/api.js?v=3.26.0"></script>
-  <script src="js/charts.js?v=3.26.0"></script>
-  <script src="js/notify.js?v=3.26.0"></script>
-  <script src="js/staff/core.js?v=3.26.0"></script>
-  <script src="js/staff/overview.js?v=3.26.0"></script>
-  <script src="js/staff/records.js?v=3.26.0"></script>
-  <script src="js/staff/participants.js?v=3.26.0"></script>
-  <script src="js/staff/admin.js?v=3.26.0"></script>
-  <script src="js/staff/export.js?v=3.26.0"></script>
-  <script src="js/staff/reports.js?v=3.26.0"></script>
-  <script src="js/staff/analytics.js?v=3.26.0"></script>
+  <script src="js/config.js?v=3.27.0"></script>
+  <script src="js/utils.js?v=3.27.0"></script>
+  <script src="js/analytics.js?v=3.27.0"></script>
+  <script src="js/api.js?v=3.27.0"></script>
+  <script src="js/charts.js?v=3.27.0"></script>
+  <script src="js/notify.js?v=3.27.0"></script>
+  <script src="js/staff/core.js?v=3.27.0"></script>
+  <script src="js/staff/overview.js?v=3.27.0"></script>
+  <script src="js/staff/records.js?v=3.27.0"></script>
+  <script src="js/staff/participants.js?v=3.27.0"></script>
+  <script src="js/staff/admin.js?v=3.27.0"></script>
+  <script src="js/staff/export.js?v=3.27.0"></script>
+  <script src="js/staff/reports.js?v=3.27.0"></script>
+  <script src="js/staff/analytics.js?v=3.27.0"></script>
 </body>
 </html>
