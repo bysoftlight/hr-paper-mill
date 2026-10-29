@@ -511,9 +511,14 @@ function staffParticipantsList_() {
   const participants = readParticipants_();
   readRecords_(participants).forEach(r => {
     if (r.status !== 'active') return;
-    const s = stats[r.userId] || (stats[r.userId] = { month: 0, monthAgent: 0, year: 0, last: null, today: false, anomalies: 0, lastLat: null, lastLng: null });
+    const s = stats[r.userId] || (stats[r.userId] = { days: {}, agentDays: {}, month: 0, monthAgent: 0, year: 0, last: null, today: false, anomalies: 0, lastLat: null, lastLng: null });
     if (r.date.slice(0, 4) === year) s.year++;
-    if (r.date.slice(0, 7) === month) { s.month++; if (r.type === SALES_TYPES[1]) s.monthAgent++; if (r.anomaly) s.anomalies++; }
+    // นับเป็น "วัน" ที่ส่ง (วันละครั้ง) — ส่งซ้ำ/ส่งหลายรายการในวันเดียวไม่ทำให้เกินจำนวนวันของเดือน
+    if (r.date.slice(0, 7) === month) {
+      if (!s.days[r.date]) { s.days[r.date] = 1; s.month++; }
+      if (r.type === SALES_TYPES[1] && !s.agentDays[r.date]) { s.agentDays[r.date] = 1; s.monthAgent++; }
+      if (r.anomaly) s.anomalies++;
+    }
     if (r.date === today) s.today = true;
     if (!s.last || r.ts > s.last) { s.last = r.ts; if (r.hasGps) { s.lastLat = r.lat; s.lastLng = r.lng; } }
   });

@@ -459,3 +459,35 @@ button.kpi:active { transform: scale(.98); }
 .rep-head small { display: block; color: var(--muted); font-size: 12px; }
 .rep-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .rep-actions .input-sm, .rep-actions .select { width: auto; flex: 0 1 170px; min-width: 0; }
+
+/* หัวตารางกดเรียงได้ (ผู้ใช้สิทธิ์) */
+.dtable th[aria-sort] { padding: 0; }
+.th-sort {
+    display: inline-flex; align-items: center; gap: 4px; width: 100%; min-height: 40px; padding: 10px 12px;
+    background: none; border: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; white-space: nowrap;
+}
+.th-sort .th-arrow { width: 14px; height: 14px; opacity: .45; flex: none; transition: transform var(--dur, .2s) ease, opacity .15s; }
+.th-sort.is-on { color: var(--ink); }
+.th-sort.is-on .th-arrow { opacity: 1; color: var(--accent); }
+.th-sort .th-arrow.is-desc { transform: rotate(180deg); }
+@media (hover: hover) { .th-sort:hover { color: var(--ink); background: var(--line-soft); } .th-sort:hover .th-arrow { opacity: .9; } }
+.th-sort:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 4px; }
+
+/* กรองด่วนพร้อมจำนวน */
+.part-quick:empty { display: none; }
+.qchip {
+    display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 6px 0 12px; border-radius: 999px;
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink-2, var(--ink)); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+}
+.qchip.is-on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.qchip.is-on .count-pill { background: rgba(255, 255, 255, .22); color: inherit; }
+.qchip.is-bad:not(.is-on) .count-pill { background: var(--bad); color: var(--on-bad); }
+@media (hover: hover) { .qchip:not(.is-on):hover { background: var(--field); } }
+.qchip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* เลือกการเรียง: แสดงเฉพาะตอนตารางเป็นการ์ด (ไม่มีหัวตาราง) */
+@media (min-width: 1024px) { .only-cards { display: none; } }
+@media (max-width: 599px) {
+    .part-quick { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 calc(-1 * var(--gutter, 16px)); padding: 0 var(--gutter, 16px) 2px; scroll-snap-type: x proximity; }
+    .part-quick::-webkit-scrollbar { display: none; }
+    .qchip { flex: none; scroll-snap-align: start; }
+}
