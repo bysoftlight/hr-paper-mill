@@ -115,13 +115,29 @@ async function api(action, payload = {}) {
     } else if (!res.success && (res.code === 'PENDING' || res.code === 'FORBIDDEN') && ST.me) {
         refreshMe();
     }
+    trackApi(action, payload, res);
     return res;
+}
+
+// สถิติการใช้งาน: นับการกระทำสำคัญของเจ้าหน้าที่ (ไม่เก็บข้อมูลในคำขอ)
+const TRACK_API = {
+    'staff.auth.google': ['login', 'google'], 'staff.auth.line': ['login', 'line'],
+    'staff.records.save': ['record_save'], 'staff.records.delete': ['record_delete'], 'staff.records.restore': ['record_restore'],
+    'staff.participants.save': ['participant_save'], 'staff.participants.delete': ['participant_delete'], 'staff.contacts.add': ['contact_add'],
+    'staff.export.gsheet': ['export', 'gsheet'], 'staff.report.monthly': ['report_view', 'monthly'], 'staff.report.section35': ['report_view', 'section35'],
+    'staff.report.monthly.send': ['report_email', 'monthly']
+};
+function trackApi(action, payload, res) {
+    if (action === 'staff.log.client' && res.success) return Analytics.track('export', { l: String(payload.logAction || '').replace('export.', '') });
+    const t = TRACK_API[action];
+    if (t) Analytics.track(res.success ? t[0] : t[0] + '_fail', t[1] ? { l: t[1] } : {});
 }
 
 ErrorLog.identify = () => ({ who: ST.me ? ST.me.id : '', whoName: ST.me ? ST.me.name : '', role: 'staff' });
 
 // ---------- Boot ----------
 document.addEventListener('DOMContentLoaded', async () => {
+    Analytics.init({ app: 'staff', role: 'staff' });
     initDialogs();
     initShell();
     initSettings();
@@ -293,6 +309,7 @@ function endSession(message) {
 function enter(me) {
     ST.me = me;
     ST.perms = new Set(me.permissions || []);
+    Analytics.setRole(me.role || 'staff');
     $('authView').hidden = true;
     if (me.status !== 'active' || !ST.perms.size) return showPending(me);
     $('pendingView').hidden = true;
@@ -352,8 +369,8 @@ function applyPerms() {
 }
 
 // ---------- Navigation ----------
-const TAB_ORDER = ['overview', 'records', 'participants', 'admin', 'account'];
-const TAB_PERM = { overview: 'records.view', records: 'records.view', participants: 'participants.view', admin: 'admin' };
+const TAB_ORDER = ['overview', 'records', 'participants', 'analytics', 'admin', 'account'];
+const TAB_PERM = { overview: 'records.view', records: 'records.view', participants: 'participants.view', analytics: 'admin', admin: 'admin' };
 function tabAllowed(t) { return !TAB_PERM[t] || can(TAB_PERM[t]); }
 function tabFromHash() {
     const t = location.hash.replace('#', '').split('?')[0];
@@ -372,6 +389,7 @@ function switchTab(tab, push = true) {
     });
     if (push && location.hash !== '#' + tab) setUrl('#' + tab, true);
     window.scrollTo({ top: 0 });
+    Analytics.page(tab);
     if (VIEWS[tab] && VIEWS[tab].show) VIEWS[tab].show();
 }
 

@@ -75,7 +75,7 @@ VIEWS.overview = {
         Counting.scan($('ovKpis'), this.counts || (this.counts = {}));
         $('ovKpis').querySelectorAll('[data-ov-filter]').forEach(b => {
             b.insertAdjacentHTML('beforeend', `<span class="kpi-go" aria-hidden="true">ดูรายการ ${icon('chevron-right')}</span>`);
-            b.addEventListener('click', () => { haptic(); this.drill(b.dataset.ovFilter); });
+            b.addEventListener('click', () => { haptic(); Analytics.track('kpi_drill', { l: b.dataset.ovFilter }); this.drill(b.dataset.ovFilter); });
         });
 
         // แนวโน้ม 30 วัน (ซ้อน ขายเอง + ตัวแทน) — ชี้/แตะดูตัวเลข, แตะสองครั้งเปิดรายการของวันนั้น

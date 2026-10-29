@@ -77,6 +77,10 @@ function handleStaffRequest_(req) {
       requirePerm_(staff, 'admin');
       if (typeof sendMonthlyReport === 'function') return sendMonthlyReport(req.month, staff);
       return { success: false, message: 'ต้องอัปเดตไฟล์ Notify.gs ก่อน' };
+    case 'staff.analytics.report':
+      requirePerm_(staff, 'admin');
+      if (typeof analyticsReport_ !== 'function') return { success: false, message: 'ต้องเพิ่มไฟล์ Analytics.gs ใน Apps Script ก่อน' };
+      return analyticsReport_(req);
     case 'staff.image':
       requirePerm_(staff, 'records.view');
       return staffImage_(req.fileId, req.thumb);

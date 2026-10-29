@@ -24,9 +24,9 @@
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <!-- เปลี่ยนเลข ?v= ทุกครั้งที่แก้ CSS/JS -->
-  <script src="js/settings.js?v=3.25.1"></script>
-  <link rel="stylesheet" href="css/style.css?v=3.25.1">
-  <link rel="stylesheet" href="css/staff.css?v=3.25.1">
+  <script src="js/settings.js?v=3.26.0"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.26.0">
+  <link rel="stylesheet" href="css/staff.css?v=3.26.0">
 </head>
 <body class="staff">
 
@@ -74,6 +74,7 @@
       <symbol id="i-restore" viewBox="0 0 24 24"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></symbol>
       <symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></symbol>
       <symbol id="i-activity" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+      <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6" rx="1"/><rect x="12" y="8" width="3" height="10" rx="1"/><rect x="17" y="5" width="3" height="13" rx="1"/></symbol>
       <symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
       <symbol id="i-user-check" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="m17 11 2 2 4-4"/></symbol>
       <symbol id="i-user-x" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="m18 8 5 5M23 8l-5 5"/></symbol>
@@ -408,7 +409,7 @@
   <!-- ===== Sign in ===== -->
   <div id="authView" class="login" hidden>
     <section class="login-intro" aria-labelledby="authTitle">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.25.1" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.26.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <p class="eyebrow">สำหรับเจ้าหน้าที่ HR และผู้ดูแลระบบ</p>
       <h1 id="authTitle">ติดตามรายงานการขาย<br>ของผู้ใช้สิทธิ์ทุกคนในที่เดียว</h1>
       <ol class="intro-steps">
@@ -458,16 +459,17 @@
   <!-- ===== App ===== -->
   <div id="appContainer" class="app" hidden>
     <header class="topbar">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.25.1" alt="" width="36" height="36"><span>HR Staff</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.26.0" alt="" width="36" height="36"><span>HR Staff</span></div>
       <span class="live" data-live><span class="live-dot"></span><span data-live-text>อัปเดตสด</span></span>
     </header>
 
     <nav class="sidenav" aria-label="เมนูหลัก">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.25.1" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.26.0" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></div>
       <div class="nav-items">
         <button type="button" class="nav-item" data-tab="overview" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-grid"/></svg><span>ภาพรวม</span></button>
         <button type="button" class="nav-item" data-tab="records" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-list"/></svg><span>รายงาน</span></button>
         <button type="button" class="nav-item" data-tab="participants" data-perm="participants.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-users"/></svg><span>ผู้ใช้สิทธิ์</span></button>
+        <button type="button" class="nav-item" data-tab="analytics" data-perm="admin"><svg class="ic ic-22" aria-hidden="true"><use href="#i-chart"/></svg><span>สถิติ</span></button>
         <button type="button" class="nav-item" data-tab="admin" data-perm="admin"><svg class="ic ic-22" aria-hidden="true"><use href="#i-shield"/></svg><span>ผู้ดูแลระบบ</span><span class="nav-badge" data-pending-badge hidden></span></button>
         <button type="button" class="nav-item" data-tab="account"><svg class="ic ic-22" aria-hidden="true"><use href="#i-user"/></svg><span>บัญชี</span></button>
       </div>
@@ -635,6 +637,73 @@
       <div class="table-card" id="partTable"></div>
     </main>
 
+    <!-- Analytics -->
+    <main id="analyticsView" class="view" hidden aria-labelledby="anTitle">
+      <div class="view-head view-head-row">
+        <div><h2 id="anTitle">สถิติการใช้งาน</h2><p id="anSub">&nbsp;</p></div>
+        <div class="head-actions head-inline"><button type="button" class="btn-text" id="anRefresh"><svg class="ic ic-16" aria-hidden="true"><use href="#i-refresh"/></svg> รีเฟรช</button></div>
+      </div>
+      <section class="toolbar an-toolbar" aria-label="ตัวกรองสถิติ">
+        <div class="set-seg seg-sm an-seg" id="anApp" role="radiogroup" aria-label="แอป">
+          <button type="button" role="radio" data-app="all" aria-checked="true">ทั้งหมด</button>
+          <button type="button" role="radio" data-app="user" aria-checked="false">ผู้ใช้สิทธิ์</button>
+          <button type="button" role="radio" data-app="staff" aria-checked="false">Staff</button>
+          <button type="button" role="radio" data-app="quote" aria-checked="false">ใบเสนอราคา</button>
+        </div>
+        <div class="set-seg seg-sm an-seg" id="anRange" role="radiogroup" aria-label="ช่วงเวลา">
+          <button type="button" role="radio" data-days="1" aria-checked="false">วันนี้</button>
+          <button type="button" role="radio" data-days="7" aria-checked="true">7 วัน</button>
+          <button type="button" role="radio" data-days="28" aria-checked="false">28 วัน</button>
+          <button type="button" role="radio" data-days="90" aria-checked="false">90 วัน</button>
+        </div>
+      </section>
+      <div class="kpis an-kpis" id="anKpis" aria-live="polite"></div>
+      <div class="an-grid">
+        <section class="card an-wide" aria-labelledby="anTrendTitle">
+          <div class="card-head"><h3 class="card-title" id="anTrendTitle">แนวโน้ม</h3>
+            <div class="set-seg seg-sm" id="anMetric" role="radiogroup" aria-label="ตัวชี้วัด">
+              <button type="button" role="radio" data-m="users" aria-checked="true">ผู้ใช้</button>
+              <button type="button" role="radio" data-m="sessions" aria-checked="false">เซสชัน</button>
+              <button type="button" role="radio" data-m="views" aria-checked="false">การดูหน้า</button>
+            </div></div>
+          <div id="anTrend" class="an-chart"></div>
+          <div class="legend-row" id="anTrendLegend"></div>
+        </section>
+        <section class="card an-realtime" aria-labelledby="anRtTitle">
+          <div class="card-head"><h3 class="card-title" id="anRtTitle"><span class="live-dot" aria-hidden="true"></span>เรียลไทม์</h3><span class="muted-text">30 นาทีล่าสุด</span></div>
+          <div class="an-rt-top"><b id="anActive">0</b><span>ผู้ใช้ใน 5 นาทีล่าสุด</span></div>
+          <div id="anRtBars" class="an-chart-sm"></div>
+          <ul class="an-list" id="anRtPages"></ul>
+        </section>
+        <section class="card" aria-labelledby="anFunnelTitle" id="anFunnelCard">
+          <div class="card-head"><h3 class="card-title" id="anFunnelTitle">ขั้นตอนการส่งรายงาน</h3><span class="muted-text">นับเป็นเซสชัน</span></div>
+          <ol class="funnel" id="anFunnel"></ol>
+          <div class="an-outcomes" id="anOutcomes"></div>
+        </section>
+        <section class="card" aria-labelledby="anPagesTitle">
+          <div class="card-head"><h3 class="card-title" id="anPagesTitle">หน้าที่เปิดมากที่สุด</h3></div>
+          <div class="an-table" id="anPages"></div>
+        </section>
+        <section class="card" aria-labelledby="anEventsTitle">
+          <div class="card-head"><h3 class="card-title" id="anEventsTitle">เหตุการณ์</h3><span class="muted-text">แตะเพื่อดูรายละเอียด</span></div>
+          <div class="an-table" id="anEvents"></div>
+        </section>
+        <section class="card" aria-labelledby="anTechTitle">
+          <div class="card-head"><h3 class="card-title" id="anTechTitle">อุปกรณ์และเบราว์เซอร์</h3><span class="muted-text">นับเป็นผู้ใช้</span></div>
+          <div class="an-tech" id="anTech"></div>
+        </section>
+        <section class="card" aria-labelledby="anSrcTitle">
+          <div class="card-head"><h3 class="card-title" id="anSrcTitle">ที่มาและแอป</h3><span class="muted-text">นับเป็นผู้ใช้</span></div>
+          <div class="an-tech" id="anSources"></div>
+        </section>
+        <section class="card an-wide" aria-labelledby="anHeatTitle">
+          <div class="card-head"><h3 class="card-title" id="anHeatTitle">ช่วงเวลาที่ใช้งาน</h3><span class="muted-text">เซสชันที่เริ่ม · วัน × ชั่วโมง</span></div>
+          <div class="heat" id="anHeat"></div>
+        </section>
+      </div>
+      <p class="muted-text an-note">ไม่ระบุตัวตน: นับ "ผู้ใช้" จากรหัสสุ่มของแต่ละเครื่อง ไม่ผูกกับรหัสผู้ใช้สิทธิ์หรืออีเมล · ผู้ใช้ปิดการส่งสถิติได้ในหน้าตั้งค่า · เก็บย้อนหลัง 400 วันในชีต Analytics</p>
+    </main>
+
     <!-- Admin -->
     <main id="adminView" class="view" hidden aria-labelledby="admTitle">
       <div class="view-head view-head-row">
@@ -721,6 +790,7 @@
       <button type="button" class="nav-item" data-tab="overview" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-grid"/></svg><span>ภาพรวม</span></button>
       <button type="button" class="nav-item" data-tab="records" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-list"/></svg><span>รายงาน</span></button>
       <button type="button" class="nav-item" data-tab="participants" data-perm="participants.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-users"/></svg><span>ผู้ใช้สิทธิ์</span></button>
+      <button type="button" class="nav-item" data-tab="analytics" data-perm="admin"><svg class="ic ic-22" aria-hidden="true"><use href="#i-chart"/></svg><span>สถิติ</span></button>
       <button type="button" class="nav-item" data-tab="admin" data-perm="admin"><svg class="ic ic-22" aria-hidden="true"><use href="#i-shield"/></svg><span>ผู้ดูแล</span><span class="nav-badge" data-pending-badge hidden></span></button>
       <button type="button" class="nav-item" data-tab="account"><svg class="ic ic-22" aria-hidden="true"><use href="#i-user"/></svg><span>บัญชี</span></button>
     </nav>
@@ -728,17 +798,19 @@
 
   <div id="pdfStage" class="pdf-stage" aria-hidden="true"></div>
 
-  <script src="js/config.js?v=3.25.1"></script>
-  <script src="js/utils.js?v=3.25.1"></script>
-  <script src="js/api.js?v=3.25.1"></script>
-  <script src="js/charts.js?v=3.25.1"></script>
-  <script src="js/notify.js?v=3.25.1"></script>
-  <script src="js/staff/core.js?v=3.25.1"></script>
-  <script src="js/staff/overview.js?v=3.25.1"></script>
-  <script src="js/staff/records.js?v=3.25.1"></script>
-  <script src="js/staff/participants.js?v=3.25.1"></script>
-  <script src="js/staff/admin.js?v=3.25.1"></script>
-  <script src="js/staff/export.js?v=3.25.1"></script>
-  <script src="js/staff/reports.js?v=3.25.1"></script>
+  <script src="js/config.js?v=3.26.0"></script>
+  <script src="js/utils.js?v=3.26.0"></script>
+  <script src="js/analytics.js?v=3.26.0"></script>
+  <script src="js/api.js?v=3.26.0"></script>
+  <script src="js/charts.js?v=3.26.0"></script>
+  <script src="js/notify.js?v=3.26.0"></script>
+  <script src="js/staff/core.js?v=3.26.0"></script>
+  <script src="js/staff/overview.js?v=3.26.0"></script>
+  <script src="js/staff/records.js?v=3.26.0"></script>
+  <script src="js/staff/participants.js?v=3.26.0"></script>
+  <script src="js/staff/admin.js?v=3.26.0"></script>
+  <script src="js/staff/export.js?v=3.26.0"></script>
+  <script src="js/staff/reports.js?v=3.26.0"></script>
+  <script src="js/staff/analytics.js?v=3.26.0"></script>
 </body>
 </html>

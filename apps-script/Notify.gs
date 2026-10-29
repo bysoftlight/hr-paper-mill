@@ -311,6 +311,7 @@ function monthlyReportHtml_(r) {
 // ---------- ตรวจสุขภาพระบบทุกเช้า (07:00) — พบปัญหาส่งอีเมลถึง ADMIN_EMAILS ----------
 function morningHealthCheck() {
   const problems = [];
+  try { if (typeof pruneAnalytics === 'function') pruneAnalytics(); } catch (e) { /* ลบสถิติเก่าไม่ได้ ไม่ใช่ปัญหาเร่งด่วน */ }
   let h = null;
   try { h = healthCheck_(); } catch (e) { problems.push('ตรวจสุขภาพระบบไม่ได้: ' + e); }
   if (h) {
