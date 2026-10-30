@@ -216,7 +216,6 @@ VIEWS.overview = {
           </button>`).join('') : `<div class="empty">${icon('map')}ยังไม่มีข้อมูลจุดขาย</div>`;
         $('ovSites').querySelectorAll('[data-si]').forEach(b => {
             b.addEventListener('click', () => this.openSite(sites[b.dataset.si]));
-            b.addEventListener('mouseenter', () => this.focusSite && this.focusSite(sites[b.dataset.si]));
         });
         const geo = sites.filter(x => x.lat !== null && x.lng !== null);
         const mapEl = $('ovMap');
@@ -225,29 +224,29 @@ VIEWS.overview = {
             loadStyle('js/vendor/leaflet/leaflet.css?v=1.9.4');
             await loadScript('js/vendor/leaflet/leaflet.js?v=1.9.4');
         } catch (e) { mapEl.innerHTML = `<div class="map-fallback">${esc(e.message)}</div>`; return; }
-        if (!this.map) {
-            this.map = L.map(mapEl, { scrollWheelZoom: false, zoomControl: true, attributionControl: true });
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(this.map);
-            mapEl.addEventListener('dblclick', () => this.map.scrollWheelZoom.enable());
-        }
+        if (!this.map) this.map = MapKit.create(mapEl);
         if (this.mapLayer) this.mapLayer.remove();
         this.mapLayer = L.layerGroup().addTo(this.map);
         const maxM = Math.max(1, ...geo.map(x => x.month));
         const markers = new Map();
         geo.forEach(x => {
-            const st = status(x), col = Charts.color('--' + st);
-            // วงนอกจาง = ความหนาแน่น, วงในทึบ = ตำแหน่ง
-            L.circleMarker([x.lat, x.lng], { radius: 10 + 26 * Math.sqrt(x.month / maxM), stroke: false, fillColor: col, fillOpacity: 0.18, interactive: false }).addTo(this.mapLayer);
-            const m = L.circleMarker([x.lat, x.lng], { radius: 7, color: '#fff', weight: 2, fillColor: col, fillOpacity: 1 })
-                .bindTooltip(`<b>${esc(x.site)}</b><br>ผู้ใช้สิทธิ์ ${x.people} คน · วันนี้ส่ง ${x.today}/${x.people}<br>รายงานเดือนนี้ ${fmtNum(x.month)} รายการ`, { direction: 'top', offset: [0, -8], className: 'map-tip' })
-                .bindPopup(`<b>${esc(x.site)}</b><br>วันนี้ส่ง ${x.today}/${x.people} · เดือนนี้ ${fmtNum(x.month)}<br><a href="#" data-site-open>ดูรายการของจุดขายนี้</a>`)
+            const st = status(x);
+            // วงจางรอบหมุด = ปริมาณรายงานเดือนนี้
+            L.circleMarker([x.lat, x.lng], { radius: 14 + 22 * Math.sqrt(x.month / maxM), stroke: false, fillColor: Charts.color('--' + st), fillOpacity: 0.14, interactive: false }).addTo(this.mapLayer);
+            const m = MapKit.pin({ lat: x.lat, lng: x.lng, tone: st, html: `<b>${x.today}</b><small>/${x.people}</small>`, label: esc(x.site) })
+                .bindPopup(MapKit.sheet({
+                    title: esc(x.site),
+                    sub: `วันนี้ส่งแล้ว <b>${x.today}/${x.people}</b> คน`,
+                    meta: `รายงานเดือนนี้ ${fmtNum(x.month)} รายการ`,
+                    action: 'ดูรายการ'
+                }), MapKit.popupOpts)
                 .addTo(this.mapLayer);
-            m.on('popupopen', e => { const a = e.popup.getElement().querySelector('[data-site-open]'); if (a) a.onclick = ev => { ev.preventDefault(); this.openSite(x); }; });
+            MapKit.onAction(m, () => this.openSite(x));
             markers.set(x.site, m);
         });
-        this.focusSite = x => { const m = markers.get(x.site); if (m) m.openTooltip(); };
-        this.map.fitBounds(geo.map(x => [x.lat, x.lng]), { padding: [30, 30], maxZoom: 15 });
-        setTimeout(() => this.map.invalidateSize(), 60);
+        this.focusSite = x => { const m = markers.get(x.site); if (m) { this.map.panTo(m.getLatLng()); m.openPopup(); } };
+        MapKit.autoLabels(this.map, this.mapLayer, 11, 6);
+        MapKit.fit(this.map, geo.map(x => [x.lat, x.lng]), 15);
     },
 
     async openSite(x) {
