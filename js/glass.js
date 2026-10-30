@@ -14,50 +14,120 @@ const Glass = (() => {
     function initNav() {
         const nav = document.querySelector('.bottomnav');
         if (!nav) return;
+        const root = document.documentElement;
         const pill = document.createElement('i');
         pill.className = 'nav-pill';
         pill.setAttribute('aria-hidden', 'true');
         nav.prepend(pill);
         nav.classList.add('has-pill');
-        let first = true;
-        const place = () => {
-            const cur = nav.querySelector('.nav-item[aria-current="page"]:not([hidden])');
-            if (!cur || !nav.offsetWidth) { pill.style.opacity = '0'; return; }
-            const ic = cur.querySelector('.ic') || cur;
-            const n = nav.getBoundingClientRect(), r = ic.getBoundingClientRect();
-            const ph = pill.offsetHeight || 32, labels = document.documentElement.dataset.navlabels === 'on' && mobile();
-            const w = mobile() ? cur.offsetWidth - 6 : Math.min(64, cur.offsetWidth - 8);
-            const cy = labels ? cur.getBoundingClientRect().top + cur.offsetHeight / 2 : r.top + r.height / 2;
-            const x = (mobile() ? cur.getBoundingClientRect().left + 3 : r.left + r.width / 2 - w / 2) - n.left - nav.clientLeft, y = cy - n.top - nav.clientTop - ph / 2;
-            if (first || reduce()) pill.style.transition = 'none';
+        const items = () => [...nav.querySelectorAll('.nav-item:not([hidden])')];
+        const current = () => nav.querySelector('.nav-item[aria-current="page"]:not([hidden])');
+        // ตำแหน่งคิดจาก offsetLeft/offsetTop (ผังจริง) ไม่ใช้ getBoundingClientRect — แถบถูกย่อ/ขยายด้วย transform อยู่
+        // จึงไม่เพี้ยนระหว่างแอนิเมชัน (สาเหตุที่ไฮไลต์ "หลุด" เวลากดตอนแถบกำลังย่อ/ขยาย)
+        const geom = el => {
+            const ph = pill.offsetHeight || 32;
+            const w = mobile() ? el.offsetWidth - 6 : Math.min(64, el.offsetWidth - 8);
+            const x = el.offsetLeft + (el.offsetWidth - w) / 2;
+            let y;
+            if (mobile()) y = el.offsetTop + (el.offsetHeight - ph) / 2;
+            else { const ic = el.querySelector('.ic') || el; y = el.offsetTop + ic.offsetTop + ic.offsetHeight / 2 - ph / 2; }
+            return { w, x, y };
+        };
+        const moveTo = (x, y, w, animate) => {
+            pill.style.transition = animate && !reduce() ? '' : 'none';
             pill.style.width = w + 'px';
             pill.style.transform = `translate(${x}px, ${y}px)`;
-            pill.style.opacity = '1';
-            if (first || reduce()) { void pill.offsetWidth; pill.style.transition = ''; }
-            first = false;
+            if (!animate || reduce()) { void pill.offsetWidth; pill.style.transition = ''; }
         };
-        new MutationObserver(() => { place(); title(); }).observe(nav, { subtree: true, attributes: true, attributeFilter: ['aria-current', 'hidden'] });
-        document.addEventListener('prefchange', () => requestAnimationFrame(place));
+        let placed = false, scrubbing = false;
+        const place = () => {
+            if (scrubbing) return;
+            const cur = current();
+            if (!cur || !nav.offsetWidth) { pill.style.opacity = '0'; return; }
+            const g = geom(cur);
+            moveTo(g.x, g.y, g.w, placed);
+            pill.style.opacity = '1';
+            placed = true;
+        };
+        let raf = 0;
+        const schedule = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(place); };
+
         // หัวแอปแบบกระจก: ชื่อหน้าปัจจุบันตรงกลาง
         const bar = document.querySelector('.topbar');
         let t = null;
-        if (bar) { t = document.createElement('span'); t.className = 'topbar-title'; t.setAttribute('aria-hidden', 'true'); bar.querySelector('.brand') ? bar.querySelector('.brand').after(t) : bar.prepend(t); }
-        const title = () => { if (!t) return; const cur = nav.querySelector('.nav-item[aria-current="page"]'); t.textContent = cur ? (cur.textContent || '').trim() : ''; };
+        if (bar) { t = document.createElement('span'); t.className = 'topbar-title'; t.setAttribute('aria-hidden', 'true'); const b = bar.querySelector('.brand'); b ? b.after(t) : bar.prepend(t); }
+        const title = () => {
+            if (!t) return;
+            const cur = current(), lab = cur && [...cur.querySelectorAll(':scope > span')].find(x => !x.classList.contains('nav-badge'));
+            t.textContent = lab ? lab.textContent.trim() : '';
+        };
+        new MutationObserver(() => { schedule(); title(); }).observe(nav, { subtree: true, attributes: true, attributeFilter: ['aria-current', 'hidden'] });
+        document.addEventListener('prefchange', schedule);
+        window.addEventListener('resize', schedule);
+        if (window.ResizeObserver) new ResizeObserver(schedule).observe(nav);
         title();
-        // เลื่อนลง = แถบย่อ · เลื่อนขึ้น/ใกล้บนสุด/ใกล้ล่างสุด = ขยายกลับ (แบบ Instagram)
-        let lastY = window.scrollY, acc = 0;
-        window.addEventListener('scroll', () => {
+        schedule();
+
+        // ลากนิ้วบนแถบ (แบบ Instagram): ไฮไลต์ตามนิ้ว ปล่อยแล้วเปิดเมนูที่อยู่ใต้นิ้ว · แตะธรรมดาทำงานแบบเดิม
+        let down = null;
+        const itemAt = x => {
+            const list = items(), r = nav.getBoundingClientRect(), k = r.width / nav.offsetWidth || 1; // k = สัดส่วนตอนแถบถูกย่อ
+            const lx = (x - r.left) / k;
+            return list.reduce((best, el) => Math.abs(el.offsetLeft + el.offsetWidth / 2 - lx) < Math.abs(best.offsetLeft + best.offsetWidth / 2 - lx) ? el : best, list[0]);
+        };
+        nav.addEventListener('pointerdown', e => {
+            if (!mobile() || e.button > 0) return;
+            down = { x: e.clientX, y: e.clientY, id: e.pointerId };
+            nav.classList.add('is-pressing');
+            root.classList.remove('nav-min');
+        });
+        nav.addEventListener('pointermove', e => {
+            if (!down || e.pointerId !== down.id) return;
+            if (!scrubbing) {
+                if (Math.abs(e.clientX - down.x) < 10 || Math.abs(e.clientY - down.y) > Math.abs(e.clientX - down.x)) return;
+                scrubbing = true;
+                try { nav.setPointerCapture(e.pointerId); } catch (err) { /* ไม่รองรับ */ }
+            }
+            const r = nav.getBoundingClientRect(), k = r.width / nav.offsetWidth || 1;
+            const w = pill.offsetWidth, ph = pill.offsetHeight;
+            const lx = Math.min(nav.clientWidth - w - 4, Math.max(4, (e.clientX - r.left) / k - w / 2));
+            const cur = current(), y = cur ? geom(cur).y : (nav.clientHeight - ph) / 2;
+            moveTo(lx, y, w, false);
+            const over = itemAt(e.clientX);
+            items().forEach(el => el.classList.toggle('is-hover', el === over));
+        });
+        const finish = e => {
+            if (!down || (e && e.pointerId !== down.id)) return;
+            const wasScrub = scrubbing;
+            down = null; scrubbing = false;
+            nav.classList.remove('is-pressing');
+            items().forEach(el => el.classList.remove('is-hover'));
+            if (wasScrub && e && e.type === 'pointerup') {
+                const over = itemAt(e.clientX);
+                if (over && over.getAttribute('aria-current') !== 'page') { over.click(); return; }
+            }
+            place();
+        };
+        nav.addEventListener('pointerup', finish);
+        nav.addEventListener('pointercancel', finish);
+        nav.addEventListener('lostpointercapture', () => { if (scrubbing) finish({ type: 'cancel', pointerId: down && down.id }); });
+
+        // เลื่อนลงต่อเนื่อง = แถบย่อ · เลื่อนขึ้น / ใกล้บนสุด / สุดหน้า / แตะแถบ = ขยายกลับ
+        // มีระยะกันสั่น: ต้องเลื่อนทางเดียวกันสะสมพอ (ลง 60px / ขึ้น 24px) จึงเปลี่ยน — ไม่กะพริบไปมา
+        let lastY = window.scrollY, acc = 0, ticking = false;
+        const onScroll = () => {
+            ticking = false;
             const y = window.scrollY, dy = y - lastY; lastY = y;
-            if (!mobile()) return;
-            acc = Math.sign(dy) === Math.sign(acc) ? acc + dy : dy;
-            const nearEnd = y + innerHeight > document.documentElement.scrollHeight - 40;
-            const min = y > 80 && acc > 24 && !nearEnd;
-            if (min || acc < -12 || y < 40 || nearEnd) document.documentElement.classList.toggle('nav-min', min);
-        }, { passive: true });
-        nav.addEventListener('click', () => document.documentElement.classList.remove('nav-min'));
-        window.addEventListener('resize', place);
-        if (window.ResizeObserver) new ResizeObserver(place).observe(nav);
-        requestAnimationFrame(place);
+            if (!mobile() || down || !dy) return;
+            acc = (dy > 0) === (acc > 0) ? acc + dy : dy;
+            const doc = document.documentElement, nearEnd = y + innerHeight > doc.scrollHeight - 60, short = doc.scrollHeight < innerHeight + 200;
+            const isMin = root.classList.contains('nav-min');
+            if (!isMin && acc > 60 && y > 120 && !nearEnd && !short) root.classList.add('nav-min');
+            else if (isMin && (acc < -24 || y < 60 || nearEnd)) root.classList.remove('nav-min');
+        };
+        window.addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
+        // เปลี่ยนหน้า = เริ่มที่แถบเต็ม
+        new MutationObserver(() => root.classList.remove('nav-min')).observe(nav, { subtree: true, attributes: true, attributeFilter: ['aria-current'] });
     }
 
     // ---------- 2) แผ่นด้านล่าง: ลากลงเพื่อปิด ----------
