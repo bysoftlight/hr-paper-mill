@@ -24,9 +24,9 @@
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <!-- เปลี่ยนเลข ?v= ทุกครั้งที่แก้ CSS/JS -->
-  <script src="js/settings.js?v=3.32.0"></script>
-  <link rel="stylesheet" href="css/style.css?v=3.32.0">
-  <link rel="stylesheet" href="css/staff.css?v=3.32.0">
+  <script src="js/settings.js?v=3.32.1"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.32.1">
+  <link rel="stylesheet" href="css/staff.css?v=3.32.1">
 </head>
 <body class="staff">
 
@@ -411,7 +411,7 @@
   <!-- ===== Sign in ===== -->
   <div id="authView" class="login" hidden>
     <section class="login-intro" aria-labelledby="authTitle">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.32.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.32.1" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <p class="eyebrow">สำหรับเจ้าหน้าที่ HR และผู้ดูแลระบบ</p>
       <h1 id="authTitle">ติดตามรายงานการขาย<br>ของผู้ใช้สิทธิ์ทุกคนในที่เดียว</h1>
       <ol class="intro-steps">
@@ -461,12 +461,12 @@
   <!-- ===== App ===== -->
   <div id="appContainer" class="app" hidden>
     <header class="topbar">
-      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.32.0" alt="" width="36" height="36"><span>HR Staff</span></a>
+      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.32.1" alt="" width="36" height="36"><span>HR Staff</span></a>
       <span class="live" data-live><span class="live-dot"></span><span data-live-text>อัปเดตสด</span></span>
     </header>
 
     <nav class="sidenav" aria-label="เมนูหลัก">
-      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.32.0" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></a>
+      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.32.1" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></a>
       <div class="nav-items">
         <button type="button" class="nav-item" data-tab="overview" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-grid"/></svg><span>ภาพรวม</span></button>
         <button type="button" class="nav-item" data-tab="records" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-list"/></svg><span>รายงาน</span></button>
@@ -502,8 +502,8 @@
             <div class="card-head">
               <h3 class="card-title" id="cmpTitle">เทียบเดือนนี้กับเดือนก่อน</h3>
               <div class="set-seg seg-sm" role="radiogroup" aria-label="รูปแบบกราฟ" id="cmpMode">
-                <button type="button" role="radio" aria-checked="true" data-mode="cum">สะสม</button>
-                <button type="button" role="radio" aria-checked="false" data-mode="daily">รายวัน</button>
+                <button type="button" role="radio" aria-checked="true" data-mode="daily">รายวัน</button>
+                <button type="button" role="radio" aria-checked="false" data-mode="cum">สะสม</button>
               </div>
             </div>
             <div class="cmp-stats" id="cmpStats"></div>
@@ -578,7 +578,7 @@
           <input type="date" class="input input-sm" id="recTo" aria-label="ถึงวันที่" data-for="range">
         </div>
         <div class="toolbar-row">
-          <div class="search-field grow"><svg class="ic ic-16" aria-hidden="true"><use href="#i-search"/></svg><input type="search" class="input input-sm" id="recSearch" placeholder="ค้นหาชื่อ รหัส จุดขาย หมายเหตุ" aria-label="ค้นหา"></div>
+          <div class="search-field grow"><svg class="ic ic-16" aria-hidden="true"><use href="#i-search"/></svg><input type="search" class="input input-sm" id="recSearch" placeholder="ค้นหาชื่อ รหัส จุดขาย" aria-label="ค้นหา"></div>
           <button type="button" class="btn-chip" id="recFilterBtn"><svg class="ic ic-16" aria-hidden="true"><use href="#i-filter"/></svg> ตัวกรอง <span class="count-pill" id="recFilterCount" hidden></span></button>
           <select class="select" id="recSort" aria-label="เรียงลำดับ">
             <option value="ts_desc">ล่าสุดก่อน</option>
@@ -835,21 +835,21 @@
 
   <div id="pdfStage" class="pdf-stage" aria-hidden="true"></div>
 
-  <script src="js/config.js?v=3.32.0"></script>
-  <script src="js/utils.js?v=3.32.0"></script>
-  <script src="js/glass.js?v=3.32.0"></script>
-  <script src="js/analytics.js?v=3.32.0"></script>
-  <script src="js/api.js?v=3.32.0"></script>
-  <script src="js/charts.js?v=3.32.0"></script>
-  <script src="js/notify.js?v=3.32.0"></script>
-  <script src="js/staff/core.js?v=3.32.0"></script>
-  <script src="js/staff/mapkit.js?v=3.32.0"></script>
-  <script src="js/staff/overview.js?v=3.32.0"></script>
-  <script src="js/staff/records.js?v=3.32.0"></script>
-  <script src="js/staff/participants.js?v=3.32.0"></script>
-  <script src="js/staff/admin.js?v=3.32.0"></script>
-  <script src="js/staff/export.js?v=3.32.0"></script>
-  <script src="js/staff/reports.js?v=3.32.0"></script>
-  <script src="js/staff/analytics.js?v=3.32.0"></script>
+  <script src="js/config.js?v=3.32.1"></script>
+  <script src="js/utils.js?v=3.32.1"></script>
+  <script src="js/glass.js?v=3.32.1"></script>
+  <script src="js/analytics.js?v=3.32.1"></script>
+  <script src="js/api.js?v=3.32.1"></script>
+  <script src="js/charts.js?v=3.32.1"></script>
+  <script src="js/notify.js?v=3.32.1"></script>
+  <script src="js/staff/core.js?v=3.32.1"></script>
+  <script src="js/staff/mapkit.js?v=3.32.1"></script>
+  <script src="js/staff/overview.js?v=3.32.1"></script>
+  <script src="js/staff/records.js?v=3.32.1"></script>
+  <script src="js/staff/participants.js?v=3.32.1"></script>
+  <script src="js/staff/admin.js?v=3.32.1"></script>
+  <script src="js/staff/export.js?v=3.32.1"></script>
+  <script src="js/staff/reports.js?v=3.32.1"></script>
+  <script src="js/staff/analytics.js?v=3.32.1"></script>
 </body>
 </html>

@@ -130,7 +130,7 @@ const Charts = (() => {
         });
         const guide = node('line', { class: 'chart-guide', x1: 0, x2: 0, y1: padT, y2: padT + plotH }, s);
         const dot = node('circle', { class: 'chart-dot', r: 4.5, cx: -10, cy: -10 }, s);
-        guide.style.display = 'none';
+        guide.style.display = 'none'; dot.style.display = 'none'; // ซ่อนจนกว่าจะชี้/แตะ (svg ล้นขอบได้ จุดที่ -10 จะโผล่มุมกราฟ)
         el.appendChild(s);
         const tip = tooltipEl(el);
         const show = i => {
@@ -139,7 +139,7 @@ const Charts = (() => {
             const top = padT + plotH - plotH * totals[i] / max;
             guide.style.display = '';
             guide.setAttribute('x1', xs(i)); guide.setAttribute('x2', xs(i)); guide.setAttribute('y1', padT); guide.setAttribute('y2', top);
-            dot.setAttribute('cx', xs(i)); dot.setAttribute('cy', top);
+            dot.setAttribute('cx', xs(i)); dot.setAttribute('cy', top); dot.style.display = '';
             const scale = el.clientWidth / W;
             placeTip(el, tip, xs(i) * scale, Math.max(28, padT + 6) * scale, o.tooltip ? o.tooltip(i) : `<small>${esc(o.labels[i])}</small><b>${fmt(totals[i])}</b>`);
         };
@@ -147,7 +147,7 @@ const Charts = (() => {
             if (o.active != null) return show(o.active);
             groups.forEach(g => g.classList.remove('is-active'));
             el.classList.remove('has-active');
-            guide.style.display = 'none'; dot.setAttribute('cx', -10); tip.hidden = true;
+            guide.style.display = 'none'; dot.style.display = 'none'; tip.hidden = true;
         };
         track(el, s, n, xs, show, hide);
         if (o.active != null) show(o.active);
@@ -173,13 +173,26 @@ const Charts = (() => {
             const t = node('text', { x: padL - 6, y: y + 4, 'text-anchor': 'end' }, grid);
             t.textContent = v >= 1000 ? (v / 1000).toFixed(v % 1000 ? 1 : 0) + 'k' : Math.round(v);
         }
-        // เส้นโค้งแบบ Catmull-Rom → Bezier (ไม่เกินค่าจริงมากเพราะ tension ต่ำ)
-        const curve = pts => pts.map((p, i) => {
-            if (!i) return `M${p[0]},${p[1]}`;
-            const p0 = pts[i - 2] || pts[i - 1], p1 = pts[i - 1], p2 = p, p3 = pts[i + 1] || p;
-            const t = 0.18;
-            return `C${p1[0] + (p2[0] - p0[0]) * t},${p1[1] + (p2[1] - p0[1]) * t} ${p2[0] - (p3[0] - p1[0]) * t},${p2[1] - (p3[1] - p1[1]) * t} ${p2[0]},${p2[1]}`;
-        }).join('');
+        // เส้นโค้งแบบ monotone (Fritsch–Carlson): โค้งนุ่มแต่ไม่พุ่งเกินค่าจริง ไม่ดิ่งต่ำกว่า 0 ระหว่างจุด
+        const curve = pts => {
+            const n = pts.length;
+            if (n < 3) return pts.map((p, i) => `${i ? 'L' : 'M'}${p[0]},${p[1]}`).join('');
+            const dx = [], m = [], t = new Array(n);
+            for (let i = 0; i < n - 1; i++) { dx[i] = pts[i + 1][0] - pts[i][0]; m[i] = dx[i] ? (pts[i + 1][1] - pts[i][1]) / dx[i] : 0; }
+            t[0] = m[0]; t[n - 1] = m[n - 2];
+            for (let i = 1; i < n - 1; i++) t[i] = m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2;
+            for (let i = 0; i < n - 1; i++) {
+                if (!m[i]) { t[i] = t[i + 1] = 0; continue; }
+                const a = t[i] / m[i], b = t[i + 1] / m[i], h = a * a + b * b;
+                if (h > 9) { const k = 3 / Math.sqrt(h); t[i] = k * a * m[i]; t[i + 1] = k * b * m[i]; }
+            }
+            let d = `M${pts[0][0]},${pts[0][1]}`;
+            for (let i = 0; i < n - 1; i++) {
+                const h = dx[i] / 3;
+                d += `C${pts[i][0] + h},${pts[i][1] + t[i] * h} ${pts[i + 1][0] - h},${pts[i + 1][1] - t[i + 1] * h} ${pts[i + 1][0]},${pts[i + 1][1]}`;
+            }
+            return d;
+        };
         const lines = [];
         o.series.forEach((ser, si) => {
             const pts = ser.values.map((v, i) => (v == null ? null : [xs(i), ys(v)])).filter(Boolean);
@@ -204,7 +217,7 @@ const Charts = (() => {
         });
         const guide = node('line', { class: 'chart-guide', x1: 0, x2: 0, y1: padT, y2: padT + plotH }, s);
         guide.style.display = 'none';
-        const dots = lines.map(l => node('circle', { class: 'chart-dot', r: 5, cx: -10, cy: -10, style: `stroke:${l.color}` }, s));
+        const dots = lines.map(l => node('circle', { class: 'chart-dot', r: 5, cx: -10, cy: -10, style: `stroke:${l.color};display:none` }, s));
         el.appendChild(s);
         const tip = tooltipEl(el);
         const show = i => {
@@ -213,14 +226,14 @@ const Charts = (() => {
             let topY = padT + plotH;
             lines.forEach((l, k) => {
                 const v = l.ser.values[i];
-                if (v == null) { dots[k].setAttribute('cx', -10); return; }
-                dots[k].setAttribute('cx', xs(i)); dots[k].setAttribute('cy', ys(v));
+                if (v == null) { dots[k].style.display = 'none'; return; }
+                dots[k].setAttribute('cx', xs(i)); dots[k].setAttribute('cy', ys(v)); dots[k].style.display = '';
                 topY = Math.min(topY, ys(v));
             });
             const scale = el.clientWidth / W;
             placeTip(el, tip, xs(i) * scale, topY * scale, o.tooltip ? o.tooltip(i) : `<small>${esc(o.labels[i])}</small>` + lines.map(l => `<b>${l.ser.values[i] == null ? '-' : fmt(l.ser.values[i])}</b>`).join(' '));
         };
-        const hide = () => { guide.style.display = 'none'; dots.forEach(d => d.setAttribute('cx', -10)); tip.hidden = true; };
+        const hide = () => { guide.style.display = 'none'; dots.forEach(d => { d.style.display = 'none'; }); tip.hidden = true; };
         track(el, s, n, xs, show, hide);
         if (o.active != null) show(o.active);
     }

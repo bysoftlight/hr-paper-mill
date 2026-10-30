@@ -1360,3 +1360,6 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
     .sheet::backdrop { transition: opacity .3s; }
     [data-motion="reduce"] .sheet[open] { animation: none; }
 }
+
+/* กราฟ: กดค้าง/ลากนิ้วดูค่าแล้วไม่เลือกข้อความหรือขึ้นเมนู Copy/Translate ของ iOS */
+.chart, .chart *, .chart-box, .gauge-box, .legend, .ov-map, .map { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
