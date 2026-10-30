@@ -924,7 +924,7 @@ h1, h2, h3 { font-weight: 500; letter-spacing: -.01em; }
 a.brand { text-decoration: none; border-radius: 12px; -webkit-tap-highlight-color: transparent; transition: opacity .15s; }
 a.brand:active { opacity: .6; }
 a.brand:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
-a.credit { color: inherit; font-weight: 600; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 2px; }
+a.credit { color: inherit; font-weight: inherit; text-decoration: none; transition: color .15s; }
 a.credit:hover { color: var(--accent); }
 .topbar { background: var(--topbar); backdrop-filter: saturate(180%) blur(12px); -webkit-backdrop-filter: saturate(180%) blur(12px); border-bottom-color: var(--line-soft); }
 .bottomnav { border-top-color: var(--line-soft); }
