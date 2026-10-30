@@ -761,3 +761,20 @@ dialog:focus-visible { outline: none; } /* กรอบโฟกัสของ�
 .pv-stage img { max-width: 100%; max-height: 100%; object-fit: contain; transform-origin: center center; will-change: transform; -webkit-user-drag: none; }
 .pv-hint { margin: 0; padding: 8px 16px calc(10px + env(safe-area-inset-bottom)); text-align: center; font-size: 12px; color: rgba(255,255,255,.6); }
 @media (hover: none) { .pv-hint { font-size: 11px; } }
+
+/* ===== หน้าผู้ดูแล: แท็บพอดีปุ่ม · หัวข้อสม่ำเสมอ · ว่างแบบแถวเดียว · บทบาทเป็นการ์ดย่อย ===== */
+@media (min-width: 480px) { .adm-tabs { width: fit-content; max-width: 100%; } }
+#adminView .section-title { font-size: 17px; font-weight: 600; margin: 4px 0 12px; }
+.pending-none { display: flex; align-items: center; gap: 14px; padding: 16px 18px; }
+.pending-none > .ic { flex: none; width: 28px; height: 28px; color: var(--ok); }
+.pending-none span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pending-none b { font-weight: 600; font-size: 15px; }
+.pending-none small { color: var(--muted); font-size: 13px; }
+#admPending:has(> .pending-none) { grid-template-columns: minmax(0, 1fr); }
+.role-grid { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); margin-top: 4px; }
+.role-item { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border-radius: var(--r-md); background: var(--ground); }
+.role-ic { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--accent-soft); color: var(--on-accent-soft); }
+.role-item b { display: block; font-weight: 600; font-size: 15px; }
+.role-item b small { font-weight: 500; font-size: 12px; color: var(--muted); margin-left: 4px; }
+.role-item p { margin: 2px 0 0; font-size: 13px; color: var(--ink-2); line-height: 1.5; }
+@media (min-width: 768px) { .role-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
