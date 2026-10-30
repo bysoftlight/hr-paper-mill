@@ -370,6 +370,8 @@ function tabFromHash() {
 
 function initNav() {
     document.querySelectorAll('[data-tab]').forEach(btn => btn.addEventListener('click', () => { haptic(); switchTab(btn.dataset.tab); }));
+    // โลโก้ = กลับหน้าแรก (ส่งรายงาน)
+    document.querySelectorAll('[data-home]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); haptic(); switchTab('form'); }));
     window.addEventListener('hashchange', () => { if (!$('appContainer').hidden) switchTab(tabFromHash(), false); });
 }
 
