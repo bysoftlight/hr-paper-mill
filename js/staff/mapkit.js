@@ -89,7 +89,7 @@ const MapKit = (() => {
         if (d) return d;
         d = document.createElement('dialog');
         d.id = 'mkInfo'; d.className = 'sheet mk-info'; d.setAttribute('aria-label', 'ข้อมูลหมุด');
-        d.innerHTML = `<button type="button" class="icon-btn mk-info-x" data-close aria-label="ปิด"><svg class="ic ic-22" aria-hidden="true"><use href="#i-x"/></svg></button><div class="sheet-body mk-info-body"></div>`;
+        d.innerHTML = `<button type="button" class="icon-btn mk-info-x" data-close aria-label="ปิด"><svg class="ic ic-22" aria-hidden="true"><use href="#i-x"/></svg></button><div class="sheet-body mk-info-body" tabindex="-1" autofocus></div>`;
         document.body.appendChild(d);
         d.addEventListener('click', e => { if (e.target === d || e.target.closest('[data-close]')) d.close(); });
         return d;

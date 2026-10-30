@@ -4,7 +4,7 @@
 //      ไฟล์ที่มี ?v= (css/js/รูป) ใช้จากแคชได้เลย เพราะเปลี่ยนเวอร์ชันทุกครั้งที่อัปเดต
 //   2) ส่งรายงานที่ค้างในเครื่อง (js/outbox.js) เมื่อเน็ตกลับมา แม้ปิดแอปอยู่ (Background Sync — Android/Chrome)
 //   3) การแจ้งเตือน (Web Push): ระบบส่ง push แบบไม่มีเนื้อหา → ดึงข้อความล่าสุดของเครื่องนี้ (notify.inbox) แล้วแสดง
-const VERSION = '3.32.0';
+const VERSION = '3.32.1';
 importScripts('js/config.js?v=' + VERSION, 'js/outbox.js?v=' + VERSION);
 
 const SHELL = 'hrpm-shell-' + VERSION;

@@ -140,7 +140,7 @@ button.feed-item, button.person { cursor: pointer; }
 .period-inputs > [hidden] { display: none !important; }
 .range-sep { font-size: 13px; color: var(--muted); }
 .view-toggle { grid-template-columns: repeat(2, auto); }
-.view-toggle button { display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; }
+.view-toggle button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 12px; }
 .chips-row { display: flex; flex-wrap: wrap; gap: 6px; }
 .chips-row:empty { display: none; }
 .fchip {
@@ -177,7 +177,9 @@ button.feed-item, button.person { cursor: pointer; }
     border: 1px solid var(--line); border-radius: var(--r-md); font-size: 14px; cursor: pointer;
 }
 .check-row label:has(input:checked), .perm-list label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
-.seg-wrap { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.segmented.seg-wrap { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; background: none; }
+.segmented.seg-wrap button { flex: 0 0 auto; min-height: 36px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink-2); white-space: nowrap; }
+.segmented.seg-wrap button[aria-checked="true"] { background: var(--accent-soft); border-color: transparent; color: var(--on-accent-soft); font-weight: 600; }
 .segmented button[aria-checked="true"] { background: var(--surface); color: var(--ink); font-weight: 600; }
 
 /* --- Data table → cards on phones --- */
@@ -217,7 +219,7 @@ button.feed-item, button.person { cursor: pointer; }
     .dtable td.td-main::before { display: none; }
     .dtable td.td-thumb { position: absolute; top: 12px; right: 14px; width: auto; padding: 0; }
     .dtable td.td-thumb::before { display: none; }
-    .dtable td.td-actions { justify-content: flex-end; }
+    .dtable td.td-actions { position: absolute; right: 8px; bottom: 6px; width: auto; padding: 0; justify-content: flex-end; } /* ปุ่มแก้ไขอยู่มุมล่างขวา ไม่เปลืองอีกแถว */
     .dtable td.td-actions::before { display: none; }
     .dtable td:empty { display: none; }
 }
@@ -576,7 +578,8 @@ details.an-ev > summary::-webkit-details-marker { display: none; }
 
 /* แผนภาพความร้อน วัน × ชั่วโมง */
 .heat { overflow-x: auto; overscroll-behavior-x: contain; }
-.heat-grid { display: grid; grid-template-columns: 28px repeat(24, minmax(12px, 1fr)); gap: 3px; min-width: 420px; }
+.heat-grid { display: grid; grid-template-columns: 24px repeat(24, minmax(0, 1fr)); gap: 3px; }
+@media (max-width: 479px) { .heat-grid { gap: 2px; grid-template-columns: 20px repeat(24, minmax(0, 1fr)); } .heat-c { min-height: 0; border-radius: 2px; } .heat-h { font-size: 9px; } }
 .heat-h { font-size: 10px; color: var(--muted); text-align: left; }
 .heat-d { font-size: 12px; color: var(--muted); align-self: center; }
 .heat-c { aspect-ratio: 1; min-height: 12px; border-radius: 3px; background: var(--container); position: relative; overflow: hidden; }
@@ -717,4 +720,10 @@ details.an-ev > summary::-webkit-details-marker { display: none; }
 .mk-info-body { padding: 0 0 env(safe-area-inset-bottom); }
 .mk-info .mk-sheet { padding: 6px 20px 18px; }
 .mk-info .mk-sheet-title { font-size: 19px; }
-.mk-info-x { position: absolute; top: 12px; right: 12px; z-index: 2; }
+.mk-info-x { position: absolute; top: 14px; right: 14px; z-index: 2; }
+.mk-info-x:focus:not(:focus-visible) { outline: none; box-shadow: none; }
+/* ตารางจอกว้าง: ตัวเลข/ป้ายไม่ตัดบรรทัดกลางค่า (เช่น 3/10 กลายเป็น 3/1 กับ 0) — แคบเกินให้เลื่อนตารางแทน */
+@media (min-width: 1024px) {
+    .dtable .mono, .dtable .badge, .dtable .fi-side, .dtable .cell-sub { white-space: nowrap; }
+    .dtable td[data-label="ล่าสุด"], .dtable td[data-label="จุดขาย"] { min-width: 7em; }
+}

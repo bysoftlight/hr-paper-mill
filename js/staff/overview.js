@@ -142,7 +142,7 @@ VIEWS.overview = {
         const card = $('ovCompare').closest('.card');
         if (!c) { card.hidden = true; return; }
         card.hidden = false;
-        const mode = this.cmpMode || 'cum';
+        const mode = this.cmpMode || 'daily';
         const cum = arr => { let a = 0; return arr.map(v => (a += v)); };
         const n = Math.max(c.current.length, c.previous.length);
         const cur = mode === 'cum' ? cum(c.current) : c.current.slice();
