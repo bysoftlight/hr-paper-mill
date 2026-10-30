@@ -1,5 +1,5 @@
 // js/glass.js — สัมผัสแบบแอป (ใช้ร่วม: หน้าผู้ใช้สิทธิ์ · Staff)
-//   1) เมนูล่างแบบกระจก: แคปซูลไฮไลต์เลื่อนตามเมนูที่เลือก (iOS = Liquid Glass ลอยเหนือหน้า)
+//   1) เมนูล่าง (มือถือ): แคปซูลกระจกลอยแบบ Instagram · ไฮไลต์เลื่อนตามเมนู · เลื่อนลงแล้วแถบย่อ · หัวแอปแบบกระจกมีชื่อหน้าตรงกลาง
 //   2) แผ่นข้อมูลด้านล่าง (dialog.sheet บนมือถือ): ลากที่แถบจับ/หัวแผ่นลงเพื่อปิด ตามนิ้วแบบลื่น ปล่อยแล้วเด้งกลับ
 //      แผ่นที่มีฟอร์ม (กันข้อมูลหาย) และแผ่นที่ล็อกไว้ ลากได้แค่ยืดแล้วเด้งกลับ ไม่ปิด
 
@@ -25,7 +25,10 @@ const Glass = (() => {
             if (!cur || !nav.offsetWidth) { pill.style.opacity = '0'; return; }
             const ic = cur.querySelector('.ic') || cur;
             const n = nav.getBoundingClientRect(), r = ic.getBoundingClientRect();
-            const w = Math.min(64, cur.offsetWidth - 8), x = r.left + r.width / 2 - n.left - nav.clientLeft - w / 2, y = r.top + r.height / 2 - n.top - nav.clientTop - 16;
+            const ph = pill.offsetHeight || 32, labels = document.documentElement.dataset.navlabels === 'on' && mobile();
+            const w = mobile() ? cur.offsetWidth - 6 : Math.min(64, cur.offsetWidth - 8);
+            const cy = labels ? cur.getBoundingClientRect().top + cur.offsetHeight / 2 : r.top + r.height / 2;
+            const x = (mobile() ? cur.getBoundingClientRect().left + 3 : r.left + r.width / 2 - w / 2) - n.left - nav.clientLeft, y = cy - n.top - nav.clientTop - ph / 2;
             if (first || reduce()) pill.style.transition = 'none';
             pill.style.width = w + 'px';
             pill.style.transform = `translate(${x}px, ${y}px)`;
@@ -33,7 +36,25 @@ const Glass = (() => {
             if (first || reduce()) { void pill.offsetWidth; pill.style.transition = ''; }
             first = false;
         };
-        new MutationObserver(place).observe(nav, { subtree: true, attributes: true, attributeFilter: ['aria-current', 'hidden'] });
+        new MutationObserver(() => { place(); title(); }).observe(nav, { subtree: true, attributes: true, attributeFilter: ['aria-current', 'hidden'] });
+        document.addEventListener('prefchange', () => requestAnimationFrame(place));
+        // หัวแอปแบบกระจก: ชื่อหน้าปัจจุบันตรงกลาง
+        const bar = document.querySelector('.topbar');
+        let t = null;
+        if (bar) { t = document.createElement('span'); t.className = 'topbar-title'; t.setAttribute('aria-hidden', 'true'); bar.querySelector('.brand') ? bar.querySelector('.brand').after(t) : bar.prepend(t); }
+        const title = () => { if (!t) return; const cur = nav.querySelector('.nav-item[aria-current="page"]'); t.textContent = cur ? (cur.textContent || '').trim() : ''; };
+        title();
+        // เลื่อนลง = แถบย่อ · เลื่อนขึ้น/ใกล้บนสุด/ใกล้ล่างสุด = ขยายกลับ (แบบ Instagram)
+        let lastY = window.scrollY, acc = 0;
+        window.addEventListener('scroll', () => {
+            const y = window.scrollY, dy = y - lastY; lastY = y;
+            if (!mobile()) return;
+            acc = Math.sign(dy) === Math.sign(acc) ? acc + dy : dy;
+            const nearEnd = y + innerHeight > document.documentElement.scrollHeight - 40;
+            const min = y > 80 && acc > 24 && !nearEnd;
+            if (min || acc < -12 || y < 40 || nearEnd) document.documentElement.classList.toggle('nav-min', min);
+        }, { passive: true });
+        nav.addEventListener('click', () => document.documentElement.classList.remove('nav-min'));
         window.addEventListener('resize', place);
         if (window.ResizeObserver) new ResizeObserver(place).observe(nav);
         requestAnimationFrame(place);

@@ -1312,37 +1312,65 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
     transition: transform .5s cubic-bezier(.34, 1.36, .52, 1), width .3s ease, opacity .2s; will-change: transform; }
 .nav-item[aria-current="page"] .ic { transform: scale(1.04); }
 
-/* iOS: Liquid Glass — แถบลอยมุมมน กระจกใส มีขอบสะท้อนแสง */
+/* มือถือ: แถบลอยแบบ Liquid Glass (Instagram) — แคปซูลใส เห็นเนื้อหาด้านหลัง · ไอคอนอย่างเดียว (เปิดชื่อเมนูได้ในตั้งค่า)
+   เลื่อนลง = แถบย่อเล็กลง · เลื่อนขึ้น = กลับขนาดเดิม (js/glass.js) */
 @media (max-width: 767px) {
-    [data-platform="ios"] .bottomnav {
-        left: 10px; right: 10px; bottom: max(8px, calc(env(safe-area-inset-bottom) - 12px));
-        padding: 4px 6px; border-radius: 32px; border: 1px solid rgba(255, 255, 255, .6);
-        background: linear-gradient(180deg, rgba(255, 255, 255, .62), rgba(255, 255, 255, .42));
-        backdrop-filter: blur(20px) saturate(210%) brightness(1.04); -webkit-backdrop-filter: blur(20px) saturate(210%) brightness(1.04);
-        box-shadow: inset 0 1px 1px rgba(255, 255, 255, .9), inset 0 -1px 1px rgba(255, 255, 255, .25), 0 10px 30px rgba(0, 0, 0, .14), 0 1px 3px rgba(0, 0, 0, .08);
+    .bottomnav {
+        left: 14px; right: 14px; bottom: max(10px, calc(env(safe-area-inset-bottom) - 10px));
+        padding: 5px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .55);
+        background: linear-gradient(180deg, rgba(255, 255, 255, .5), rgba(255, 255, 255, .32));
+        backdrop-filter: blur(14px) saturate(200%) brightness(1.06); -webkit-backdrop-filter: blur(14px) saturate(200%) brightness(1.06);
+        box-shadow: inset 0 1px 1px rgba(255, 255, 255, .85), inset 0 -1px 1px rgba(255, 255, 255, .2), 0 8px 28px rgba(0, 0, 0, .12), 0 1px 2px rgba(0, 0, 0, .06);
+        transform-origin: 50% 100%; transition: transform .45s cubic-bezier(.32, .72, 0, 1), opacity .3s, background-color .25s;
     }
-    [data-platform="ios"] .bottomnav .nav-item { min-height: 54px; }
-    [data-platform="ios"] .nav-pill {
-        background: linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 80%, #fff), var(--accent-soft));
-        box-shadow: inset 0 1px 1px rgba(255, 255, 255, .85), 0 1px 4px rgba(8, 80, 209, .14);
+    .is-scrolled .bottomnav { background: linear-gradient(180deg, rgba(255, 255, 255, .5), rgba(255, 255, 255, .32)); }
+    .bottomnav .nav-item { min-height: 52px; color: var(--ink); }
+    .bottomnav .nav-item .ic { padding: 0; width: 24px; height: 24px; }
+    [data-navlabels="off"] .bottomnav .nav-item > span:not(.nav-badge) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    [data-navlabels="on"] .bottomnav .nav-item { min-height: 56px; }
+    [data-navlabels="on"] .bottomnav .nav-item > span:not(.nav-badge) { font-size: 11px; }
+    .bottomnav .nav-item[aria-current="page"] { color: var(--ink); }
+    .nav-pill {
+        height: var(--pill-h, 44px); border-radius: 999px;
+        background: rgba(0, 0, 0, .075);
+        box-shadow: inset 0 1px 1px rgba(255, 255, 255, .7), inset 0 0 0 .5px rgba(0, 0, 0, .04);
     }
-    [data-platform="ios"] .app { padding-bottom: calc(112px + env(safe-area-inset-bottom)); }
+    [data-navlabels="on"] .nav-pill { --pill-h: 50px; }
+    .nav-min .bottomnav { transform: scale(.86) translateY(4px); }
+    .app { padding-bottom: calc(108px + env(safe-area-inset-bottom)); }
 }
 @media (max-width: 767px) {
-    :root[data-theme="dark"][data-platform="ios"] .bottomnav {
+    :root[data-theme="dark"] .bottomnav, :root[data-theme="dark"] .is-scrolled .bottomnav {
         border-color: rgba(255, 255, 255, .14);
-        background: linear-gradient(180deg, rgba(40, 42, 46, .62), rgba(24, 25, 28, .5));
+        background: linear-gradient(180deg, rgba(48, 50, 54, .55), rgba(22, 23, 26, .45));
         box-shadow: inset 0 1px 1px rgba(255, 255, 255, .16), 0 10px 30px rgba(0, 0, 0, .45);
     }
-    :root[data-theme="dark"][data-platform="ios"] .nav-pill { background: rgba(174, 203, 250, .22); box-shadow: inset 0 1px 1px rgba(255, 255, 255, .18); }
+    :root[data-theme="dark"] .nav-pill { background: rgba(255, 255, 255, .14); box-shadow: inset 0 1px 1px rgba(255, 255, 255, .18); }
 }
 @media (max-width: 767px) and (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"])[data-platform="ios"] .bottomnav {
+    :root:not([data-theme="light"]) .bottomnav, :root:not([data-theme="light"]) .is-scrolled .bottomnav {
         border-color: rgba(255, 255, 255, .14);
-        background: linear-gradient(180deg, rgba(40, 42, 46, .62), rgba(24, 25, 28, .5));
+        background: linear-gradient(180deg, rgba(48, 50, 54, .55), rgba(22, 23, 26, .45));
         box-shadow: inset 0 1px 1px rgba(255, 255, 255, .16), 0 10px 30px rgba(0, 0, 0, .45);
     }
-    :root:not([data-theme="light"])[data-platform="ios"] .nav-pill { background: rgba(174, 203, 250, .22); box-shadow: inset 0 1px 1px rgba(255, 255, 255, .18); }
+    :root:not([data-theme="light"]) .nav-pill { background: rgba(255, 255, 255, .14); box-shadow: inset 0 1px 1px rgba(255, 255, 255, .18); }
+}
+
+/* หัวแอปแบบกระจก (ตั้งค่า → หัวแอป): ปุ่มโลโก้กลมลอย · ชื่อหน้าตรงกลาง · พื้นใสจนเลื่อนหน้า */
+@media (max-width: 767px) {
+    [data-header="glass"] .topbar { min-height: 64px; justify-content: space-between; background: transparent; border-bottom-color: transparent; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+    [data-header="glass"] .is-scrolled .topbar { background: linear-gradient(var(--ground) 30%, color-mix(in srgb, var(--ground) 0%, transparent)); box-shadow: none; }
+    [data-header="glass"] .topbar .brand { width: 48px; height: 48px; justify-content: center; border-radius: 50%; gap: 0;
+        background: color-mix(in srgb, var(--surface) 70%, transparent); border: 1px solid rgba(255, 255, 255, .6);
+        backdrop-filter: blur(14px) saturate(180%); -webkit-backdrop-filter: blur(14px) saturate(180%);
+        box-shadow: inset 0 1px 1px rgba(255, 255, 255, .8), 0 4px 14px rgba(0, 0, 0, .1); }
+    [data-header="glass"] .topbar .brand > span { display: none; }
+    [data-header="glass"] .topbar .brand .logo { width: 32px; height: 32px; }
+    .topbar-title { display: none; }
+    [data-header="glass"] .topbar-title { display: block; position: absolute; left: 72px; right: 72px; text-align: center; font-size: 17px; font-weight: 600; color: var(--ink);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; padding-top: env(safe-area-inset-top); }
+    [data-header="glass"] .topbar .live, [data-header="glass"] .topbar [data-today] { background: color-mix(in srgb, var(--surface) 70%, transparent); border-radius: 999px; padding: 6px 10px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    [data-header="glass"] .topbar .live [data-live-text] { display: none; } /* เหลือแค่จุดเขียว = อัปเดตสด */
 }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .bottomnav { background: var(--surface); } }
 

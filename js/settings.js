@@ -9,6 +9,8 @@ const PREF_DEFAULTS = {
     snap: true,        // เลื่อนหน้าแล้วหยุดพอดีทีละส่วน
     analytics: true,   // ส่งสถิติการใช้งาน (js/analytics.js)
     haptic: true,      // สั่นเบาๆ เมื่อแตะเมนู
+    header: 'classic', // classic = โลโก้+ชื่อแอป · glass = ปุ่มโลโก้กลมลอย + ชื่อหน้าตรงกลาง (มือถือ)
+    navLabels: false,  // แสดงชื่อใต้ไอคอนเมนูล่าง (มือถือ)
     // หน้าผู้ใช้สิทธิ์
     photo: 'std',      // save | std | hi
     remember: true,
@@ -41,6 +43,8 @@ function applyPrefs() {
     root.dataset.text = p.text;
     root.dataset.motion = p.motion ? 'reduce' : 'system';
     root.dataset.snap = p.snap ? 'on' : 'off';
+    root.dataset.header = p.header === 'glass' ? 'glass' : 'classic';
+    root.dataset.navlabels = p.navLabels ? 'on' : 'off';
     const dark = p.theme === 'dark' || (p.theme === 'system' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.content = dark ? '#131314' : '#FFFFFF';
@@ -128,6 +132,8 @@ function displaySettings() {
         rows: [
             { icon: 'contrast', tone: 'gray', label: 'ธีม', desc: 'โหมดมืดช่วยถนอมสายตาเวลากลางคืน', control: { type: 'seg', key: 'theme', options: [['system', 'ตามเครื่อง'], ['light', 'สว่าง'], ['dark', 'มืด']] } },
             { icon: 'type', tone: 'purple', label: 'ขนาดตัวอักษร', desc: 'ขยายตัวอักษรและปุ่มให้อ่านและกดง่ายขึ้น', control: { type: 'seg', key: 'text', options: [['m', 'ปกติ'], ['l', 'ใหญ่'], ['xl', 'ใหญ่มาก']] } },
+            { icon: 'home', tone: 'blue', label: 'หัวแอป', desc: 'แบบเดิม = โลโก้และชื่อแอป · แบบกระจก = ปุ่มโลโก้กลมลอยและชื่อหน้าอยู่ตรงกลาง (มือถือ)', control: { type: 'seg', key: 'header', options: [['classic', 'แบบเดิม'], ['glass', 'แบบกระจก']] } },
+            { icon: 'type', tone: 'gray', label: 'ชื่อใต้ไอคอนเมนู', desc: 'แสดงชื่อเมนูใต้ไอคอนในแถบเมนูด้านล่าง (มือถือ)', control: { type: 'switch', key: 'navLabels' } },
             { icon: 'haptic', tone: 'amber', label: 'สั่นเมื่อแตะเมนู', desc: 'สั่นเบาๆ เมื่อเปลี่ยนหน้า (Android และ iPhone iOS 18 ขึ้นไป)', control: { type: 'switch', key: 'haptic' } },
             { icon: 'motion', tone: 'teal', label: 'ลดภาพเคลื่อนไหว', desc: 'ปิดแอนิเมชัน เหมาะกับเครื่องรุ่นเก่าหรือผู้ที่เวียนหัวง่าย', control: { type: 'switch', key: 'motion' } },
             { icon: 'snap', tone: 'blue', label: 'เลื่อนทีละส่วน', desc: 'เลื่อนหน้าจอแล้วหยุดพอดีที่หัวข้อของแต่ละส่วน', control: { type: 'switch', key: 'snap' } },
