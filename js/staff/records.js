@@ -310,10 +310,7 @@ VIEWS.records = {
         if (!r.success) { $('recMapHint').textContent = r.message; return; }
         this.data = r;
         this.renderSummary(r.agg);
-        if (!this.map) {
-            this.map = L.map('recMap', { scrollWheelZoom: true }).setView([13.75, 100.52], 11);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(this.map);
-        }
+        if (!this.map) this.map = MapKit.create($('recMap'), { wheel: true }).setView([13.75, 100.52], 11);
         if (this.mapLayer) this.mapLayer.remove();
         this.mapLayer = L.layerGroup().addTo(this.map);
         const css = getComputedStyle(document.documentElement);
@@ -350,29 +347,42 @@ VIEWS.records = {
                     .addTo(this.mapLayer);
                 pts.push([lat, lng]);
             });
-            if (pts.length) this.map.fitBounds(pts, { padding: [30, 30], maxZoom: 15 });
-            setTimeout(() => this.map.invalidateSize(), 50);
+            MapKit.fit(this.map, pts, 15);
             $('recMapHint').textContent = `ความหนาแน่นจาก ${fmtNum(r.rows.filter(x => x.hasGps).length)} รายงาน · สีน้ำเงิน → เหลือง → แดง = รายงานหนาแน่นขึ้น · ชี้/แตะเพื่อดูจำนวนและรายชื่อ`;
             return;
         }
-        r.rows.filter(x => x.hasGps).slice(0, limit).forEach(x => {
-            const m = L.circleMarker([x.lat, x.lng], {
-                radius: 7, weight: x.anomaly ? 3 : 1.5, color: x.anomaly ? color('--bad') : '#fff',
-                fillColor: x.type === AGENT_TYPE ? color('--warn') : color('--accent'), fillOpacity: 0.9
-            });
-            m.bindTooltip(`<b>${esc(x.userName)}</b><br>${thDate(x.date, { day: 'numeric', month: 'short' })} ${esc(x.time)} น. · ${x.type === AGENT_TYPE ? 'ตัวแทน' : 'ขายเอง'}${x.anomaly ? `<br>⚠ ห่างจุดขาย ${fmtDistance(x.distance)}` : ''}`, { direction: 'top', offset: [0, -6], className: 'map-tip' });
-            m.bindPopup(`<b>${esc(x.userName)}</b>${thDate(x.date)} ${esc(x.time)} น.<br>${x.type === AGENT_TYPE ? 'ขายโดยตัวแทน' : 'ขายด้วยตัวเอง'}${x.distance !== null ? `<br>ห่างจุดขาย ${fmtDistance(x.distance)}` : ''}<br><a href="#" data-open-rec="${x.row}">ดูรายละเอียด</a>`);
-            m.on('popupopen', e => {
-                const a = e.popup.getElement().querySelector('[data-open-rec]');
-                if (a) a.onclick = ev => { ev.preventDefault(); this.openDetail(x); };
-            });
+        const gps = r.rows.filter(x => x.hasGps).slice(0, limit);
+        const byId = new Map(users.map(u => [u.id, u]));
+        // คนเดียวกัน ที่เดียวกัน (~20 ม.) รวมเป็นหมุดเดียว + ตัวเลขจำนวนครั้ง (ล่าสุดอยู่หน้า)
+        const groups = new Map();
+        gps.forEach(x => {
+            const k = x.userId + '|' + Math.round(x.lat * 5000) + ',' + Math.round(x.lng * 5000);
+            const g = groups.get(k) || groups.set(k, []).get(k);
+            g.push(x);
+        });
+        const photos = groups.size <= 150; // หมุดรูปโปรไฟล์เมื่อหมุดไม่เยอะ · เยอะกว่านั้นใช้จุดเล็ก
+        groups.forEach(list => {
+            const x = list[0], n = list.length, anomalies = list.filter(y => y.anomaly).length;
+            const tone = x.type === AGENT_TYPE ? 'warn' : 'accent', ring = anomalies ? 'bad' : '';
+            const u = byId.get(x.userId);
+            const m = photos
+                ? MapKit.pin({ lat: x.lat, lng: x.lng, tone, ring, size: 38, html: avatarHtml(x.userName, u && u.pic, 'mk-ava') + (n > 1 ? `<i class="mk-count">${n > 99 ? '99+' : n}</i>` : '') })
+                : MapKit.dot({ lat: x.lat, lng: x.lng, tone, ring });
+            m.bindTooltip(`<b>${esc(x.userName)}</b><br>${n > 1 ? `${fmtNum(n)} รายงานที่จุดนี้ · ล่าสุด ` : ''}${thDate(x.date, { day: 'numeric', month: 'short' })} ${esc(x.time)} น.${anomalies ? `<br>⚠ ตำแหน่งผิดปกติ ${anomalies} ครั้ง` : ''}`, { direction: 'top', offset: [0, photos ? -44 : -6], className: 'map-tip' });
+            m.bindPopup(MapKit.sheet({
+                img: avatarHtml(x.userName, u && u.pic, 'avatar-lg'),
+                title: esc(x.userName),
+                sub: n > 1 ? `${fmtNum(n)} รายงานที่จุดนี้ · ล่าสุด ${thDate(x.date, { day: 'numeric', month: 'short' })} ${esc(x.time)} น.` : `${thDate(x.date)} ${esc(x.time)} น. · ${x.type === AGENT_TYPE ? 'ขายโดยตัวแทน' : 'ขายด้วยตัวเอง'}`,
+                meta: [u && u.site ? esc(u.site) : '', x.distance !== null ? `${x.anomaly ? '⚠ ' : ''}ห่างจุดขาย ${fmtDistance(x.distance)}` : '', anomalies && n > 1 ? `ผิดปกติ ${anomalies} ครั้ง` : ''].filter(Boolean).join(' · '),
+                action: n > 1 ? 'ดูรายงานล่าสุด' : 'ดูรายละเอียด'
+            }), MapKit.popupOpts);
+            MapKit.onAction(m, () => this.openDetail(x));
             m.addTo(this.mapLayer);
             pts.push([x.lat, x.lng]);
         });
-        if (pts.length) this.map.fitBounds(pts, { padding: [30, 30], maxZoom: 16 });
-        setTimeout(() => this.map.invalidateSize(), 50);
-        const nogps = r.rows.length - pts.length;
-        $('recMapHint').textContent = `ชี้/แตะจุดเพื่อดูข้อมูล · แสดง ${fmtNum(pts.length)} จุด${r.rows.filter(x => x.hasGps).length > limit ? ` (จำกัด ${fmtNum(limit)} จุดแรก)` : ''}${nogps ? ` · ไม่มี GPS ${fmtNum(nogps)} รายการ` : ''} · สีน้ำเงิน = ขายเอง, สีเหลือง = โดยตัวแทน, ขอบแดง = ตำแหน่งผิดปกติ, วงประ = รัศมีจุดขาย ${radius} ม.`;
+        MapKit.fit(this.map, pts, 16);
+        const nogps = r.rows.length - gps.length;
+        $('recMapHint').textContent = `แตะหมุดเพื่อดูข้อมูล · ${fmtNum(gps.length)} รายงาน ใน ${fmtNum(pts.length)} หมุด (คนเดียวกันที่เดียวกันรวมเป็นหมุดเดียว)${r.rows.filter(x => x.hasGps).length > limit ? ` (จำกัด ${fmtNum(limit)} จุดแรก)` : ''}${nogps ? ` · ไม่มี GPS ${fmtNum(nogps)} รายการ` : ''} · หมุดน้ำเงิน = ขายเอง, เหลือง = โดยตัวแทน, ขอบแดง = ตำแหน่งผิดปกติ, วงประ = รัศมีจุดขาย ${radius} ม.`;
     },
 
     // ---------- รายละเอียด ----------
