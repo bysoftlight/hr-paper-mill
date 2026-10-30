@@ -69,48 +69,67 @@ const Glass = (() => {
         schedule();
 
         // ลากนิ้วบนแถบ (แบบ Instagram): ไฮไลต์ตามนิ้ว ปล่อยแล้วเปิดเมนูที่อยู่ใต้นิ้ว · แตะธรรมดาทำงานแบบเดิม
-        let down = null;
+        // นิ้ว = Touch Events (iOS Safari: pointer events ของนิ้วถูก "จับ" ไว้กับปุ่มแรกที่แตะ แล้วโดนยกเลิกกลางทาง)
+        // เมาส์/ปากกา = Pointer Events · ขยับไฮไลต์ใน requestAnimationFrame ครั้งละเฟรม ไม่บังคับคำนวณผังซ้ำ (ไม่กระตุก)
+        let drag = null, dragRaf = 0;
         const itemAt = x => {
             const list = items(), r = nav.getBoundingClientRect(), k = r.width / nav.offsetWidth || 1; // k = สัดส่วนตอนแถบถูกย่อ
             const lx = (x - r.left) / k;
             return list.reduce((best, el) => Math.abs(el.offsetLeft + el.offsetWidth / 2 - lx) < Math.abs(best.offsetLeft + best.offsetWidth / 2 - lx) ? el : best, list[0]);
         };
-        nav.addEventListener('pointerdown', e => {
-            if (!mobile() || e.button > 0) return;
-            down = { x: e.clientX, y: e.clientY, id: e.pointerId };
+        const startDrag = (x, y) => {
+            if (!mobile()) return;
+            drag = { x0: x, y0: y, x, on: false };
             nav.classList.add('is-pressing');
             root.classList.remove('nav-min');
-        });
-        nav.addEventListener('pointermove', e => {
-            if (!down || e.pointerId !== down.id) return;
-            if (!scrubbing) {
-                if (Math.abs(e.clientX - down.x) < 10 || Math.abs(e.clientY - down.y) > Math.abs(e.clientX - down.x)) return;
-                scrubbing = true;
-                try { nav.setPointerCapture(e.pointerId); } catch (err) { /* ไม่รองรับ */ }
-            }
+        };
+        const paint = () => {
+            dragRaf = 0;
+            if (!drag || !drag.on) return;
             const r = nav.getBoundingClientRect(), k = r.width / nav.offsetWidth || 1;
-            const w = pill.offsetWidth, ph = pill.offsetHeight;
-            const lx = Math.min(nav.clientWidth - w - 4, Math.max(4, (e.clientX - r.left) / k - w / 2));
-            const cur = current(), y = cur ? geom(cur).y : (nav.clientHeight - ph) / 2;
-            moveTo(lx, y, w, false);
-            const over = itemAt(e.clientX);
-            items().forEach(el => el.classList.toggle('is-hover', el === over));
-        });
-        const finish = e => {
-            if (!down || (e && e.pointerId !== down.id)) return;
-            const wasScrub = scrubbing;
-            down = null; scrubbing = false;
-            nav.classList.remove('is-pressing');
+            const w = pill.offsetWidth, cur = current();
+            const lx = Math.min(nav.clientWidth - w - 3, Math.max(3, (drag.x - r.left) / k - w / 2));
+            pill.style.transform = `translate(${lx}px, ${cur ? geom(cur).y : 0}px)`;
+            const over = itemAt(drag.x);
+            if (over !== drag.over) { items().forEach(el => el.classList.toggle('is-hover', el === over)); drag.over = over; }
+        };
+        const moveDrag = (x, y) => {
+            if (!drag) return false;
+            drag.x = x;
+            if (!drag.on) {
+                const dx = Math.abs(x - drag.x0), dy = Math.abs(y - drag.y0);
+                if (dx < 8 || dy > dx) return false;
+                drag.on = scrubbing = true;
+                nav.classList.add('is-scrubbing');
+            }
+            if (!dragRaf) dragRaf = requestAnimationFrame(paint);
+            return true;
+        };
+        const endDrag = (x, commit) => {
+            if (!drag) return;
+            const d = drag; drag = null; scrubbing = false;
+            cancelAnimationFrame(dragRaf); dragRaf = 0;
+            nav.classList.remove('is-pressing', 'is-scrubbing');
             items().forEach(el => el.classList.remove('is-hover'));
-            if (wasScrub && e && e.type === 'pointerup') {
-                const over = itemAt(e.clientX);
-                if (over && over.getAttribute('aria-current') !== 'page') { over.click(); return; }
+            if (d.on && commit) {
+                const over = itemAt(x == null ? d.x : x);
+                if (over && over.getAttribute('aria-current') !== 'page') { if (typeof haptic === 'function') haptic(); over.click(); }
+                nav._justScrubbed = true; setTimeout(() => { nav._justScrubbed = false; }, 50);
+                place(); return;
             }
             place();
         };
-        nav.addEventListener('pointerup', finish);
-        nav.addEventListener('pointercancel', finish);
-        nav.addEventListener('lostpointercapture', () => { if (scrubbing) finish({ type: 'cancel', pointerId: down && down.id }); });
+        if ('ontouchstart' in window) {
+            nav.addEventListener('touchstart', e => { if (e.touches.length === 1) startDrag(e.touches[0].clientX, e.touches[0].clientY); else endDrag(null, false); }, { passive: true });
+            nav.addEventListener('touchmove', e => { if (moveDrag(e.touches[0].clientX, e.touches[0].clientY) && e.cancelable) e.preventDefault(); }, { passive: false });
+            nav.addEventListener('touchend', e => { const t = e.changedTouches[0]; const was = drag && drag.on; endDrag(t ? t.clientX : null, true); if (was && e.cancelable) e.preventDefault(); /* ลากแล้วไม่ต้องมี click ซ้ำ */ });
+            nav.addEventListener('touchcancel', () => endDrag(null, false));
+        }
+        nav.addEventListener('pointerdown', e => { if (e.pointerType !== 'touch' && e.button === 0) startDrag(e.clientX, e.clientY); });
+        window.addEventListener('pointermove', e => { if (e.pointerType !== 'touch') moveDrag(e.clientX, e.clientY); });
+        window.addEventListener('pointerup', e => { if (e.pointerType !== 'touch' && drag) endDrag(e.clientX, true); });
+        // ลากเมาส์เสร็จแล้วเบราว์เซอร์จะส่ง click ให้ปุ่มเดิม: กันไม่ให้เปิดเมนูผิด
+        nav.addEventListener('click', e => { if (nav._justScrubbed) { e.stopPropagation(); e.preventDefault(); } }, true);
 
         // เลื่อนลงต่อเนื่อง = แถบย่อ · เลื่อนขึ้น / ใกล้บนสุด / สุดหน้า / แตะแถบ = ขยายกลับ
         // มีระยะกันสั่น: ต้องเลื่อนทางเดียวกันสะสมพอ (ลง 60px / ขึ้น 24px) จึงเปลี่ยน — ไม่กะพริบไปมา
@@ -118,7 +137,7 @@ const Glass = (() => {
         const onScroll = () => {
             ticking = false;
             const y = window.scrollY, dy = y - lastY; lastY = y;
-            if (!mobile() || down || !dy) return;
+            if (!mobile() || drag || !dy) return;
             acc = (dy > 0) === (acc > 0) ? acc + dy : dy;
             const doc = document.documentElement, nearEnd = y + innerHeight > doc.scrollHeight - 60, short = doc.scrollHeight < innerHeight + 200;
             const isMin = root.classList.contains('nav-min');
