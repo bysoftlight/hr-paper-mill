@@ -7,6 +7,7 @@ const Glass = (() => {
     const ua = navigator.userAgent || '';
     const ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
     const mobile = () => !window.matchMedia || matchMedia('(max-width: 767px)').matches;
+    const landscape = () => !!window.matchMedia && matchMedia('(max-width: 767px) and (orientation: landscape) and (max-height: 500px)').matches; // แนวนอน: แถบซ่อนเมื่อเลื่อนลง
     const reduce = () => document.documentElement.dataset.motion === 'reduce' || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
     if (ios) document.documentElement.dataset.platform = 'ios';
 
@@ -142,7 +143,7 @@ const Glass = (() => {
             const doc = document.documentElement, nearEnd = y + innerHeight > doc.scrollHeight - 60, short = doc.scrollHeight < innerHeight + 200;
             const isMin = root.classList.contains('nav-min');
             if (!isMin && acc > 60 && y > 120 && !nearEnd && !short) root.classList.add('nav-min');
-            else if (isMin && (acc < -24 || y < 60 || nearEnd)) root.classList.remove('nav-min');
+            else if (isMin && (acc < (landscape() ? -10 : -24) || y < 60 || nearEnd)) root.classList.remove('nav-min');
         };
         window.addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
         // เปลี่ยนหน้า = เริ่มที่แถบเต็ม

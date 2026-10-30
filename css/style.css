@@ -1419,3 +1419,27 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
     [data-header="glass"] .topbar .brand { width: 40px; height: 40px; }
     .app { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
 }
+
+/* ===== เมนูล่าง (มือถือ): ไม่มีวงรอบไอคอน — เมนูที่เลือก = ไอคอนสีหลัก เส้นหนา + จุดเล็กใต้ไอคอน =====
+   (วงเทาเดิมดูเหมือนไอคอนถูกครอบ/ตัดขอบ และขยับคลาดได้ตอนแถบย่อขยาย) */
+@media (max-width: 767px) {
+    .bottomnav .nav-pill { display: none; }
+    .bottomnav .nav-item { color: var(--ink); transition: color .2s, transform .2s; }
+    .bottomnav .nav-item[aria-current="page"] { color: var(--accent); }
+    .bottomnav .nav-item[aria-current="page"] .ic { stroke-width: 2.4; }
+    [data-navlabels="off"] .bottomnav .nav-item[aria-current="page"]::after {
+        content: ""; position: absolute; left: 50%; bottom: 1px; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: currentColor;
+        animation: nav-dot .3s cubic-bezier(.3, 1.4, .5, 1);
+    }
+    @keyframes nav-dot { from { transform: scale(0); } }
+    [data-navlabels="off"] .bottomnav .nav-item .ic { margin-top: -4px; }
+    [data-navlabels="on"] .bottomnav .nav-item[aria-current="page"] > span:not(.nav-badge) { font-weight: 700; }
+    /* ลากนิ้วบนแถบ: เมนูใต้นิ้วขยายและเป็นสีหลัก */
+    .bottomnav .nav-item.is-hover { color: var(--accent); transform: scale(1.15); }
+    .bottomnav.is-scrubbing .nav-item[aria-current="page"]:not(.is-hover) { color: var(--ink); }
+    [data-motion="reduce"] .bottomnav .nav-item[aria-current="page"]::after { animation: none; }
+}
+/* แนวนอน: เลื่อนลง = แถบซ่อนลงไปใต้จอ · เลื่อนขึ้นนิดเดียว = กลับมา */
+@media (max-width: 767px) and (orientation: landscape) and (max-height: 500px) {
+    .nav-min .bottomnav { transform: translateY(calc(100% + 32px)); opacity: 0; pointer-events: none; }
+}
