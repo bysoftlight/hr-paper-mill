@@ -597,3 +597,76 @@ VIEWS.account = {
             `<li class="${can(p) ? '' : 'is-off'}">${icon(can(p) ? 'check-circle' : 'x-circle')}<span>${PERM_LABELS[p]}</span></li>`).join('');
     }
 };
+
+// ---------- ดูภาพเต็มจอ: ซูมด้วยแตะสองครั้ง/ล้อเมาส์/สองนิ้ว · ลากเพื่อเลื่อน ----------
+const PhotoViewer = (() => {
+    let z = 1, x = 0, y = 0, ready = false;
+    const MAX = 5;
+    const el = () => $('photoViewer'), img = () => $('pvImg'), stage = () => $('pvStage');
+    function apply(anim) {
+        const i = img();
+        i.style.transition = anim ? 'transform .22s ease' : 'none';
+        i.style.transform = `translate(${x}px, ${y}px) scale(${z})`;
+        $('pvZoom').textContent = Math.round(z * 100) + '%';
+        stage().classList.toggle('is-zoomed', z > 1.01);
+    }
+    function clamp() {
+        const r = stage().getBoundingClientRect(), i = img();
+        const w = i.offsetWidth * z, h = i.offsetHeight * z;
+        const mx = Math.max(0, (w - r.width) / 2), my = Math.max(0, (h - r.height) / 2);
+        x = Math.min(mx, Math.max(-mx, x)); y = Math.min(my, Math.max(-my, y));
+    }
+    // ซูมรอบจุด (cx, cy) ในพิกัดหน้าจอ
+    function zoomAt(nz, cx, cy, anim) {
+        nz = Math.min(MAX, Math.max(1, nz));
+        const r = stage().getBoundingClientRect(), ox = cx - (r.left + r.width / 2), oy = cy - (r.top + r.height / 2);
+        x = ox - (ox - x) * nz / z; y = oy - (oy - y) * nz / z; z = nz;
+        if (z === 1) { x = 0; y = 0; }
+        clamp(); apply(anim);
+    }
+    function init() {
+        if (ready) return; ready = true;
+        const st = stage(), d = el();
+        d.addEventListener('click', e => { if (e.target.closest('[data-close]')) d.close(); });
+        d.addEventListener('close', () => { img().removeAttribute('src'); });
+        st.addEventListener('wheel', e => { e.preventDefault(); zoomAt(z * (e.deltaY < 0 ? 1.2 : 1 / 1.2), e.clientX, e.clientY, false); }, { passive: false });
+        let touchAt = 0;
+        st.addEventListener('dblclick', e => { if (Date.now() - touchAt < 800) return; zoomAt(z > 1.01 ? 1 : 2.5, e.clientX, e.clientY, true); }); // นิ้วจัดการเองด้านล่าง
+        // ลาก/สองนิ้ว ด้วย pointer events
+        const pts = new Map(); let last = null, pinch = null, tap = 0;
+        st.addEventListener('pointerdown', e => {
+            st.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]);
+            if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), z }; }
+            last = [e.clientX, e.clientY];
+            if (e.pointerType === 'touch') touchAt = Date.now();
+            if (e.pointerType === 'touch' && pts.size === 1) { const now = Date.now(); if (now - tap < 300) zoomAt(z > 1.01 ? 1 : 2.5, e.clientX, e.clientY, true); tap = now; }
+        });
+        st.addEventListener('pointermove', e => {
+            if (!pts.has(e.pointerId)) return;
+            pts.set(e.pointerId, [e.clientX, e.clientY]);
+            if (pts.size === 2 && pinch) {
+                const [a, b] = [...pts.values()];
+                zoomAt(pinch.z * Math.hypot(a[0] - b[0], a[1] - b[1]) / pinch.d, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, false);
+            } else if (z > 1 && last) {
+                x += e.clientX - last[0]; y += e.clientY - last[1]; clamp(); apply(false);
+            }
+            last = [e.clientX, e.clientY];
+        });
+        const up = e => { pts.delete(e.pointerId); if (pts.size < 2) pinch = null; last = pts.size ? [...pts.values()][0] : null; };
+        st.addEventListener('pointerup', up); st.addEventListener('pointercancel', up);
+        window.addEventListener('resize', () => { if (d.open) { clamp(); apply(false); } });
+    }
+    // src = รูปที่โหลดแล้ว (แสดงทันที) · hi = ลิงก์ Drive (ขอความละเอียดสูงกว่าถ้ามี)
+    function open(src, title, hi, onDownload) {
+        init();
+        z = 1; x = 0; y = 0; apply(false);
+        const i = img();
+        i.src = src; i.alt = 'ภาพหลักฐาน ' + (title || '');
+        if (hi && /[?&]sz=w\d+/.test(hi)) { const big = new Image(); big.referrerPolicy = 'no-referrer'; big.onload = () => { if (el().open && i.src === src) i.src = big.src; }; big.src = hi.replace(/([?&]sz=)w\d+/, '$1w2400'); }
+        $('pvTitle').textContent = title || '';
+        $('pvDownload').hidden = !onDownload;
+        $('pvDownload').onclick = onDownload || null;
+        if (!el().open) el().showModal();
+    }
+    return { open };
+})();

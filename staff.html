@@ -24,9 +24,9 @@
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <!-- เปลี่ยนเลข ?v= ทุกครั้งที่แก้ CSS/JS -->
-  <script src="js/settings.js?v=3.32.1"></script>
-  <link rel="stylesheet" href="css/style.css?v=3.32.1">
-  <link rel="stylesheet" href="css/staff.css?v=3.32.1">
+  <script src="js/settings.js?v=3.32.2"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.32.2">
+  <link rel="stylesheet" href="css/staff.css?v=3.32.2">
 </head>
 <body class="staff">
 
@@ -223,10 +223,23 @@
       <button type="button" class="icon-btn" data-close aria-label="ปิด"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
     </div>
     <div class="sheet-body rec-body">
-      <div class="viewer-body rec-photo"><img id="recImg" alt=""><div class="empty" id="recImgEmpty" hidden><svg class="ic" aria-hidden="true"><use href="#i-image"/></svg>ไม่มีภาพหลักฐาน</div></div>
+      <div class="viewer-body rec-photo"><img id="recImg" alt=""><div class="empty" id="recImgEmpty" hidden><svg class="ic" aria-hidden="true"><use href="#i-image"/></svg>ไม่มีภาพหลักฐาน</div>
+        <button type="button" class="rec-full" id="recFull" hidden aria-label="ดูภาพเต็ม"><svg class="ic ic-16" aria-hidden="true"><use href="#i-maximize"/></svg><span>ดูภาพเต็ม</span></button></div>
       <dl class="kv rec-kv" id="recKv"></dl>
     </div>
     <div class="sheet-foot foot-row" id="recActions"></div>
+  </dialog>
+
+  <!-- ===== ดูภาพเต็มจอ (ซูม/เลื่อนได้) ===== -->
+  <dialog id="photoViewer" class="photo-viewer" aria-label="ภาพหลักฐานเต็มจอ">
+    <div class="pv-bar">
+      <span class="pv-title" id="pvTitle"></span>
+      <span class="pv-zoom" id="pvZoom">100%</span>
+      <button type="button" class="pv-btn" id="pvDownload" aria-label="ดาวน์โหลดรูป"><svg class="ic ic-20" aria-hidden="true"><use href="#i-download"/></svg></button>
+      <button type="button" class="pv-btn" data-close aria-label="ปิด"><svg class="ic ic-22" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="pv-stage" id="pvStage"><img id="pvImg" alt="" draggable="false"></div>
+    <p class="pv-hint">แตะสองครั้ง / ล้อเมาส์ = ซูม · ลากเพื่อเลื่อนดู · Esc = ปิด</p>
   </dialog>
 
   <!-- ===== Record form (add / edit) ===== -->
@@ -411,7 +424,7 @@
   <!-- ===== Sign in ===== -->
   <div id="authView" class="login" hidden>
     <section class="login-intro" aria-labelledby="authTitle">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.32.1" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.32.2" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <p class="eyebrow">สำหรับเจ้าหน้าที่ HR และผู้ดูแลระบบ</p>
       <h1 id="authTitle">ติดตามรายงานการขาย<br>ของผู้ใช้สิทธิ์ทุกคนในที่เดียว</h1>
       <ol class="intro-steps">
@@ -461,12 +474,12 @@
   <!-- ===== App ===== -->
   <div id="appContainer" class="app" hidden>
     <header class="topbar">
-      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.32.1" alt="" width="36" height="36"><span>HR Staff</span></a>
+      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.32.2" alt="" width="36" height="36"><span>HR Staff</span></a>
       <span class="live" data-live><span class="live-dot"></span><span data-live-text>อัปเดตสด</span></span>
     </header>
 
     <nav class="sidenav" aria-label="เมนูหลัก">
-      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.32.1" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></a>
+      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.32.2" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></a>
       <div class="nav-items">
         <button type="button" class="nav-item" data-tab="overview" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-grid"/></svg><span>ภาพรวม</span></button>
         <button type="button" class="nav-item" data-tab="records" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-list"/></svg><span>รายงาน</span></button>
@@ -835,21 +848,21 @@
 
   <div id="pdfStage" class="pdf-stage" aria-hidden="true"></div>
 
-  <script src="js/config.js?v=3.32.1"></script>
-  <script src="js/utils.js?v=3.32.1"></script>
-  <script src="js/glass.js?v=3.32.1"></script>
-  <script src="js/analytics.js?v=3.32.1"></script>
-  <script src="js/api.js?v=3.32.1"></script>
-  <script src="js/charts.js?v=3.32.1"></script>
-  <script src="js/notify.js?v=3.32.1"></script>
-  <script src="js/staff/core.js?v=3.32.1"></script>
-  <script src="js/staff/mapkit.js?v=3.32.1"></script>
-  <script src="js/staff/overview.js?v=3.32.1"></script>
-  <script src="js/staff/records.js?v=3.32.1"></script>
-  <script src="js/staff/participants.js?v=3.32.1"></script>
-  <script src="js/staff/admin.js?v=3.32.1"></script>
-  <script src="js/staff/export.js?v=3.32.1"></script>
-  <script src="js/staff/reports.js?v=3.32.1"></script>
-  <script src="js/staff/analytics.js?v=3.32.1"></script>
+  <script src="js/config.js?v=3.32.2"></script>
+  <script src="js/utils.js?v=3.32.2"></script>
+  <script src="js/glass.js?v=3.32.2"></script>
+  <script src="js/analytics.js?v=3.32.2"></script>
+  <script src="js/api.js?v=3.32.2"></script>
+  <script src="js/charts.js?v=3.32.2"></script>
+  <script src="js/notify.js?v=3.32.2"></script>
+  <script src="js/staff/core.js?v=3.32.2"></script>
+  <script src="js/staff/mapkit.js?v=3.32.2"></script>
+  <script src="js/staff/overview.js?v=3.32.2"></script>
+  <script src="js/staff/records.js?v=3.32.2"></script>
+  <script src="js/staff/participants.js?v=3.32.2"></script>
+  <script src="js/staff/admin.js?v=3.32.2"></script>
+  <script src="js/staff/export.js?v=3.32.2"></script>
+  <script src="js/staff/reports.js?v=3.32.2"></script>
+  <script src="js/staff/analytics.js?v=3.32.2"></script>
 </body>
 </html>

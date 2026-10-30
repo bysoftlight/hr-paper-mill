@@ -727,3 +727,37 @@ details.an-ev > summary::-webkit-details-marker { display: none; }
     .dtable .mono, .dtable .badge, .dtable .fi-side, .dtable .cell-sub { white-space: nowrap; }
     .dtable td[data-label="ล่าสุด"], .dtable td[data-label="จุดขาย"] { min-width: 7em; }
 }
+
+/* ===== รายละเอียดรายงาน: คอม = รูปซ้าย ข้อมูลขวา · มือถือ = รูปบน ข้อมูลล่าง ===== */
+dialog:focus-visible { outline: none; } /* กรอบโฟกัสของตัวหน้าต่างเองตอนเปิด (ปุ่มข้างในยังมีวงโฟกัสตามปกติ) */
+.rec-photo { position: relative; flex: none; overflow: hidden; padding: 0; min-height: 220px; background: #111214; border-radius: var(--r-md); }
+.rec-photo img { display: block; width: 100%; height: auto; max-height: 48dvh; object-fit: contain; border-radius: 0; cursor: zoom-in; }
+.rec-full { position: absolute; right: 10px; bottom: 10px; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border: 0; border-radius: 999px;
+    background: rgba(20, 20, 22, .62); color: #fff; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.rec-full:hover { background: rgba(20, 20, 22, .8); }
+.rec-photo .empty { color: #9aa0a6; }
+#recActions .btn { min-height: 48px; font-size: 15px; }
+@media (min-width: 768px) {
+    #recordModal { max-width: 980px; width: calc(100% - 64px); }
+    #recordModal .rec-body { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(300px, 1fr); gap: 20px; align-items: stretch; overflow: hidden; }
+    #recordModal .rec-photo { min-height: 0; height: min(62dvh, 560px); }
+    #recordModal .rec-photo img { height: 100%; max-height: none; }
+    #recordModal .rec-kv { overflow-y: auto; max-height: min(62dvh, 560px); padding-right: 4px; }
+    #recActions { flex-wrap: nowrap; }
+    #recActions .btn { flex: 1 1 0; }
+}
+/* ภาพเต็มจอ */
+.photo-viewer { width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; background: #000; color: #fff; display: none; }
+.photo-viewer[open] { display: flex; flex-direction: column; animation: pop .18s ease-out; }
+.photo-viewer::backdrop { background: #000; }
+.pv-bar { display: flex; align-items: center; gap: 8px; padding: calc(8px + env(safe-area-inset-top)) 12px 8px 16px; background: linear-gradient(rgba(0,0,0,.6), transparent); position: relative; z-index: 2; }
+.pv-title { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pv-zoom { font-size: 12px; color: rgba(255,255,255,.7); font-variant-numeric: tabular-nums; min-width: 3.5em; text-align: right; }
+.pv-btn { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: rgba(255,255,255,.12); color: #fff; cursor: pointer; }
+.pv-btn:hover { background: rgba(255,255,255,.22); }
+.pv-btn[hidden] { display: none; }
+.pv-stage { flex: 1; min-height: 0; display: grid; place-items: center; overflow: hidden; touch-action: none; cursor: zoom-in; user-select: none; -webkit-user-select: none; }
+.pv-stage.is-zoomed { cursor: grab; }
+.pv-stage img { max-width: 100%; max-height: 100%; object-fit: contain; transform-origin: center center; will-change: transform; -webkit-user-drag: none; }
+.pv-hint { margin: 0; padding: 8px 16px calc(10px + env(safe-area-inset-bottom)); text-align: center; font-size: 12px; color: rgba(255,255,255,.6); }
+@media (hover: none) { .pv-hint { font-size: 11px; } }
