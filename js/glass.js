@@ -26,7 +26,7 @@ const Glass = (() => {
         // จึงไม่เพี้ยนระหว่างแอนิเมชัน (สาเหตุที่ไฮไลต์ "หลุด" เวลากดตอนแถบกำลังย่อ/ขยาย)
         const geom = el => {
             const ph = pill.offsetHeight || 32;
-            const w = mobile() ? el.offsetWidth - 6 : Math.min(64, el.offsetWidth - 8);
+            const w = mobile() ? Math.min(76, el.offsetWidth - 4) : Math.min(64, el.offsetWidth - 8); // ไฮไลต์กว้างคงที่แบบ IG ไม่ยืดตามช่องเมนู
             const x = el.offsetLeft + (el.offsetWidth - w) / 2;
             let y;
             if (mobile()) y = el.offsetTop + (el.offsetHeight - ph) / 2;
