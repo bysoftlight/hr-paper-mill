@@ -206,7 +206,7 @@ VIEWS.admin = {
               <button type="button" class="btn btn-danger" data-reject>${icon('user-x')} ปฏิเสธ</button>
               <button type="button" class="btn btn-primary" data-approve>${icon('user-check')} อนุมัติ</button>
             </div>
-          </div>`).join('') : `<div class="card empty">${icon('check-circle')}ไม่มีคำขอที่รออนุมัติ</div>`;
+          </div>`).join('') : `<div class="card pending-none">${icon('check-circle')}<span><b>ไม่มีคำขอที่รออนุมัติ</b><small>เจ้าหน้าที่ใหม่ที่ขอเข้าระบบจะแสดงที่นี่ให้อนุมัติ</small></span></div>`;
         $('admPending').querySelectorAll('.pending-item').forEach(el => {
             const id = el.dataset.id;
             el.querySelector('[data-approve]').addEventListener('click', () => this.quickUpdate(id, { role: el.querySelector('select').value, status: 'active' }, 'อนุมัติแล้ว'));
