@@ -393,9 +393,11 @@ VIEWS.records = {
         $('recMeta').textContent = `${thDateLong(rec.date)} · ${rec.time} น. · ${rec.type === AGENT_TYPE ? 'ขายโดยตัวแทน' : 'ขายด้วยตัวเอง'}`;
         const img = $('recImg'), stage = img.parentElement;
         img.removeAttribute('src'); img.hidden = false; $('recImgEmpty').hidden = true;
+        $('recFull').hidden = true;
         if (rec.image || rec.fileId) {
             stage.classList.add('is-loading');
-            loadImg(img, rec, ok => { stage.classList.remove('is-loading'); if (!ok) { img.hidden = true; $('recImgEmpty').hidden = false; } });
+            loadImg(img, rec, ok => { stage.classList.remove('is-loading'); if (!ok) { img.hidden = true; $('recImgEmpty').hidden = false; } else $('recFull').hidden = false; });
+            img.onclick = $('recFull').onclick = () => PhotoViewer.open(img.currentSrc || img.src, `${rec.userName} · ${thDate(rec.date)} ${rec.time} น.`, rec.image, () => this.download(rec));
             img.alt = `ภาพหลักฐานของ ${rec.userName} ${thDate(rec.date)}`;
         } else { img.hidden = true; $('recImgEmpty').hidden = false; }
         const rows = [
