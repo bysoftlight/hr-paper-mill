@@ -386,8 +386,9 @@ function switchTab(tab, push = true) {
     if (!tabAllowed(tab)) tab = TAB_ORDER.find(tabAllowed);
     ST.view = tab;
     TAB_ORDER.forEach(t => { $(t + 'View').hidden = t !== tab; });
+    const navTab = tab === 'analytics' ? 'admin' : tab; // สถิติอยู่ใต้เมนูผู้ดูแล
     document.querySelectorAll('[data-tab]').forEach(b => {
-        if (b.dataset.tab === tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+        if (b.dataset.tab === navTab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     });
     if (push && location.hash !== '#' + tab) setUrl('#' + tab, true);
     window.scrollTo({ top: 0 });
@@ -397,6 +398,14 @@ function switchTab(tab, push = true) {
 
 function initShell() {
     document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => { haptic(); switchTab(b.dataset.tab); }));
+    // โลโก้ = กลับหน้าแรก (แท็บแรกที่มีสิทธิ์ เช่น ภาพรวม)
+    document.querySelectorAll('[data-home]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); haptic(); switchTab(TAB_ORDER.find(tabAllowed)); }));
+    $('anAdmTabs').addEventListener('click', e => {
+        const b = e.target.closest('[data-t]');
+        if (!b || b.dataset.t === 'analytics') return;
+        VIEWS.admin.tab = b.dataset.t;
+        switchTab('admin');
+    });
     document.addEventListener('click', e => {
         const go = e.target.closest('[data-goto]');
         if (go) switchTab(go.dataset.goto);

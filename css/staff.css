@@ -588,8 +588,10 @@ details.an-ev > summary::-webkit-details-marker { display: none; }
 .an-head > span:first-child { text-align: left; }
 
 /* ความปลอดภัย (ผู้ดูแลระบบ) */
-.adm-tabs { grid-template-columns: repeat(3, auto); max-width: 560px; }
-@media (max-width: 479px) { .adm-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: none; } .adm-tabs button { padding: 0 6px; font-size: 13px; } }
+.adm-tabs { grid-template-columns: repeat(4, auto); max-width: 620px; }
+.adm-tabs button { white-space: nowrap; }
+@media (max-width: 479px) { .adm-tabs { grid-template-columns: repeat(4, minmax(0, auto)); justify-content: stretch; max-width: none; } .adm-tabs button { padding: 0 6px; font-size: 13px; gap: 4px; } }
+@media (max-width: 359px) { .adm-tabs button { padding: 0 3px; font-size: 12px; } .adm-tabs .count-pill { min-width: 16px; padding: 0 4px; } }
 .sec-status { display: grid; gap: 14px; }
 .sec-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .sec-top > div { flex: 1 1 14em; display: flex; flex-direction: column; min-width: 0; }

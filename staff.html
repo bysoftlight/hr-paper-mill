@@ -24,9 +24,9 @@
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <!-- เปลี่ยนเลข ?v= ทุกครั้งที่แก้ CSS/JS -->
-  <script src="js/settings.js?v=3.29.1"></script>
-  <link rel="stylesheet" href="css/style.css?v=3.29.1">
-  <link rel="stylesheet" href="css/staff.css?v=3.29.1">
+  <script src="js/settings.js?v=3.30.0"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.30.0">
+  <link rel="stylesheet" href="css/staff.css?v=3.30.0">
 </head>
 <body class="staff">
 
@@ -409,7 +409,7 @@
   <!-- ===== Sign in ===== -->
   <div id="authView" class="login" hidden>
     <section class="login-intro" aria-labelledby="authTitle">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.29.1" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.30.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <p class="eyebrow">สำหรับเจ้าหน้าที่ HR และผู้ดูแลระบบ</p>
       <h1 id="authTitle">ติดตามรายงานการขาย<br>ของผู้ใช้สิทธิ์ทุกคนในที่เดียว</h1>
       <ol class="intro-steps">
@@ -437,7 +437,7 @@
       </div>
       <footer class="login-footer">
         <nav aria-label="ลิงก์"><a class="btn-text" href="./">ไปหน้าผู้ใช้สิทธิ์</a><button type="button" class="btn-text" data-settings>ตั้งค่าการแสดงผล</button></nav>
-        <p>© 2026 TUBE™ Creative Group. All rights reserved.</p>
+        <p>© 2026 <a class="credit" href="https://www.instagram.com/softlight.works/" target="_blank" rel="noopener">softlight</a> · All rights reserved.</p>
       </footer>
     </main>
   </div>
@@ -459,17 +459,16 @@
   <!-- ===== App ===== -->
   <div id="appContainer" class="app" hidden>
     <header class="topbar">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.29.1" alt="" width="36" height="36"><span>HR Staff</span></div>
+      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.30.0" alt="" width="36" height="36"><span>HR Staff</span></a>
       <span class="live" data-live><span class="live-dot"></span><span data-live-text>อัปเดตสด</span></span>
     </header>
 
     <nav class="sidenav" aria-label="เมนูหลัก">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.29.1" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></div>
+      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.30.0" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></a>
       <div class="nav-items">
         <button type="button" class="nav-item" data-tab="overview" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-grid"/></svg><span>ภาพรวม</span></button>
         <button type="button" class="nav-item" data-tab="records" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-list"/></svg><span>รายงาน</span></button>
         <button type="button" class="nav-item" data-tab="participants" data-perm="participants.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-users"/></svg><span>ผู้ใช้สิทธิ์</span></button>
-        <button type="button" class="nav-item" data-tab="analytics" data-perm="admin"><svg class="ic ic-22" aria-hidden="true"><use href="#i-chart"/></svg><span>สถิติ</span></button>
         <button type="button" class="nav-item" data-tab="admin" data-perm="admin"><svg class="ic ic-22" aria-hidden="true"><use href="#i-shield"/></svg><span>ผู้ดูแลระบบ</span><span class="nav-badge" data-pending-badge hidden></span></button>
         <button type="button" class="nav-item" data-tab="account"><svg class="ic ic-22" aria-hidden="true"><use href="#i-user"/></svg><span>บัญชี</span></button>
       </div>
@@ -643,6 +642,12 @@
         <div><h2 id="anTitle">สถิติการใช้งาน</h2><p id="anSub">&nbsp;</p></div>
         <div class="head-actions head-inline"><button type="button" class="btn-text" id="anRefresh"><svg class="ic ic-16" aria-hidden="true"><use href="#i-refresh"/></svg> รีเฟรช</button></div>
       </div>
+      <div class="segmented adm-tabs" role="tablist" aria-label="ส่วนผู้ดูแลระบบ" id="anAdmTabs">
+        <button type="button" role="tab" data-t="staff" aria-selected="false">เจ้าหน้าที่ <span class="count-pill is-bad" data-pending-badge hidden></span></button>
+        <button type="button" role="tab" data-t="logs" aria-selected="false">Logs</button>
+        <button type="button" role="tab" data-t="security" aria-selected="false">ความปลอดภัย</button>
+        <button type="button" role="tab" data-t="analytics" aria-selected="true">สถิติ</button>
+      </div>
       <section class="toolbar an-toolbar" aria-label="ตัวกรองสถิติ">
         <div class="set-seg seg-sm an-seg" id="anApp" role="radiogroup" aria-label="แอป">
           <button type="button" role="radio" data-app="all" aria-checked="true">ทั้งหมด</button>
@@ -710,9 +715,10 @@
         <div><h2 id="admTitle">ผู้ดูแลระบบ</h2><p>จัดการบัญชีเจ้าหน้าที่ สิทธิ์ และตรวจสอบ Log</p></div>
       </div>
       <div class="segmented adm-tabs" role="tablist" aria-label="ส่วนผู้ดูแลระบบ" id="admTabs">
-        <button type="button" role="tab" data-t="staff" aria-selected="true">บัญชีเจ้าหน้าที่ <span class="count-pill is-bad" data-pending-badge hidden></span></button>
+        <button type="button" role="tab" data-t="staff" aria-selected="true">เจ้าหน้าที่ <span class="count-pill is-bad" data-pending-badge hidden></span></button>
         <button type="button" role="tab" data-t="logs" aria-selected="false">Logs</button>
         <button type="button" role="tab" data-t="security" aria-selected="false">ความปลอดภัย <span class="count-pill is-bad" id="secBadge" hidden>!</span></button>
+        <button type="button" role="tab" data-t="analytics" aria-selected="false">สถิติ</button>
       </div>
 
       <div id="admStaff" class="stack">
@@ -811,7 +817,7 @@
           </ul>
           <a class="btn btn-outline" href="./"><svg class="ic" aria-hidden="true"><use href="#i-external"/></svg> เปิดหน้าผู้ใช้สิทธิ์</a>
           <button type="button" class="btn btn-danger" data-action="logout"><svg class="ic" aria-hidden="true"><use href="#i-logout"/></svg> ออกจากระบบ</button>
-          <p class="footnote">HR Paper Mill Staff v1.0 · © 2026 TUBE™ Creative Group</p>
+          <p class="footnote">HR Paper Mill Staff v1.0 · © 2026 <a class="credit" href="https://www.instagram.com/softlight.works/" target="_blank" rel="noopener">softlight</a></p>
         </div>
       </div>
     </main>
@@ -820,7 +826,6 @@
       <button type="button" class="nav-item" data-tab="overview" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-grid"/></svg><span>ภาพรวม</span></button>
       <button type="button" class="nav-item" data-tab="records" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-list"/></svg><span>รายงาน</span></button>
       <button type="button" class="nav-item" data-tab="participants" data-perm="participants.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-users"/></svg><span>ผู้ใช้สิทธิ์</span></button>
-      <button type="button" class="nav-item" data-tab="analytics" data-perm="admin"><svg class="ic ic-22" aria-hidden="true"><use href="#i-chart"/></svg><span>สถิติ</span></button>
       <button type="button" class="nav-item" data-tab="admin" data-perm="admin"><svg class="ic ic-22" aria-hidden="true"><use href="#i-shield"/></svg><span>ผู้ดูแล</span><span class="nav-badge" data-pending-badge hidden></span></button>
       <button type="button" class="nav-item" data-tab="account"><svg class="ic ic-22" aria-hidden="true"><use href="#i-user"/></svg><span>บัญชี</span></button>
     </nav>
@@ -828,19 +833,19 @@
 
   <div id="pdfStage" class="pdf-stage" aria-hidden="true"></div>
 
-  <script src="js/config.js?v=3.29.1"></script>
-  <script src="js/utils.js?v=3.29.1"></script>
-  <script src="js/analytics.js?v=3.29.1"></script>
-  <script src="js/api.js?v=3.29.1"></script>
-  <script src="js/charts.js?v=3.29.1"></script>
-  <script src="js/notify.js?v=3.29.1"></script>
-  <script src="js/staff/core.js?v=3.29.1"></script>
-  <script src="js/staff/overview.js?v=3.29.1"></script>
-  <script src="js/staff/records.js?v=3.29.1"></script>
-  <script src="js/staff/participants.js?v=3.29.1"></script>
-  <script src="js/staff/admin.js?v=3.29.1"></script>
-  <script src="js/staff/export.js?v=3.29.1"></script>
-  <script src="js/staff/reports.js?v=3.29.1"></script>
-  <script src="js/staff/analytics.js?v=3.29.1"></script>
+  <script src="js/config.js?v=3.30.0"></script>
+  <script src="js/utils.js?v=3.30.0"></script>
+  <script src="js/analytics.js?v=3.30.0"></script>
+  <script src="js/api.js?v=3.30.0"></script>
+  <script src="js/charts.js?v=3.30.0"></script>
+  <script src="js/notify.js?v=3.30.0"></script>
+  <script src="js/staff/core.js?v=3.30.0"></script>
+  <script src="js/staff/overview.js?v=3.30.0"></script>
+  <script src="js/staff/records.js?v=3.30.0"></script>
+  <script src="js/staff/participants.js?v=3.30.0"></script>
+  <script src="js/staff/admin.js?v=3.30.0"></script>
+  <script src="js/staff/export.js?v=3.30.0"></script>
+  <script src="js/staff/reports.js?v=3.30.0"></script>
+  <script src="js/staff/analytics.js?v=3.30.0"></script>
 </body>
 </html>
