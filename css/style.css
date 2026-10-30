@@ -1301,3 +1301,62 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
 .ob-dots span.is-on { width: 22px; background: var(--accent); }
 .ob-actions { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; }
 .ob-actions .btn { min-height: 48px; }
+
+/* ===== เมนูล่างแบบกระจก (Google Health) + แคปซูลเลื่อน · iOS = Liquid Glass ลอย (js/glass.js) ===== */
+.bottomnav { background: color-mix(in srgb, var(--surface) 74%, transparent); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); border-top: 1px solid color-mix(in srgb, var(--line) 60%, transparent); }
+.is-scrolled .bottomnav { background: color-mix(in srgb, var(--surface) 66%, transparent); }
+.bottomnav .nav-item { position: relative; z-index: 1; }
+.bottomnav.has-pill .nav-item[aria-current="page"] .ic { background: none; }
+.bottomnav .nav-item .ic { padding: 4px 18px; box-sizing: content-box; }
+.nav-pill { position: absolute; left: 0; top: 0; z-index: 0; height: 32px; border-radius: 16px; background: var(--accent-soft); opacity: 0; pointer-events: none;
+    transition: transform .5s cubic-bezier(.34, 1.36, .52, 1), width .3s ease, opacity .2s; will-change: transform; }
+.nav-item[aria-current="page"] .ic { transform: scale(1.04); }
+
+/* iOS: Liquid Glass — แถบลอยมุมมน กระจกใส มีขอบสะท้อนแสง */
+@media (max-width: 767px) {
+    [data-platform="ios"] .bottomnav {
+        left: 10px; right: 10px; bottom: max(8px, calc(env(safe-area-inset-bottom) - 12px));
+        padding: 4px 6px; border-radius: 32px; border: 1px solid rgba(255, 255, 255, .6);
+        background: linear-gradient(180deg, rgba(255, 255, 255, .62), rgba(255, 255, 255, .42));
+        backdrop-filter: blur(20px) saturate(210%) brightness(1.04); -webkit-backdrop-filter: blur(20px) saturate(210%) brightness(1.04);
+        box-shadow: inset 0 1px 1px rgba(255, 255, 255, .9), inset 0 -1px 1px rgba(255, 255, 255, .25), 0 10px 30px rgba(0, 0, 0, .14), 0 1px 3px rgba(0, 0, 0, .08);
+    }
+    [data-platform="ios"] .bottomnav .nav-item { min-height: 54px; }
+    [data-platform="ios"] .nav-pill {
+        background: linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 80%, #fff), var(--accent-soft));
+        box-shadow: inset 0 1px 1px rgba(255, 255, 255, .85), 0 1px 4px rgba(8, 80, 209, .14);
+    }
+    [data-platform="ios"] .app { padding-bottom: calc(112px + env(safe-area-inset-bottom)); }
+}
+@media (max-width: 767px) {
+    :root[data-theme="dark"][data-platform="ios"] .bottomnav {
+        border-color: rgba(255, 255, 255, .14);
+        background: linear-gradient(180deg, rgba(40, 42, 46, .62), rgba(24, 25, 28, .5));
+        box-shadow: inset 0 1px 1px rgba(255, 255, 255, .16), 0 10px 30px rgba(0, 0, 0, .45);
+    }
+    :root[data-theme="dark"][data-platform="ios"] .nav-pill { background: rgba(174, 203, 250, .22); box-shadow: inset 0 1px 1px rgba(255, 255, 255, .18); }
+}
+@media (max-width: 767px) and (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"])[data-platform="ios"] .bottomnav {
+        border-color: rgba(255, 255, 255, .14);
+        background: linear-gradient(180deg, rgba(40, 42, 46, .62), rgba(24, 25, 28, .5));
+        box-shadow: inset 0 1px 1px rgba(255, 255, 255, .16), 0 10px 30px rgba(0, 0, 0, .45);
+    }
+    :root:not([data-theme="light"])[data-platform="ios"] .nav-pill { background: rgba(174, 203, 250, .22); box-shadow: inset 0 1px 1px rgba(255, 255, 255, .18); }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .bottomnav { background: var(--surface); } }
+
+/* ===== แผ่นด้านล่าง: แถบจับ + ลากลงเพื่อปิด (แบบแอป Claude) ===== */
+.sheet-grip { display: none; }
+@media (max-width: 767px) {
+    .sheet { border-radius: 24px 24px 0 0; }
+    .sheet[open] { animation: sheet-rise .42s cubic-bezier(.32, .72, 0, 1); }
+    @keyframes sheet-rise { from { transform: translateY(100%); } }
+    .sheet-grip { display: block; flex: none; position: relative; height: 22px; margin-bottom: -10px; cursor: grab; touch-action: none; }
+    .sheet-grip::before { content: ""; position: absolute; left: 50%; top: 8px; width: 40px; height: 5px; margin-left: -20px; border-radius: 3px; background: var(--outline); opacity: .45; }
+    .sheet-head { touch-action: pan-x; }
+    .sheet.is-dragging { user-select: none; -webkit-user-select: none; }
+    .sheet.is-dragging::backdrop { opacity: calc(1 - var(--sheet-drag, 0)); }
+    .sheet::backdrop { transition: opacity .3s; }
+    [data-motion="reduce"] .sheet[open] { animation: none; }
+}
