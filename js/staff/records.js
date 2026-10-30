@@ -318,7 +318,7 @@ VIEWS.records = {
         const radius = (ST.config && ST.config.anomalyRadius) || 300;
         const shownUsers = new Set(r.rows.map(x => x.userId));
         users.filter(u => u.siteLat !== null && u.siteLng !== null && shownUsers.has(u.id)).forEach(u => {
-            L.circle([u.siteLat, u.siteLng], { radius, color: color('--dash'), weight: 1, fillOpacity: 0.06, dashArray: '4 4' })
+            L.circle([u.siteLat, u.siteLng], { radius, color: color('--dash'), weight: 1, fillOpacity: 0.06, dashArray: '4 4', className: 'mk-halo' })
                 .bindTooltip(`จุดขาย: ${esc(u.site || '-')} (${esc(u.name)})`).addTo(this.mapLayer);
         });
         const pts = [];

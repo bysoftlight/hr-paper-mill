@@ -210,7 +210,7 @@ VIEWS.overview = {
         const status = x => (x.today >= x.people ? 'ok' : x.today ? 'warn' : 'bad');
         $('ovSites').innerHTML = sites.length ? `<div class="rank-head"><span>จุดขาย</span><span>วันนี้</span><span>เดือนนี้</span></div>` + sites.slice(0, 8).map((x, i) => `
           <button type="button" class="rank-row" data-si="${i}">
-            <span class="rank-name"><i class="lg" style="background:var(--${status(x)})"></i><b>${esc(x.site)}</b><small>${x.people} คน</small></span>
+            <span class="rank-name"><i class="lg tone-${status(x)}" style="background:var(--t)"></i><b>${esc(x.site)}</b><small>${x.people} คน</small></span>
             <span class="mono">${x.today}/${x.people}</span>
             <span class="rank-bar"><i style="width:${Math.round(x.month / Math.max(1, sites[0].month) * 100)}%"></i><b class="mono">${fmtNum(x.month)}</b></span>
           </button>`).join('') : `<div class="empty">${icon('map')}ยังไม่มีข้อมูลจุดขาย</div>`;
@@ -232,7 +232,7 @@ VIEWS.overview = {
         geo.forEach(x => {
             const st = status(x);
             // วงจางรอบหมุด = ปริมาณรายงานเดือนนี้
-            L.circleMarker([x.lat, x.lng], { radius: 14 + 22 * Math.sqrt(x.month / maxM), stroke: false, fillColor: Charts.color('--' + st), fillOpacity: 0.14, interactive: false }).addTo(this.mapLayer);
+            L.circleMarker([x.lat, x.lng], { radius: 14 + 22 * Math.sqrt(x.month / maxM), stroke: false, fillColor: Charts.color('--' + st), fillOpacity: 0.14, interactive: false, className: 'mk-halo' }).addTo(this.mapLayer);
             const m = MapKit.pin({ lat: x.lat, lng: x.lng, tone: st, html: `<b>${x.today}</b><small>/${x.people}</small>`, label: esc(x.site) })
                 .bindPopup(MapKit.sheet({
                     title: esc(x.site),

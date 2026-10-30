@@ -24,9 +24,9 @@
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <!-- เปลี่ยนเลข ?v= ทุกครั้งที่แก้ CSS/JS -->
-  <script src="js/settings.js?v=3.31.0"></script>
-  <link rel="stylesheet" href="css/style.css?v=3.31.0">
-  <link rel="stylesheet" href="css/staff.css?v=3.31.0">
+  <script src="js/settings.js?v=3.32.0"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.32.0">
+  <link rel="stylesheet" href="css/staff.css?v=3.32.0">
 </head>
 <body class="staff">
 
@@ -37,6 +37,7 @@
       <symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
       <symbol id="i-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
       <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></symbol>
+      <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3 2 8.5l10 5.5 10-5.5L12 3z"/><path d="m2 15.5 10 5.5 10-5.5"/></symbol>
       <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></symbol>
       <symbol id="i-pin" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></symbol>
       <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></symbol>
@@ -410,7 +411,7 @@
   <!-- ===== Sign in ===== -->
   <div id="authView" class="login" hidden>
     <section class="login-intro" aria-labelledby="authTitle">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.31.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.32.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <p class="eyebrow">สำหรับเจ้าหน้าที่ HR และผู้ดูแลระบบ</p>
       <h1 id="authTitle">ติดตามรายงานการขาย<br>ของผู้ใช้สิทธิ์ทุกคนในที่เดียว</h1>
       <ol class="intro-steps">
@@ -460,12 +461,12 @@
   <!-- ===== App ===== -->
   <div id="appContainer" class="app" hidden>
     <header class="topbar">
-      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.31.0" alt="" width="36" height="36"><span>HR Staff</span></a>
+      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.32.0" alt="" width="36" height="36"><span>HR Staff</span></a>
       <span class="live" data-live><span class="live-dot"></span><span data-live-text>อัปเดตสด</span></span>
     </header>
 
     <nav class="sidenav" aria-label="เมนูหลัก">
-      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.31.0" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></a>
+      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.32.0" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></a>
       <div class="nav-items">
         <button type="button" class="nav-item" data-tab="overview" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-grid"/></svg><span>ภาพรวม</span></button>
         <button type="button" class="nav-item" data-tab="records" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-list"/></svg><span>รายงาน</span></button>
@@ -510,7 +511,7 @@
             <div class="legend legend-row" id="cmpLegend"></div>
           </section>
           <section class="card" aria-labelledby="mapTitle">
-            <div class="card-head"><h3 class="card-title" id="mapTitle">แผนที่จุดขาย</h3><span class="legend"><i class="lg" style="background:var(--ok)"></i>ส่งครบวันนี้ <i class="lg" style="background:var(--warn)"></i>ส่งบางส่วน <i class="lg" style="background:var(--bad)"></i>ยังไม่ส่ง</span></div>
+            <div class="card-head"><h3 class="card-title" id="mapTitle">แผนที่จุดขาย</h3><span class="legend"><i class="lg tone-ok" style="background:var(--t)"></i>ส่งครบวันนี้ <i class="lg tone-warn" style="background:var(--t)"></i>ส่งบางส่วน <i class="lg tone-bad" style="background:var(--t)"></i>ยังไม่ส่ง</span></div>
             <div class="ov-map" id="ovMap" role="region" aria-label="แผนที่จุดขาย ขนาดวงตามจำนวนรายงานเดือนนี้"></div>
             <p class="chart-hint">ตัวเลขบนหมุด = ส่งวันนี้/ทั้งหมด · วงจางรอบหมุด = จำนวนรายงานเดือนนี้ · แตะหมุดเพื่อดูข้อมูลและเปิดรายงานของจุดขายนั้น</p>
             <div class="site-rank" id="ovSites"></div>
@@ -834,20 +835,21 @@
 
   <div id="pdfStage" class="pdf-stage" aria-hidden="true"></div>
 
-  <script src="js/config.js?v=3.31.0"></script>
-  <script src="js/utils.js?v=3.31.0"></script>
-  <script src="js/analytics.js?v=3.31.0"></script>
-  <script src="js/api.js?v=3.31.0"></script>
-  <script src="js/charts.js?v=3.31.0"></script>
-  <script src="js/notify.js?v=3.31.0"></script>
-  <script src="js/staff/core.js?v=3.31.0"></script>
-  <script src="js/staff/mapkit.js?v=3.31.0"></script>
-  <script src="js/staff/overview.js?v=3.31.0"></script>
-  <script src="js/staff/records.js?v=3.31.0"></script>
-  <script src="js/staff/participants.js?v=3.31.0"></script>
-  <script src="js/staff/admin.js?v=3.31.0"></script>
-  <script src="js/staff/export.js?v=3.31.0"></script>
-  <script src="js/staff/reports.js?v=3.31.0"></script>
-  <script src="js/staff/analytics.js?v=3.31.0"></script>
+  <script src="js/config.js?v=3.32.0"></script>
+  <script src="js/utils.js?v=3.32.0"></script>
+  <script src="js/glass.js?v=3.32.0"></script>
+  <script src="js/analytics.js?v=3.32.0"></script>
+  <script src="js/api.js?v=3.32.0"></script>
+  <script src="js/charts.js?v=3.32.0"></script>
+  <script src="js/notify.js?v=3.32.0"></script>
+  <script src="js/staff/core.js?v=3.32.0"></script>
+  <script src="js/staff/mapkit.js?v=3.32.0"></script>
+  <script src="js/staff/overview.js?v=3.32.0"></script>
+  <script src="js/staff/records.js?v=3.32.0"></script>
+  <script src="js/staff/participants.js?v=3.32.0"></script>
+  <script src="js/staff/admin.js?v=3.32.0"></script>
+  <script src="js/staff/export.js?v=3.32.0"></script>
+  <script src="js/staff/reports.js?v=3.32.0"></script>
+  <script src="js/staff/analytics.js?v=3.32.0"></script>
 </body>
 </html>
