@@ -1426,3 +1426,7 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
 @media (max-width: 767px) and (orientation: landscape) and (max-height: 500px) {
     .nav-min .bottomnav { transform: translateY(calc(100% + 32px)); opacity: 0; pointer-events: none; }
 }
+
+/* Safari (iOS) ตัดเนื้อ SVG ตาม border-radius ของตัว svg เอง — กฎเก่าใส่ border-radius: 999px ให้ไอคอนเมนูที่เลือก
+   Chrome/Edge ไม่ตัด แต่ iPhone ตัดไอคอนเป็นวงกลม (มุมของไอคอนภาพรวมหาย) → ไอคอนในแถบล่างต้องไม่มีมุมโค้ง/พื้นหลังของตัวเอง */
+.bottomnav .nav-item .ic, .bottomnav .nav-item[aria-current="page"] .ic { border-radius: 0; background: none; clip-path: none; }
