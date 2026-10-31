@@ -1329,7 +1329,7 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
     .is-scrolled .bottomnav { background: linear-gradient(180deg, rgba(255, 255, 255, .82), rgba(255, 255, 255, .72)); }
     .bottomnav .nav-item { min-height: 46px; color: var(--ink); }
     .bottomnav .nav-item .ic { padding: 0; width: 26px; height: 26px; stroke-width: 1.9; }
-    .bottomnav .nav-item[aria-current="page"] .ic { stroke-width: 2.6; transform: none; } /* เมนูที่เลือก: เส้นหนาแบบ IG */
+    .bottomnav .nav-item[aria-current="page"] .ic { transform: none; } /* เมนูที่เลือก: เส้นเท่าเดิม — ทำเส้นหนาขึ้นแล้วไอคอนตัน ช่องในไอคอน (เช่น 4 ช่องของภาพรวม) ปิดหาย */
     [data-navlabels="off"] .bottomnav .nav-item > span:not(.nav-badge) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     [data-navlabels="on"] .bottomnav .nav-item > span:not(.nav-badge) { font-size: 11px; }
     .bottomnav .nav-item[aria-current="page"] { color: var(--ink); }
@@ -1341,7 +1341,7 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
     [data-navlabels="on"] .bottomnav .nav-item { min-height: 56px; }
     [data-navlabels="on"] .nav-pill { --pill-h: 56px; }
     .bottomnav { touch-action: none; -webkit-user-select: none; user-select: none; }
-    .nav-pill { transition: transform .42s cubic-bezier(.3, 1.25, .5, 1), width .3s ease, opacity .2s, background-color .2s, scale .2s; }
+    .nav-pill { transition: transform .38s cubic-bezier(.32, .72, 0, 1), width .3s ease, opacity .2s, background-color .2s, scale .2s; } /* ไม่เด้งเลยเป้า: ไม่ดูเหมือนวงหลุดตำแหน่ง */
     .bottomnav.is-pressing .nav-pill { scale: 1.06; }
     .bottomnav.is-scrubbing .nav-pill { transition: transform .07s linear, scale .2s; scale: 1.12 1.08; box-shadow: inset 0 1px 1px rgba(255, 255, 255, .9), 0 4px 14px rgba(0, 0, 0, .12); } /* ลากอยู่: ไฮไลต์ตามนิ้วทันที + พองแบบเลนส์ */
     .bottomnav .nav-item { transition: transform .2s; }
@@ -1420,25 +1420,8 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
     .app { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
 }
 
-/* ===== เมนูล่าง (มือถือ): ไม่มีวงรอบไอคอน — เมนูที่เลือก = ไอคอนสีหลัก เส้นหนา + จุดเล็กใต้ไอคอน =====
-   (วงเทาเดิมดูเหมือนไอคอนถูกครอบ/ตัดขอบ และขยับคลาดได้ตอนแถบย่อขยาย) */
-@media (max-width: 767px) {
-    .bottomnav .nav-pill { display: none; }
-    .bottomnav .nav-item { color: var(--ink); transition: color .2s, transform .2s; }
-    .bottomnav .nav-item[aria-current="page"] { color: var(--accent); }
-    .bottomnav .nav-item[aria-current="page"] .ic { stroke-width: 2.4; }
-    [data-navlabels="off"] .bottomnav .nav-item[aria-current="page"]::after {
-        content: ""; position: absolute; left: 50%; bottom: 1px; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: currentColor;
-        animation: nav-dot .3s cubic-bezier(.3, 1.4, .5, 1);
-    }
-    @keyframes nav-dot { from { transform: scale(0); } }
-    [data-navlabels="off"] .bottomnav .nav-item .ic { margin-top: -4px; }
-    [data-navlabels="on"] .bottomnav .nav-item[aria-current="page"] > span:not(.nav-badge) { font-weight: 700; }
-    /* ลากนิ้วบนแถบ: เมนูใต้นิ้วขยายและเป็นสีหลัก */
-    .bottomnav .nav-item.is-hover { color: var(--accent); transform: scale(1.15); }
-    .bottomnav.is-scrubbing .nav-item[aria-current="page"]:not(.is-hover) { color: var(--ink); }
-    [data-motion="reduce"] .bottomnav .nav-item[aria-current="page"]::after { animation: none; }
-}
+/* ลากนิ้วบนแถบ: เมนูใต้นิ้วขยายเล็กน้อย (วงเทาเลื่อนตามนิ้ว) */
+@media (max-width: 767px) { .bottomnav .nav-item.is-hover { transform: scale(1.08); } }
 /* แนวนอน: เลื่อนลง = แถบซ่อนลงไปใต้จอ · เลื่อนขึ้นนิดเดียว = กลับมา */
 @media (max-width: 767px) and (orientation: landscape) and (max-height: 500px) {
     .nav-min .bottomnav { transform: translateY(calc(100% + 32px)); opacity: 0; pointer-events: none; }
