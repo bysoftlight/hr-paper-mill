@@ -1342,8 +1342,8 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
     [data-navlabels="on"] .nav-pill { --pill-h: 56px; }
     .bottomnav { touch-action: none; -webkit-user-select: none; user-select: none; }
     .nav-pill { transition: transform .38s cubic-bezier(.32, .72, 0, 1), width .3s ease, opacity .2s, background-color .2s, scale .2s; } /* ไม่เด้งเลยเป้า: ไม่ดูเหมือนวงหลุดตำแหน่ง */
-    .bottomnav.is-pressing .nav-pill { scale: 1.06; }
-    .bottomnav.is-scrubbing .nav-pill { transition: transform .07s linear, scale .2s; scale: 1.12 1.08; box-shadow: inset 0 1px 1px rgba(255, 255, 255, .9), 0 4px 14px rgba(0, 0, 0, .12); } /* ลากอยู่: ไฮไลต์ตามนิ้วทันที + พองแบบเลนส์ */
+    .bottomnav.is-pressing .nav-pill { --pill-sx: 1.06; --pill-sy: 1.06; }
+    .bottomnav.is-scrubbing .nav-pill { transition: transform .07s linear; --pill-sx: 1.12; --pill-sy: 1.08; box-shadow: inset 0 1px 1px rgba(255, 255, 255, .9), 0 4px 14px rgba(0, 0, 0, .12); } /* ลากอยู่: ไฮไลต์ตามนิ้วทันที + พองแบบเลนส์ */
     .bottomnav .nav-item { transition: transform .2s; }
     .bottomnav .nav-item.is-hover { transform: scale(1.08); }
     .nav-min .bottomnav { transform: scale(.88); }

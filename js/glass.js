@@ -37,7 +37,7 @@ const Glass = (() => {
         const moveTo = (x, y, w, animate) => {
             pill.style.transition = animate && !reduce() ? '' : 'none';
             pill.style.width = w + 'px';
-            pill.style.transform = `translate(${x}px, ${y}px)`;
+            pill.style.transform = `translate(${x}px, ${y}px) scale(var(--pill-sx, 1), var(--pill-sy, 1))`; // ขยายรอบจุดกลางของวงเอง (ไม่ใช้ CSS scale: ที่ยืดออกจากมุมซ้ายของแถบ)
             if (!animate || reduce()) { void pill.offsetWidth; pill.style.transition = ''; }
         };
         let placed = false, scrubbing = false;
@@ -89,8 +89,9 @@ const Glass = (() => {
             if (!drag || !drag.on) return;
             const r = nav.getBoundingClientRect(), k = r.width / nav.offsetWidth || 1;
             const w = pill.offsetWidth, cur = current();
-            const lx = Math.min(nav.clientWidth - w - 3, Math.max(3, (drag.x - r.left) / k - w / 2));
-            pill.style.transform = `translate(${lx}px, ${cur ? geom(cur).y : 0}px)`;
+            const m = Math.ceil(w * 0.07) + 4; // เผื่อขนาดตอนวงพองขณะลาก ไม่ให้ล้นขอบแถบทั้งซ้ายและขวา
+            const lx = Math.min(nav.clientWidth - w - m, Math.max(m, (drag.x - r.left) / k - w / 2));
+            pill.style.transform = `translate(${lx}px, ${cur ? geom(cur).y : 0}px) scale(var(--pill-sx, 1), var(--pill-sy, 1))`;
             const over = itemAt(drag.x);
             if (over !== drag.over) { items().forEach(el => el.classList.toggle('is-hover', el === over)); drag.over = over; }
         };
