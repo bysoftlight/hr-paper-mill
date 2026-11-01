@@ -1,10 +1,10 @@
 // HR Paper Mill — Google Apps Script (ผูกกับ Google Sheets)
 // รองรับ 2 ทาง:
 //   1) เว็บบน GitHub Pages  → เรียกผ่าน doPost (fetch POST JSON: { action, secret, ... })
-//      - หน้าผู้ใช้สิทธิ์ (index.html): login / history / submit / image
+//      - หน้าผู้ใช้สิทธิ์ (index.html): login / history / submit / image / problem.report / survey.*
 //      - หน้าเจ้าหน้าที่ (staff.html): staff.* และ admin.* (ดู Staff.gs, Admin.gs)
 //   2) หน้าเว็บของ Apps Script เอง (Index.html) → เรียกผ่าน google.script.run
-// ไฟล์ในโปรเจกต์: Code.gs, Schema.gs, Auth.gs, Staff.gs, Admin.gs, Export.gs, Notify.gs, Analytics.gs, Threats.gs (+ Index.html) — วิธีติดตั้งดู apps-script/README.md
+// ไฟล์ในโปรเจกต์: Code.gs, Schema.gs, Auth.gs, Staff.gs, Admin.gs, Export.gs, Notify.gs, Analytics.gs, Threats.gs, Feedback.gs (+ Index.html) — วิธีติดตั้งดู apps-script/README.md
 // หลังแก้โค้ด: Deploy → Manage deployments → Edit (รูปดินสอ) → Version: New version → Deploy
 // ตั้งค่า deployment: Execute as = Me, Who has access = Anyone
 
@@ -49,8 +49,16 @@ function doPost(e) {
     } catch (err) { return json_({ success: false }); }
   }
 
+  // แจ้งปัญหาการใช้งาน (เข้าระบบแล้วหรือยังก็ได้ — จำกัดจำนวนต่อเครื่องใน Feedback.gs)
+  if (req.action === 'problem.report') {
+    try {
+      if (!HAS_FEEDBACK_()) return json_({ success: false, message: 'ระบบแจ้งปัญหายังไม่ได้ติดตั้ง (เพิ่มไฟล์ Feedback.gs ใน Apps Script) — กรุณาโทรหาเจ้าหน้าที่' });
+      return json_(handleFeedbackPublic_(req));
+    } catch (err) { return json_({ success: false, message: 'Error: ' + err }); }
+  }
+
   // ป้องกันการเดารหัสผู้ใช้สิทธิ์ (ดูส่วน "ป้องกันการสุ่มรหัส" ด้านล่าง)
-  const guarded = GUARDED_ACTIONS_.indexOf(req.action) !== -1 || (/^notify\./.test(String(req.action)) && req.action !== 'notify.inbox' && req.action !== 'notify.config');
+  const guarded = GUARDED_ACTIONS_.indexOf(req.action) !== -1 || /^survey\./.test(String(req.action)) || (/^notify\./.test(String(req.action)) && req.action !== 'notify.inbox' && req.action !== 'notify.config');
   if (guarded) {
     const blocked = guardBefore_(req);
     if (blocked) return json_(blocked);
@@ -68,6 +76,14 @@ function doPost(e) {
     } catch (err) {
       return json_({ success: false, message: 'Error: ' + err });
     }
+  }
+
+  // แบบสอบถามของผู้ใช้สิทธิ์ (ดู Feedback.gs) — ตรวจรหัสแล้วด้านบน
+  if (/^survey\./.test(String(req.action))) {
+    try {
+      if (!HAS_FEEDBACK_()) return json_({ success: true, surveys: [] });
+      return json_(handleFeedbackPublic_(req));
+    } catch (err) { return json_({ success: false, message: 'Error: ' + err }); }
   }
 
   // คำสั่งของเจ้าหน้าที่ / ผู้ดูแลระบบ
@@ -90,12 +106,17 @@ function doPost(e) {
         // ส่งประวัติมาพร้อมกัน ลดการเรียก API จาก 2 ครั้งเหลือ 1 ครั้งตอนเปิดแอป
         const trust = guardTrust_(req, user.id);
         if (HAS_THREATS_()) threatOnLogin_(guardDevice_(req), user.id, Number(guardCache_().get('g:f:' + guardDevice_(req)) || 0), guardClient_(req));
-        return json_(req.withHistory ? { success: true, data: user, history: getUserHistory(user.id), trust: trust } : { success: true, data: user, trust: trust });
+        const out = req.withHistory ? { success: true, data: user, history: getUserHistory(user.id), trust: trust } : { success: true, data: user, trust: trust };
+        if (req.withHistory && HAS_FEEDBACK_()) out.surveys = surveyPendingFor_(user.id); // แบบสอบถามที่รอทำ
+        return json_(out);
       }
       case 'history':
         return json_({ success: true, history: getUserHistory(req.userId) });
-      case 'submit':
-        return json_(submitSalesData(Object.assign({}, req.formData, { userId: req.userId })));
+      case 'submit': {
+        const res = submitSalesData(Object.assign({}, req.formData, { userId: req.userId }));
+        if (res && res.success && HAS_FEEDBACK_()) res.surveys = surveyPendingFor_(req.userId); // ให้ทำแบบสอบถามหลังส่งรายงาน
+        return json_(res);
+      }
       case 'image':
         return json_(getImageData_(req.userId, req.fileId, req.thumb));
       default:
@@ -153,6 +174,7 @@ function guardShieldUntil_() { return Number(PropertiesService.getScriptProperti
 function guardShieldOn_() { return guardShieldUntil_() > Date.now(); }
 
 // ก่อนทำคำขอ: เครื่องถูกล็อก? ต้องผ่านการตรวจความปลอดภัยก่อนหรือไม่?
+const HAS_FEEDBACK_ = () => typeof handleFeedbackPublic_ === 'function'; // ไฟล์ Feedback.gs (ไม่มีก็ทำงานต่อได้)
 const HAS_THREATS_ = () => typeof threat_ === 'function'; // ไฟล์ Threats.gs (ไม่มีก็ทำงานต่อได้)
 function guardClient_(req) { return HAS_THREATS_() ? uaSummary_(req.ua || req.userAgent) : ''; }
 
@@ -323,7 +345,8 @@ function healthCheck_() {
     'Export.gs': typeof staffExportGsheet_ === 'function',
     'Notify.gs': typeof handleNotifyRequest_ === 'function',
     'Analytics.gs': typeof analyticsTrack_ === 'function',
-    'Threats.gs': typeof threat_ === 'function'
+    'Threats.gs': typeof threat_ === 'function',
+    'Feedback.gs': typeof handleFeedbackPublic_ === 'function'
   };
   const sheets = {};
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);

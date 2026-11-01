@@ -122,6 +122,11 @@ function handleStaffRequest_(req) {
       requirePerm_(staff, 'admin');
       return adminLogsList_(req);
     default:
+      // แจ้งปัญหา / แบบสอบถาม (Feedback.gs)
+      if (/^(staff\.problem|admin\.problems|admin\.surveys)\./.test(req.action)) {
+        if (typeof handleFeedbackStaff_ !== 'function') return { success: false, message: 'ต้องเพิ่มไฟล์ Feedback.gs ใน Apps Script ก่อน' };
+        return handleFeedbackStaff_(req, staff, ua);
+      }
       fail_('INVALID', 'ไม่รู้จักคำสั่ง: ' + req.action);
   }
 }

@@ -24,9 +24,9 @@
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <!-- เปลี่ยนเลข ?v= ทุกครั้งที่แก้ CSS/JS -->
-  <script src="js/settings.js?v=3.34.3"></script>
-  <link rel="stylesheet" href="css/style.css?v=3.34.3">
-  <link rel="stylesheet" href="css/staff.css?v=3.34.3">
+  <script src="js/settings.js?v=3.35.0"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.35.0">
+  <link rel="stylesheet" href="css/staff.css?v=3.35.0">
 </head>
 <body class="staff">
 
@@ -47,6 +47,7 @@
       <symbol id="i-x-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6M9 9l6 6"/></symbol>
       <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
       <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+      <symbol id="i-chevron-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
       <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
       <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
       <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
@@ -376,6 +377,66 @@
   </dialog>
 
   <!-- ===== Staff account edit (Admin) ===== -->
+  <dialog id="svEditModal" class="sheet sv-sheet" aria-labelledby="svEditTitle">
+    <form id="svEditForm" class="sheet-form" novalidate>
+      <div class="sheet-head">
+        <div><h2 id="svEditTitle">สร้างแบบสอบถาม</h2><p id="svEditSub">ผู้ใช้สิทธิ์ตอบได้ในไม่ถึง 1 นาที</p></div>
+        <button type="button" class="icon-btn" data-close aria-label="ปิด"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+      </div>
+      <div class="sheet-body stack">
+        <div class="banner banner-warn" id="svLocked" hidden><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><div><b>มีผู้ตอบแล้ว</b>แก้ข้อความได้ แต่เพิ่ม/ลบ/เปลี่ยนชนิดคำถามไม่ได้ (ผลจะเพี้ยน) — สร้างแบบสอบถามใหม่แทน</div></div>
+        <label class="field"><span class="label">หัวข้อ</span><input class="input" id="svTitle" maxlength="150" required placeholder="เช่น ความพึงพอใจการใช้งานแอป เดือนพฤศจิกายน"></label>
+        <label class="field"><span class="label">คำอธิบาย (ไม่บังคับ)</span><textarea class="input textarea" id="svIntro" rows="2" maxlength="500" placeholder="ความเห็นของคุณช่วยให้เราปรับปรุงแอปให้ใช้ง่ายขึ้น"></textarea></label>
+        <fieldset class="fgroup">
+          <legend>คำถาม</legend>
+          <ol class="sv-qs" id="svQs"></ol>
+          <div class="sv-q-actions">
+            <button type="button" class="btn-chip" id="svAddQ"><svg class="ic ic-16" aria-hidden="true"><use href="#i-plus"/></svg> เพิ่มคำถาม</button>
+            <button type="button" class="btn-chip" id="svTemplate">ใช้ชุดคำถามมาตรฐาน</button>
+          </div>
+        </fieldset>
+        <fieldset class="fgroup">
+          <legend>ส่งถึง</legend>
+          <div class="set-seg" id="svTargetMode" role="radiogroup" aria-label="ส่งถึง">
+            <button type="button" role="radio" data-v="all" aria-checked="true">ผู้ใช้สิทธิ์ทุกคน</button>
+            <button type="button" role="radio" data-v="some" aria-checked="false">เลือกเอง</button>
+          </div>
+          <div class="sv-pick" id="svPick" hidden>
+            <div class="search-field"><svg class="ic ic-16" aria-hidden="true"><use href="#i-search"/></svg><input type="search" class="input input-sm" id="svPickSearch" placeholder="ค้นหาชื่อ รหัส จุดขาย" aria-label="ค้นหาผู้ใช้สิทธิ์"></div>
+            <div class="sv-pick-bar"><span id="svPickCount">เลือก 0 คน</span><button type="button" class="btn-text" id="svPickAll">เลือกทั้งหมดที่แสดง</button><button type="button" class="btn-text" id="svPickNone">ล้าง</button></div>
+            <ul class="sv-pick-list" id="svPickList"></ul>
+          </div>
+        </fieldset>
+        <fieldset class="fgroup">
+          <legend>วันเวลาส่ง</legend>
+          <div class="set-seg" id="svWhen" role="radiogroup" aria-label="วันเวลาส่ง">
+            <button type="button" role="radio" data-v="now" aria-checked="true">ส่งทันที</button>
+            <button type="button" role="radio" data-v="later" aria-checked="false">ตั้งเวลา</button>
+          </div>
+          <label class="field" id="svStartWrap" hidden><span class="label">เริ่มส่ง</span><input type="datetime-local" class="input" id="svStart"></label>
+          <label class="field"><span class="label">ปิดรับคำตอบ (ไม่บังคับ)</span><input type="datetime-local" class="input" id="svEnd"></label>
+          <p class="hint" id="svWhenHint">ผู้ใช้สิทธิ์จะเห็นแบบสอบถามหลังส่งรายงานของวันนั้น หรือทำภายหลังจากแถบเตือน · เครื่องที่เปิดการแจ้งเตือนจะได้รับแจ้งเมื่อถึงเวลา และเตือนซ้ำหากยังไม่ทำ</p>
+        </fieldset>
+      </div>
+      <div class="sheet-foot sv-foot">
+        <button type="button" class="btn btn-outline" id="svPreview"><svg class="ic" aria-hidden="true"><use href="#i-eye"/></svg> ดูตัวอย่าง</button>
+        <button type="button" class="btn btn-outline" id="svDraft">บันทึกร่าง</button>
+        <button type="submit" class="btn btn-primary" id="svSave">ส่งแบบสอบถาม</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="svResultModal" class="sheet sv-sheet" aria-labelledby="svResTitle">
+    <div class="sheet-head">
+      <div><h2 id="svResTitle">ผลแบบสอบถาม</h2><p id="svResSub"></p></div>
+      <button type="button" class="icon-btn" data-close aria-label="ปิด"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="sheet-body stack" id="svResBody"></div>
+    <div class="sheet-foot sv-foot">
+      <button type="button" class="btn btn-outline" id="svResCsv"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg> ดาวน์โหลด CSV</button>
+    </div>
+  </dialog>
+
   <dialog id="staffModal" class="sheet" aria-labelledby="smTitle">
     <form id="staffForm" class="sheet-form" novalidate>
       <div class="sheet-head">
@@ -424,7 +485,7 @@
   <!-- ===== Sign in ===== -->
   <div id="authView" class="login" hidden>
     <section class="login-intro" aria-labelledby="authTitle">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.34.3" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.35.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <p class="eyebrow">สำหรับเจ้าหน้าที่ HR และผู้ดูแลระบบ</p>
       <h1 id="authTitle">ติดตามรายงานการขาย<br>ของผู้ใช้สิทธิ์ทุกคนในที่เดียว</h1>
       <ol class="intro-steps">
@@ -451,7 +512,7 @@
         </div>
       </div>
       <footer class="login-footer">
-        <nav aria-label="ลิงก์"><a class="btn-text" href="./">ไปหน้าผู้ใช้สิทธิ์</a><button type="button" class="btn-text" data-settings>ตั้งค่าการแสดงผล</button></nav>
+        <nav aria-label="ลิงก์"><a class="btn-text" href="./">ไปหน้าผู้ใช้สิทธิ์</a><button type="button" class="btn-text" data-problem>แจ้งปัญหา</button><a class="btn-text" href="faq.html">คำถามที่พบบ่อย</a><a class="btn-text" href="terms.html">ข้อกำหนดการใช้งาน</a><a class="btn-text" href="privacy.html">นโยบายความเป็นส่วนตัว</a><button type="button" class="btn-text" data-settings>ตั้งค่าการแสดงผล</button></nav>
         <p>Copyright © 2026 <a class="credit" href="https://www.instagram.com/softlight.works/" target="_blank" rel="noopener">softlight</a>. All rights reserved.</p>
       </footer>
     </main>
@@ -468,18 +529,19 @@
         <button type="button" class="btn btn-outline" data-action="logout"><svg class="ic" aria-hidden="true"><use href="#i-logout"/></svg> ออกจากระบบ</button>
         <button type="button" class="btn btn-primary" id="pendRefresh"><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg> ตรวจสอบอีกครั้ง</button>
       </div>
+      <button type="button" class="btn-text pend-problem" data-problem><svg class="ic ic-16" aria-hidden="true"><use href="#i-alert"/></svg> แจ้งปัญหาการใช้งาน</button>
     </div>
   </main>
 
   <!-- ===== App ===== -->
   <div id="appContainer" class="app" hidden>
     <header class="topbar">
-      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.34.3" alt="" width="36" height="36"><span>HR Staff</span></a>
+      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.35.0" alt="" width="36" height="36"><span>HR Staff</span></a>
       <span class="live" data-live><span class="live-dot"></span><span data-live-text>อัปเดตสด</span></span>
     </header>
 
     <nav class="sidenav" aria-label="เมนูหลัก">
-      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.34.3" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></a>
+      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.35.0" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></a>
       <div class="nav-items">
         <button type="button" class="nav-item" data-tab="overview" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-grid"/></svg><span>ภาพรวม</span></button>
         <button type="button" class="nav-item" data-tab="records" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-list"/></svg><span>รายงาน</span></button>
@@ -661,6 +723,8 @@
         <button type="button" role="tab" data-t="staff" aria-selected="false">เจ้าหน้าที่ <span class="count-pill is-bad" data-pending-badge hidden></span></button>
         <button type="button" role="tab" data-t="logs" aria-selected="false">Logs</button>
         <button type="button" role="tab" data-t="security" aria-selected="false">ความปลอดภัย</button>
+        <button type="button" role="tab" data-t="problems" aria-selected="false">แจ้งปัญหา <span class="count-pill is-bad" data-problem-badge hidden></span></button>
+        <button type="button" role="tab" data-t="surveys" aria-selected="false">แบบสอบถาม</button>
         <button type="button" role="tab" data-t="analytics" aria-selected="true">สถิติ</button>
       </div>
       <section class="toolbar an-toolbar" aria-label="ตัวกรองสถิติ">
@@ -727,12 +791,14 @@
     <!-- Admin -->
     <main id="adminView" class="view" hidden aria-labelledby="admTitle">
       <div class="view-head view-head-row">
-        <div><h2 id="admTitle">ผู้ดูแลระบบ</h2><p>จัดการบัญชีเจ้าหน้าที่ สิทธิ์ และตรวจสอบ Log</p></div>
+        <div><h2 id="admTitle">ผู้ดูแลระบบ</h2><p>จัดการบัญชีเจ้าหน้าที่ สิทธิ์ Log การแจ้งปัญหา และแบบสอบถาม</p></div>
       </div>
       <div class="segmented adm-tabs" role="tablist" aria-label="ส่วนผู้ดูแลระบบ" id="admTabs">
         <button type="button" role="tab" data-t="staff" aria-selected="true">เจ้าหน้าที่ <span class="count-pill is-bad" data-pending-badge hidden></span></button>
         <button type="button" role="tab" data-t="logs" aria-selected="false">Logs</button>
         <button type="button" role="tab" data-t="security" aria-selected="false">ความปลอดภัย <span class="count-pill is-bad" id="secBadge" hidden>!</span></button>
+        <button type="button" role="tab" data-t="problems" aria-selected="false">แจ้งปัญหา <span class="count-pill is-bad" data-problem-badge hidden></span></button>
+        <button type="button" role="tab" data-t="surveys" aria-selected="false">แบบสอบถาม</button>
         <button type="button" role="tab" data-t="analytics" aria-selected="false">สถิติ</button>
       </div>
 
@@ -784,6 +850,31 @@
         </section>
       </div>
 
+      <div id="admProblems" class="stack" hidden>
+        <section class="toolbar">
+          <div class="toolbar-row">
+            <div class="set-seg seg-sm" id="probFilter" role="radiogroup" aria-label="แสดง">
+              <button type="button" role="radio" data-f="open" aria-checked="true">ยังไม่เสร็จ</button>
+              <button type="button" role="radio" data-f="done" aria-checked="false">เสร็จแล้ว</button>
+              <button type="button" role="radio" data-f="all" aria-checked="false">ทั้งหมด</button>
+            </div>
+            <div class="search-field grow"><svg class="ic ic-16" aria-hidden="true"><use href="#i-search"/></svg><input type="search" class="input input-sm" id="probSearch" placeholder="ค้นหาชื่อ รหัส รายละเอียด" aria-label="ค้นหาเรื่องที่แจ้ง"></div>
+            <button type="button" class="btn-chip" data-problem><svg class="ic ic-16" aria-hidden="true"><use href="#i-alert"/></svg> แจ้งปัญหา</button>
+          </div>
+        </section>
+        <div class="sumstrip" id="probSummary"></div>
+        <ul class="prob-list" id="probList"></ul>
+        <p class="muted-text sec-note" id="probNote">ทุกเรื่องส่งอีเมลถึงผู้ดูแลระบบทันที (PROBLEM_EMAILS หรือ ADMIN_EMAILS) · เก็บทั้งหมดในแผ่นงาน Problems</p>
+      </div>
+
+      <div id="admSurveys" class="stack" hidden>
+        <div class="card-head sv-head">
+          <p class="muted-text">สร้างแบบสอบถาม ตั้งวันเวลาส่ง แล้วผู้ใช้สิทธิ์จะเห็นหลังส่งรายงาน พร้อมแจ้งเตือนบนมือถือ</p>
+          <button type="button" class="btn btn-primary btn-sm" id="svNew"><svg class="ic ic-16" aria-hidden="true"><use href="#i-plus"/></svg> สร้างแบบสอบถาม</button>
+        </div>
+        <div class="sv-list" id="svList"></div>
+      </div>
+
       <div id="admLogs" class="stack" hidden>
         <section class="toolbar">
           <div class="toolbar-row">
@@ -830,6 +921,12 @@
             <li><button type="button" data-settings><svg class="ic" aria-hidden="true"><use href="#i-settings"/></svg><span>ตั้งค่า</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></button></li>
             <li><button type="button" data-action="logout-all"><svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg><span>ออกจากระบบทุกอุปกรณ์</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></button></li>
           </ul>
+          <ul class="card menu" aria-label="ช่วยเหลือ">
+            <li><button type="button" data-problem><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span>แจ้งปัญหาการใช้งาน</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></button></li>
+            <li><a href="faq.html"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg><span>คำถามที่พบบ่อย</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></a></li>
+            <li><a href="terms.html"><svg class="ic" aria-hidden="true"><use href="#i-file"/></svg><span>ข้อกำหนดการใช้งาน</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></a></li>
+            <li><a href="privacy.html"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg><span>นโยบายความเป็นส่วนตัวและคุกกี้</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></a></li>
+          </ul>
           <a class="btn btn-outline" href="./"><svg class="ic" aria-hidden="true"><use href="#i-external"/></svg> เปิดหน้าผู้ใช้สิทธิ์</a>
           <button type="button" class="btn btn-danger" data-action="logout"><svg class="ic" aria-hidden="true"><use href="#i-logout"/></svg> ออกจากระบบ</button>
           <p class="footnote">HR Paper Mill Staff v1.0<br>Copyright © 2026 <a class="credit" href="https://www.instagram.com/softlight.works/" target="_blank" rel="noopener">softlight</a>. All rights reserved.</p>
@@ -848,21 +945,24 @@
 
   <div id="pdfStage" class="pdf-stage" aria-hidden="true"></div>
 
-  <script src="js/config.js?v=3.34.3"></script>
-  <script src="js/utils.js?v=3.34.3"></script>
-  <script src="js/glass.js?v=3.34.3"></script>
-  <script src="js/analytics.js?v=3.34.3"></script>
-  <script src="js/api.js?v=3.34.3"></script>
-  <script src="js/charts.js?v=3.34.3"></script>
-  <script src="js/notify.js?v=3.34.3"></script>
-  <script src="js/staff/core.js?v=3.34.3"></script>
-  <script src="js/staff/mapkit.js?v=3.34.3"></script>
-  <script src="js/staff/overview.js?v=3.34.3"></script>
-  <script src="js/staff/records.js?v=3.34.3"></script>
-  <script src="js/staff/participants.js?v=3.34.3"></script>
-  <script src="js/staff/admin.js?v=3.34.3"></script>
-  <script src="js/staff/export.js?v=3.34.3"></script>
-  <script src="js/staff/reports.js?v=3.34.3"></script>
-  <script src="js/staff/analytics.js?v=3.34.3"></script>
+  <script src="js/consent.js?v=3.35.0"></script>
+  <script src="js/config.js?v=3.35.0"></script>
+  <script src="js/utils.js?v=3.35.0"></script>
+  <script src="js/glass.js?v=3.35.0"></script>
+  <script src="js/analytics.js?v=3.35.0"></script>
+  <script src="js/api.js?v=3.35.0"></script>
+  <script src="js/charts.js?v=3.35.0"></script>
+  <script src="js/notify.js?v=3.35.0"></script>
+  <script src="js/staff/core.js?v=3.35.0"></script>
+  <script src="js/staff/mapkit.js?v=3.35.0"></script>
+  <script src="js/staff/overview.js?v=3.35.0"></script>
+  <script src="js/staff/records.js?v=3.35.0"></script>
+  <script src="js/staff/participants.js?v=3.35.0"></script>
+  <script src="js/staff/admin.js?v=3.35.0"></script>
+  <script src="js/staff/export.js?v=3.35.0"></script>
+  <script src="js/staff/reports.js?v=3.35.0"></script>
+  <script src="js/staff/analytics.js?v=3.35.0"></script>
+  <script src="js/feedback.js?v=3.35.0"></script>
+  <script src="js/staff/feedback.js?v=3.35.0"></script>
 </body>
 </html>

@@ -122,10 +122,11 @@ function runSteps(steps) {
 // ---------- บันทึกข้อผิดพลาดบนเครื่องผู้ใช้ลง Log (เห็นสาเหตุทันที ไม่ต้องรอภาพหน้าจอ) ----------
 // แต่ละหน้ากำหนด ErrorLog.identify = () => ({ who, whoName, role })
 // ส่งไม่ได้ (ออฟไลน์) → เก็บในเครื่อง แล้วส่งเมื่อเน็ตกลับมา
-const ErrorLog = { identify: () => ({}), sent: 0, version: '' };
+const ErrorLog = { identify: () => ({}), sent: 0, version: '', last: '' };
 const ERRQ_KEY = 'HRPM_ERRQ';
 function reportClientError(kind, message, extra) {
     try {
+        if (message) ErrorLog.last = String(message).slice(0, 200) + ' (' + new Date().toLocaleTimeString('th-TH') + ')'; // แนบไปกับ "แจ้งปัญหา"
         if (!message || ErrorLog.sent >= 15) return; // ต่อการเปิดหน้าหนึ่งครั้ง
         ErrorLog.sent++;
         const id = ErrorLog.identify() || {};
