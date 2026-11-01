@@ -309,7 +309,8 @@ svg.ic, svg symbol { overflow: visible; }
 
 .bottomnav {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
-    display: grid; grid-template-columns: repeat(var(--nav-n, 4), minmax(0, 1fr));
+    /* จำนวนคอลัมน์ = จำนวนเมนูที่แสดงอยู่จริงเสมอ (ไม่ตายตัว) — ตอนรีเฟรชก่อนรู้สิทธิ์ เมนูครบ 6 ก็ยังอยู่แถวเดียว ไม่ตกลงไปบรรทัดสอง */
+    display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); grid-template-columns: none;
     padding: 4px 8px env(safe-area-inset-bottom);
     background: var(--surface); border-top: 1px solid var(--line);
 }
