@@ -59,7 +59,7 @@ const Glass = (() => {
         if (bar) { t = document.createElement('span'); t.className = 'topbar-title'; t.setAttribute('aria-hidden', 'true'); const b = bar.querySelector('.brand'); b ? b.after(t) : bar.prepend(t); }
         const title = () => {
             if (!t) return;
-            const cur = current(), lab = cur && [...cur.querySelectorAll(':scope > span')].find(x => !x.classList.contains('nav-badge'));
+            const cur = current(), lab = cur && [...cur.querySelectorAll(':scope > span')].find(x => !x.classList.contains('nav-badge') && !x.classList.contains('nav-bell-ic') && !x.classList.contains('nav-ava-wrap'));
             t.textContent = lab ? lab.textContent.trim() : '';
         };
         new MutationObserver(() => { schedule(); title(); }).observe(nav, { subtree: true, attributes: true, attributeFilter: ['aria-current', 'hidden'] });

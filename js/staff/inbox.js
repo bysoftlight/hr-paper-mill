@@ -93,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
         uid: () => (ST.me && ST.token ? ST.me.id : ''),
         fetch: () => api('staff.inbox.list'),
         openSettings: () => openSettings(),
+        show: () => switchTab('inbox'),
         manage: { label: 'เขียนประกาศ', show: () => can('admin'), open: () => { VIEWS.admin.tab = 'news'; switchTab('admin'); setTimeout(() => NewsAdmin.openEditor(null), 150); } },
         onAction: it => {
             if (!it.action) return;
@@ -107,5 +108,4 @@ document.addEventListener('DOMContentLoaded', () => {
         if (id !== last) { last = id; Inbox.reset(); if (id) Inbox.refresh(true); }
     };
     setInterval(watch, 1500); watch();
-    if (location.hash === '#inbox') setTimeout(() => { if (ST.me) Inbox.open(); }, 1800);
 });

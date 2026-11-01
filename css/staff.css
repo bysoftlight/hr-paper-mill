@@ -3,7 +3,7 @@
 
 .staff { --content: 480px; }
 .staff .bottomnav { grid-template-columns: repeat(var(--nav-n, 5), minmax(0, 1fr)); }
-.staff .bottomnav .nav-item span:not(.nav-badge) { font-size: 11px; white-space: nowrap; }
+.staff .bottomnav .nav-item > span:not(.nav-badge):not(.nav-bell-ic):not(.nav-ava-wrap) { font-size: 11px; white-space: nowrap; }
 .staff [data-perm][hidden] { display: none !important; }
 
 .nav-item { position: relative; }
