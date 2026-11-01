@@ -117,8 +117,10 @@ const Analytics = (() => {
         if (ms >= 500) { session(); push('page_leave', { p: page, v: Math.min(ms, 3600000) }); }
     }
 
+    // ยังไม่ได้ตอบแถบคุกกี้ (js/consent.js): เก็บคิวไว้ในเครื่องก่อน — ยอมรับแล้วค่อยส่ง · ปฏิเสธ = ปิดสถิติและล้างคิว
+    const consentPending = () => { try { return !localStorage.getItem('HRPM_COOKIE_OK'); } catch (e) { return false; } };
     function flush(beacon) {
-        if (!enabled() || typeof CONFIG === 'undefined' || !CONFIG.API_URL) return Promise.resolve();
+        if (!enabled() || consentPending() || typeof CONFIG === 'undefined' || !CONFIG.API_URL) return Promise.resolve();
         // เบราว์เซอร์อัตโนมัติ (ชุดทดสอบ): ตอนปิดหน้าไม่ส่ง — คำขอหลังปิดหน้าดักไม่ได้ ข้อมูลทดสอบจะหลุดเข้าชีตจริง (เก็บไว้ในคิวแทน)
         if (beacon && navigator.webdriver) return Promise.resolve();
         if (navigator.onLine === false) return Promise.resolve();

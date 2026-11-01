@@ -47,6 +47,7 @@ window.addEventListener('DOMContentLoaded', () => {
     initHistory();
     initNav();
     initFeedback();
+    initInbox();
     document.querySelectorAll('[data-action="logout"]').forEach(btn => btn.addEventListener('click', logout));
     initSettings();
 
@@ -228,6 +229,7 @@ async function performLogin(userId, isAuto, background = false) {
         userStore.set(USER_KEY, res.data.id);
         CURRENT_USER = res.data;
         if (Array.isArray(res.surveys)) setSurveys(res.surveys);
+        if (Array.isArray(res.inbox)) Inbox.setServer(res.inbox);
         if (!isAuto) maybeOnboard();
         if (!background) return setupApp(res.history);
         renderUser();
@@ -281,6 +283,7 @@ function endSession() {
     HISTORY_LOADED = false;
     TODAY_RECORD = null;
     SURVEYS = []; SURVEY_PROMPTED = false;
+    Inbox.reset();
     // สลับไปหน้าเข้าสู่ระบบก่อนเสมอ แล้วจึงเก็บกวาด — ขั้นใดผิดพลาดในบางเบราว์เซอร์ (เช่น Safari แบบแอป) ก็ไม่ค้างหน้าเดิม
     backToLogin();
     runSteps([
@@ -316,6 +319,8 @@ function setupApp(history, cachedAt) {
     refreshOutbox().then(() => { if (navigator.onLine) flushOutbox(); });
     if (cachedAt) loadStoredSurveys(); // เปิดจากข้อมูลในเครื่อง: แสดงแถบเตือนทันที แล้วอัปเดตเมื่อเข้าระบบเบื้องหลังเสร็จ
     else surveyOnOpen();
+    if (location.hash === '#inbox') { setUrl(location.pathname + '#form'); setTimeout(() => Inbox.open(), 500); } // จากการแจ้งเตือนประกาศ
+    Inbox.update();
 }
 
 function renderUser() {
@@ -382,6 +387,7 @@ function initNav() {
     window.addEventListener('hashchange', () => {
         if ($('appContainer').hidden) return;
         if (/^#survey=/.test(location.hash)) return handleSurveyLink();
+        if (location.hash === '#inbox') { setUrl(location.pathname + '#form'); return Inbox.open(); }
         switchTab(tabFromHash(), false);
     });
 }
@@ -756,6 +762,7 @@ async function refreshOutbox() {
     // รายงานที่รอส่งของวันนี้ นับว่าวันนี้ทำแล้ว (กันกดส่งซ้ำ)
     updateChecklist();
     renderTodayChip();
+    if (typeof Inbox !== 'undefined') Inbox.update();
 }
 
 async function flushOutbox(manual) {
@@ -906,6 +913,7 @@ function updateTodayStatus() {
     updateChecklist();
     updateAgentMeter();
     renderTodayChip();
+    if (typeof Inbox !== 'undefined') Inbox.update(); // "ยังไม่ได้ส่งรายงานวันนี้" ในกล่องการแจ้งเตือน
 }
 
 function renderTodayChip() {
@@ -1444,6 +1452,7 @@ function renderSurveys() {
         const t = b.querySelector('[data-survey-title]');
         if (t && n) t.textContent = n > 1 ? `มีแบบสอบถามรอคุณอยู่ ${n} ชุด` : `แบบสอบถาม: ${SURVEYS[0].title}`;
     });
+    if (typeof Inbox !== 'undefined') Inbox.update();
 }
 
 // เปิดแอป: มาจากการแจ้งเตือน (#survey=…) → เปิดเลย · ส่งรายงานวันนี้แล้วและยังไม่ได้กดเลื่อนวันนี้ → เตือนหนึ่งครั้ง
@@ -1492,4 +1501,35 @@ async function openSurvey(survey, when) {
         if (when !== 'banner') toastUser('ทำได้ทุกเมื่อจากแถบ "แบบสอบถาม" ด้านบน');
     }
     return r;
+}
+
+
+// ---------- กล่องการแจ้งเตือน (กระดิ่ง · js/inbox.js · Inbox.gs) ----------
+function initInbox() {
+    Inbox.init({
+        app: 'user',
+        uid: () => CURRENT_USER.id || '',
+        fetch: () => callApi('inbox.list', { userId: CURRENT_USER.id }),
+        openSettings: () => openSettings(),
+        local: inboxLocalItems,
+        onAction: it => {
+            const a = it.action || {};
+            if (a.kind === 'tab') switchTab(a.value);
+            else if (a.kind === 'survey') { const s = SURVEYS.find(x => x.id === a.value); if (s) openSurvey(s, 'banner'); }
+        }
+    });
+}
+// รายการที่หน้าเว็บรู้เอง: ยังไม่ส่งรายงานวันนี้ · แบบสอบถามรอทำ · รายงานรอส่งในเครื่อง
+function inboxLocalItems() {
+    if (!CURRENT_USER.id) return [];
+    const out = [], now = new Date(), noon = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12).getTime();
+    if (HISTORY_LOADED && !TODAY_RECORD && !queuedToday() && now.getTime() >= noon)
+        out.push({ id: 'remind-' + todayKey(), ts: noon, cat: 'usage', icon: 'clock', tone: 'warn', pin: true, title: 'ยังไม่ได้ส่งรายงานวันนี้',
+            body: 'อย่าลืมส่งรายงานการขายประจำวัน ใช้เวลาไม่ถึง 1 นาที', action: { kind: 'tab', value: 'form', label: 'ส่งรายงาน' } });
+    if (OUTBOX_PENDING.length)
+        out.push({ id: 'outbox-' + OUTBOX_PENDING.length + '-' + todayKey(), ts: Date.now() - 1000, cat: 'usage', icon: 'send', tone: 'warn', pin: true, title: `รายงานรอส่ง ${OUTBOX_PENDING.length} รายการ`,
+            body: 'เก็บไว้ในเครื่องแล้ว ระบบจะส่งให้เมื่อมีสัญญาณ', action: { kind: 'tab', value: 'form', label: 'ดูรายงานรอส่ง' } });
+    SURVEYS.forEach(s => out.push({ id: 'survey-' + s.id, ts: s.startAt || Date.now(), cat: 'usage', icon: 'help', tone: 'accent', title: 'แบบสอบถาม: ' + s.title,
+        body: s.intro || 'ช่วยบอกความเห็นการใช้งานแอป ใช้เวลาไม่ถึง 1 นาที', action: { kind: 'survey', value: s.id, label: 'ทำแบบสอบถาม' } }));
+    return out;
 }

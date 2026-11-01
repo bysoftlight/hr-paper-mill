@@ -1,10 +1,10 @@
 // HR Paper Mill — Google Apps Script (ผูกกับ Google Sheets)
 // รองรับ 2 ทาง:
 //   1) เว็บบน GitHub Pages  → เรียกผ่าน doPost (fetch POST JSON: { action, secret, ... })
-//      - หน้าผู้ใช้สิทธิ์ (index.html): login / history / submit / image / problem.report / survey.*
+//      - หน้าผู้ใช้สิทธิ์ (index.html): login / history / submit / image / problem.report / survey.* / inbox.list
 //      - หน้าเจ้าหน้าที่ (staff.html): staff.* และ admin.* (ดู Staff.gs, Admin.gs)
 //   2) หน้าเว็บของ Apps Script เอง (Index.html) → เรียกผ่าน google.script.run
-// ไฟล์ในโปรเจกต์: Code.gs, Schema.gs, Auth.gs, Staff.gs, Admin.gs, Export.gs, Notify.gs, Analytics.gs, Threats.gs, Feedback.gs (+ Index.html) — วิธีติดตั้งดู apps-script/README.md
+// ไฟล์ในโปรเจกต์: Code.gs, Schema.gs, Auth.gs, Staff.gs, Admin.gs, Export.gs, Notify.gs, Analytics.gs, Threats.gs, Feedback.gs, Inbox.gs (+ Index.html) — วิธีติดตั้งดู apps-script/README.md
 // หลังแก้โค้ด: Deploy → Manage deployments → Edit (รูปดินสอ) → Version: New version → Deploy
 // ตั้งค่า deployment: Execute as = Me, Who has access = Anyone
 
@@ -58,7 +58,7 @@ function doPost(e) {
   }
 
   // ป้องกันการเดารหัสผู้ใช้สิทธิ์ (ดูส่วน "ป้องกันการสุ่มรหัส" ด้านล่าง)
-  const guarded = GUARDED_ACTIONS_.indexOf(req.action) !== -1 || /^survey\./.test(String(req.action)) || (/^notify\./.test(String(req.action)) && req.action !== 'notify.inbox' && req.action !== 'notify.config');
+  const guarded = GUARDED_ACTIONS_.indexOf(req.action) !== -1 || /^(survey|inbox)\./.test(String(req.action)) || (/^notify\./.test(String(req.action)) && req.action !== 'notify.inbox' && req.action !== 'notify.config');
   if (guarded) {
     const blocked = guardBefore_(req);
     if (blocked) return json_(blocked);
@@ -86,6 +86,14 @@ function doPost(e) {
     } catch (err) { return json_({ success: false, message: 'Error: ' + err }); }
   }
 
+  // กล่องการแจ้งเตือนของผู้ใช้สิทธิ์ (ดู Inbox.gs) — ตรวจรหัสแล้วด้านบน
+  if (/^inbox\./.test(String(req.action))) {
+    try {
+      if (!HAS_INBOX_()) return json_({ success: true, items: [] });
+      return json_(handleInboxPublic_(req));
+    } catch (err) { return json_({ success: false, message: 'Error: ' + err }); }
+  }
+
   // คำสั่งของเจ้าหน้าที่ / ผู้ดูแลระบบ
   if (/^(staff|admin)\./.test(String(req.action))) {
     try {
@@ -108,6 +116,7 @@ function doPost(e) {
         if (HAS_THREATS_()) threatOnLogin_(guardDevice_(req), user.id, Number(guardCache_().get('g:f:' + guardDevice_(req)) || 0), guardClient_(req));
         const out = req.withHistory ? { success: true, data: user, history: getUserHistory(user.id), trust: trust } : { success: true, data: user, trust: trust };
         if (req.withHistory && HAS_FEEDBACK_()) out.surveys = surveyPendingFor_(user.id); // แบบสอบถามที่รอทำ
+        if (req.withHistory && HAS_INBOX_()) { try { out.inbox = inboxForUser_(user); } catch (e) { console.warn(e); } } // กล่องการแจ้งเตือน
         return json_(out);
       }
       case 'history':
@@ -174,6 +183,7 @@ function guardShieldUntil_() { return Number(PropertiesService.getScriptProperti
 function guardShieldOn_() { return guardShieldUntil_() > Date.now(); }
 
 // ก่อนทำคำขอ: เครื่องถูกล็อก? ต้องผ่านการตรวจความปลอดภัยก่อนหรือไม่?
+const HAS_INBOX_ = () => typeof handleInboxPublic_ === 'function'; // ไฟล์ Inbox.gs (ไม่มีก็ทำงานต่อได้)
 const HAS_FEEDBACK_ = () => typeof handleFeedbackPublic_ === 'function'; // ไฟล์ Feedback.gs (ไม่มีก็ทำงานต่อได้)
 const HAS_THREATS_ = () => typeof threat_ === 'function'; // ไฟล์ Threats.gs (ไม่มีก็ทำงานต่อได้)
 function guardClient_(req) { return HAS_THREATS_() ? uaSummary_(req.ua || req.userAgent) : ''; }
@@ -346,7 +356,8 @@ function healthCheck_() {
     'Notify.gs': typeof handleNotifyRequest_ === 'function',
     'Analytics.gs': typeof analyticsTrack_ === 'function',
     'Threats.gs': typeof threat_ === 'function',
-    'Feedback.gs': typeof handleFeedbackPublic_ === 'function'
+    'Feedback.gs': typeof handleFeedbackPublic_ === 'function',
+    'Inbox.gs': typeof handleInboxPublic_ === 'function'
   };
   const sheets = {};
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);

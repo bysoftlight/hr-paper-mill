@@ -13,11 +13,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Google+Sans+Code:wght@400;500&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap">
-  <script src="js/settings.js?v=3.35.0"></script>
-  <link rel="stylesheet" href="css/style.css?v=3.35.0">
-  <link rel="stylesheet" href="css/legal.css?v=3.35.0">
+  <script src="js/settings.js?v=3.36.0"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.36.0">
+  <link rel="stylesheet" href="css/legal.css?v=3.36.0">
 </head>
-<body>
+<body class="">
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
   <defs>
     <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol>
@@ -25,12 +25,14 @@
     <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
     <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
     <symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></symbol>
+    <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></symbol>
     <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
   </defs>
 </svg>
   <header class="doc-bar">
     <a class="icon-btn" href="./" data-back aria-label="ย้อนกลับ"><svg class="ic" aria-hidden="true"><use href="#i-arrow-left"/></svg></a>
-    <a class="brand" href="./"><img src="img/logo.png?v=3.35.0" alt="" width="30" height="30"><span>HR Paper Mill</span></a>
+    <a class="brand" href="./"><img src="img/logo.png?v=3.36.0" alt="" width="30" height="30"><span>HR Paper Mill</span></a>
     <nav aria-label="หน้าข้อมูล"><a href="faq.html">คำถามที่พบบ่อย</a><a href="terms.html">ข้อกำหนด</a><a href="privacy.html" aria-current="page">ความเป็นส่วนตัว</a></nav>
   </header>
   <main class="doc">
@@ -75,6 +77,7 @@
           <li>ชนิดอุปกรณ์ รุ่น ระบบปฏิบัติการ เบราว์เซอร์ ภาษา เขตเวลา และขนาดหน้าจอ</li>
           <li>สถิติการใช้งาน: หน้าที่เปิด ปุ่ม/ขั้นตอนที่ใช้ เวลาที่ใช้ และตำแหน่งที่แอปได้มาแล้วตอนส่งรายงาน (ผูกกับรหัสที่เข้าสู่ระบบ) — <b>ปิดได้</b>ที่ ตั้งค่า › ส่งสถิติการใช้งาน</li>
           <li>ข้อผิดพลาดที่เกิดบนเครื่อง (ข้อความข้อผิดพลาด หน้า และเวอร์ชัน) เพื่อแก้ไขปัญหา</li>
+          <li>กล่องการแจ้งเตือนในแอป: รวบรวมจากข้อมูลที่มีอยู่แล้ว (เช่น การแก้ไขรายงานโดยเจ้าหน้าที่ สถานะเรื่องที่แจ้ง ประกาศ) สถานะ “อ่านแล้ว” เก็บในเครื่องของคุณเท่านั้น</li>
           <li>ข้อมูลการแจ้งเตือน (ถ้าเปิด): ที่อยู่สำหรับส่งการแจ้งเตือนของเบราว์เซอร์ และหัวข้อที่เลือก</li>
         </ul>
         <h3>1.5 การแจ้งปัญหาและแบบสอบถาม</h3>
@@ -125,6 +128,7 @@
       </section>
       <section id="cookies" aria-labelledby="cookies-h">
         <h2 id="cookies-h">5. คุกกี้และพื้นที่จัดเก็บข้อมูลในเครื่อง</h2>
+        <p>ครั้งแรกที่เปิดเว็บ ระบบจะถามความยินยอมการใช้คุกกี้ <b>“ยอมรับทั้งหมด”</b> = ใช้ทุกประเภทในตารางด้านล่าง · <b>“ปฏิเสธ”</b> = ปิดประเภท “สถิติ” (ส่วนที่จำเป็นต่อการเข้าสู่ระบบ ความปลอดภัย และการตั้งค่ายังทำงาน) ก่อนตอบ ระบบจะยังไม่ส่งสถิติใดๆ และเปลี่ยนใจได้ทุกเมื่อที่ ตั้งค่า › ส่งสถิติการใช้งาน</p>
         <p>ระบบใช้ <b>พื้นที่จัดเก็บข้อมูลในเบราว์เซอร์</b> (localStorage, sessionStorage, IndexedDB และแคชของแอป) ซึ่งทำงานคล้ายคุกกี้ เพื่อให้ใช้งานได้ต่อเนื่อง ระบบเองไม่ได้ตั้งคุกกี้เพื่อการโฆษณาหรือติดตามข้ามเว็บไซต์ ส่วนบริการภายนอกในข้อ 4 (เช่น Google Sign-In) อาจตั้งคุกกี้ของตัวเองตามนโยบายของผู้ให้บริการนั้น</p>
         <div class="table-wrap"><table>
           <thead><tr><th>ประเภท</th><th>ชื่อที่เก็บในเครื่อง</th><th>ใช้ทำอะไร</th><th>อายุ</th></tr></thead>
@@ -133,14 +137,15 @@
             <tr><td><span class="tag t-need">จำเป็น</span></td><td><code>HRPM_STAFF_TOKEN</code> <code>line_state</code> <code>line_verifier</code></td><td>Session ของเจ้าหน้าที่ และขั้นตอนเข้าสู่ระบบด้วย LINE</td><td>Session หมดอายุ / ปิดแท็บ</td></tr>
             <tr><td><span class="tag t-need">จำเป็น</span></td><td><code>hrpm-outbox</code> (IndexedDB) · แคช <code>hrpm-shell</code> <code>hrpm-runtime</code></td><td>รายงานที่รอส่งเมื่อไม่มีสัญญาณ และไฟล์แอปสำหรับเปิดแบบออฟไลน์</td><td>จนส่งสำเร็จ / อัปเดตแอป</td></tr>
             <tr><td><span class="tag t-sec">ความปลอดภัย</span></td><td><code>HRPM_DID</code> <code>HRPM_TRUST</code></td><td>รหัสเครื่องแบบสุ่ม และบัตรเครื่องที่เชื่อถือได้ (กันการเดารหัส)</td><td>60 วัน (บัตรเครื่อง) / จนล้างข้อมูล</td></tr>
-            <tr><td><span class="tag t-pref">การตั้งค่า</span></td><td><code>HRPM_PREFS</code> <code>HRPM_ONBOARDED</code> <code>HRPM_MAP</code> <code>HRPM_PART_SORT</code> <code>HRPM_COOKIE_OK</code></td><td>ธีม ขนาดตัวอักษร รูปแบบเมนู การแนะนำการใช้งาน มุมมองแผนที่/ตาราง และการรับทราบแถบคุกกี้</td><td>จนล้างข้อมูล</td></tr>
+            <tr><td><span class="tag t-pref">การตั้งค่า</span></td><td><code>HRPM_PREFS</code> <code>HRPM_ONBOARDED</code> <code>HRPM_MAP</code> <code>HRPM_PART_SORT</code> <code>HRPM_COOKIE_OK</code></td><td>ธีม ขนาดตัวอักษร รูปแบบเมนู การแนะนำการใช้งาน มุมมองแผนที่/ตาราง และคำตอบเรื่องคุกกี้ (ยอมรับ/ปฏิเสธ)</td><td>จนล้างข้อมูล</td></tr>
             <tr><td><span class="tag t-pref">การตั้งค่า</span></td><td><code>HRPM_SURVEYS</code> <code>HRPM_SURVEY_SNOOZE</code></td><td>แบบสอบถามที่รอทำ และการกด “ทำภายหลัง”</td><td>จนทำเสร็จ / ออกจากระบบ</td></tr>
+            <tr><td><span class="tag t-pref">การตั้งค่า</span></td><td><code>HRPM_INBOX_…</code></td><td>การแจ้งเตือนที่อ่านแล้ว และเวลาที่เปิดกล่องการแจ้งเตือนล่าสุด</td><td>จนล้างข้อมูล</td></tr>
             <tr><td><span class="tag t-stat">สถิติ</span></td><td><code>HRPM_VID</code> <code>HRPM_AQ</code> <code>HRPM_UAH</code> <code>HRPM_ERRQ</code></td><td>รหัสผู้เยี่ยมชมแบบสุ่ม คิวสถิติ/ข้อผิดพลาดที่รอส่ง และข้อมูลรุ่นเครื่อง</td><td>จนล้างข้อมูล</td></tr>
           </tbody>
         </table></div>
         <h3>การจัดการคุกกี้และข้อมูลในเครื่อง</h3>
         <ul>
-          <li><b>ปิดการส่งสถิติ:</b> ตั้งค่า › ส่งสถิติการใช้งาน (ระบบยังทำงานได้ตามปกติ)</li>
+          <li><b>ปิดการส่งสถิติ:</b> กด “ปฏิเสธ” ที่การ์ดคุกกี้ หรือ ตั้งค่า › ส่งสถิติการใช้งาน (ระบบยังทำงานได้ตามปกติ)</li>
           <li><b>ล้างข้อมูลในเครื่อง:</b> ออกจากระบบ หรือ ตั้งค่า › ล้างข้อมูล</li>
           <li><b>ลบทั้งหมด:</b> ลบ “ข้อมูลเว็บไซต์” ของ bysoftlight.github.io ในการตั้งค่าเบราว์เซอร์ (iPhone: การตั้งค่า › Safari › ขั้นสูง › ข้อมูลเว็บไซต์ · Chrome: แตะรูปแม่กุญแจข้างที่อยู่เว็บ › การตั้งค่าเว็บไซต์ › ล้างข้อมูล)</li>
         </ul>
@@ -199,13 +204,24 @@
       </section>
     </article>
   </main>
+  <section class="brand-foot" aria-labelledby="contactTitle">
+    <a class="brand-big" href="./"><img src="img/logo.png?v=3.36.0" alt="" width="56" height="56"><span>HR Paper Mill</span></a>
+    <p class="brand-tag">ระบบรายงานการขายประจำวัน สำหรับผู้ใช้สิทธิ์สัมปทานผู้พิการตามมาตรา 35<br>ส่งรายงานได้ในไม่กี่ขั้นตอน ทั้งมือถือ แท็บเล็ต และคอมพิวเตอร์</p>
+    <h2 id="contactTitle">ติดต่อเรา</h2>
+    <div class="contact-cards">
+      <a class="contact-card" href="tel:0858354911"><span class="cc-ic"><svg class="ic" aria-hidden="true"><use href="#i-phone"/></svg></span><span><small>คุณศิวดลย์ (เต้)</small><b>085-835-4911</b></span></a>
+      <a class="contact-card" href="tel:0858353663"><span class="cc-ic"><svg class="ic" aria-hidden="true"><use href="#i-phone"/></svg></span><span><small>คุณศักดิพัฒน์ (อู๋)</small><b>085-835-3663</b></span></a>
+    </div>
+    <p class="brand-note">หรือแจ้งในแอปที่ <a href="./#problem">แจ้งปัญหาการใช้งาน</a> — ส่งถึงผู้ดูแลระบบทันที</p>
+    <a class="home-pill" href="./">bysoftlight.github.io/hr-paper-mill</a>
+  </section>
   <footer class="doc-foot">
     <nav aria-label="ลิงก์">
       <a href="./">หน้าผู้ใช้สิทธิ์</a><a href="staff.html">สำหรับเจ้าหน้าที่</a><a href="faq.html">คำถามที่พบบ่อย</a><a href="terms.html">ข้อกำหนดการใช้งาน</a><a href="privacy.html">นโยบายความเป็นส่วนตัว</a><a href="privacy.html#cookies">คุกกี้</a>
     </nav>
     <p>Copyright © 2026 <a class="credit" href="https://www.instagram.com/softlight.works/" target="_blank" rel="noopener">softlight</a>. All rights reserved.</p>
   </footer>
-  <script src="js/consent.js?v=3.35.0"></script>
-  <script src="js/legal.js?v=3.35.0"></script>
+  <script src="js/consent.js?v=3.36.0"></script>
+  <script src="js/legal.js?v=3.36.0"></script>
 </body>
 </html>

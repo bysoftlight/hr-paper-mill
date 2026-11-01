@@ -1432,34 +1432,51 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
 .bottomnav .nav-item .ic, .bottomnav .nav-item[aria-current="page"] .ic { border-radius: 0; background: none; clip-path: none; }
 
 /* =====================================================
-   แถบแจ้งการใช้คุกกี้ (js/consent.js) — แบบ Google Trends: แถบเข้มล่างสุดของจอ ปุ่มข้อความสีฟ้า
-   เมนูล่าง / toast / ปุ่มลอย เลื่อนขึ้นพ้นแถบด้วย --consent-h
+   การ์ดขอความยินยอมคุกกี้ (js/consent.js) — แบบ Paypers: การ์ดขาวมุมโค้ง หัวข้อ ข้อความ ลิงก์นโยบาย ปุ่ม "ปฏิเสธ" / "ยอมรับทั้งหมด"
+   มือถือ: การ์ดลอยล่างจอ ปุ่มเต็มความกว้างซ้อนกัน · จอใหญ่: การ์ดมุมซ้ายล่าง ปุ่มเรียงแถว
+   เนื้อหาเลื่อนพ้นการ์ดได้ (padding-bottom = --consent-h) · การ์ดอยู่เหนือเมนูล่างจนกว่าจะเลือก
    ===================================================== */
 .consent {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
-    display: flex; flex-direction: column; gap: 4px;
-    padding: 12px max(16px, env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
-    background: #303134; color: #E8EAED; font-size: 13px; line-height: 1.5;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, .18);
-    animation: consent-in .3s ease-out;
+    position: fixed; z-index: 95;
+    left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); bottom: calc(12px + env(safe-area-inset-bottom));
+    display: flex; flex-direction: column; gap: 10px;
+    max-height: calc(100dvh - 24px); overflow-y: auto; overscroll-behavior: contain;
+    padding: 22px 22px 20px; border-radius: 24px;
+    background: var(--surface); color: var(--ink);
+    border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--line));
+    box-shadow: 0 12px 40px rgba(16, 24, 40, .16), 0 2px 8px rgba(16, 24, 40, .06);
+    animation: consent-in .35s cubic-bezier(.2, .9, .3, 1.1);
 }
-.consent p { margin: 0; max-width: 88ch; }
-.consent-actions { display: flex; justify-content: flex-end; gap: 4px; flex-wrap: wrap; }
+.consent h2 { margin: 0; font-size: 19px; font-weight: 700; line-height: 1.4; color: var(--ink); }
+.consent p { margin: 0; font-size: 15px; line-height: 1.65; color: var(--ink-2); }
+.consent p a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.consent p a:hover { text-decoration: underline; }
+.consent-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
 .consent-btn {
-    display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; border: 0; border-radius: 999px;
-    background: none; color: #A8C7FA; font: inherit; font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; min-height: 50px; padding: 0 22px;
+    border-radius: 14px; font: inherit; font-size: 16px; font-weight: 600; cursor: pointer;
+    transition: background-color .15s, transform .1s;
 }
-.consent-btn:hover { background: rgba(168, 199, 250, .12); }
-.consent-btn:focus-visible { outline: 2px solid #A8C7FA; outline-offset: 1px; }
-.consent.is-leaving { transform: translateY(100%); opacity: 0; transition: transform .2s ease-in, opacity .2s; }
-@keyframes consent-in { from { transform: translateY(100%); } }
+.consent-btn:active { transform: scale(.98); }
+.consent-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.consent-no { background: var(--surface); color: var(--ink); border: 1.5px solid var(--line); }
+@media (hover: hover) { .consent-no:hover { background: var(--field); } .consent-yes:hover { background: color-mix(in srgb, var(--ink) 86%, var(--surface)); } }
+.consent-yes { background: var(--ink); color: var(--ground); border: 1.5px solid var(--ink); }
+.consent.is-leaving { transform: translateY(calc(100% + 24px)); opacity: 0; transition: transform .22s ease-in, opacity .22s; }
+@keyframes consent-in { from { transform: translateY(calc(100% + 24px)); opacity: 0; } }
 [data-motion="reduce"] .consent { animation: none; }
-@media (min-width: 768px) {
-    .consent { flex-direction: row; align-items: center; justify-content: space-between; gap: 16px; padding-top: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
-    .consent-actions { flex: none; }
+@media (min-width: 600px) {
+    .consent { right: auto; width: 440px; left: max(24px, env(safe-area-inset-left)); bottom: calc(24px + env(safe-area-inset-bottom)); }
+    .consent-actions { flex-direction: row; }
+    .consent-btn { flex: 1 1 0; }
 }
-.has-consent .bottomnav { margin-bottom: var(--consent-h, 0px); }
-.has-consent #userToast, .has-consent .toast { margin-bottom: var(--consent-h, 0px); }
+@media (max-height: 500px) {
+    .consent { padding: 14px 18px; gap: 6px; }
+    .consent h2 { font-size: 16px; }
+    .consent p { font-size: 13.5px; line-height: 1.5; }
+    .consent-actions { flex-direction: row; margin-top: 4px; }
+    .consent-btn { flex: 1 1 0; min-height: 42px; }
+}
 .has-consent body { padding-bottom: var(--consent-h, 0px); }
 
 /* =====================================================
@@ -1553,7 +1570,93 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
     .fb-rate-opt i { font-size: 22px; }
     #problemModal .sheet-foot .btn { min-height: 44px; }
 }
-/* แนวนอน + แถบคุกกี้ยังแสดง: ซ่อนเมนูลงไปพ้นจอทั้งหมด (รวมระยะที่ยกขึ้นพ้นแถบคุกกี้) */
-@media (max-width: 767px) and (orientation: landscape) and (max-height: 500px) {
-    .has-consent.nav-min .bottomnav { transform: translateY(calc(100% + 32px + var(--consent-h, 0px))); }
+
+/* =====================================================
+   กระดิ่งการแจ้งเตือน (js/inbox.js) — แถบบน (มือถือ) และเมนูด้านข้าง (แท็บเล็ต/คอม)
+   ===================================================== */
+.topbar-actions { display: flex; align-items: center; gap: 6px; min-width: 0; flex: none; }
+.bell-btn { position: relative; flex: none; color: var(--ink); }
+.bell-btn .ic { width: 24px; height: 24px; }
+.bell-badge {
+    position: absolute; top: 2px; right: 0; z-index: 1;
+    min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; box-sizing: border-box;
+    display: inline-grid; place-items: center;
+    background: #D93025; color: #fff; border: 2px solid var(--ground);
+    font: 700 11px/1 var(--font); font-variant-numeric: tabular-nums; letter-spacing: -.02em;
+    animation: bell-pop .3s cubic-bezier(.2, 1.4, .4, 1);
+}
+.bell-badge[hidden] { display: none; }
+@keyframes bell-pop { from { transform: scale(.4); } }
+[data-motion="reduce"] .bell-badge { animation: none; }
+.nav-bell-ic { position: relative; display: inline-flex; }
+.nav-bell .bell-badge { top: -6px; right: -10px; border-color: var(--rail, var(--ground)); }
+.sidenav .nav-bell .bell-badge { border-color: var(--surface); }
+[data-header="glass"] .topbar-title { left: 116px; right: 116px; }
+@media (max-width: 767px) { [data-header="glass"] .topbar .bell-btn { background: color-mix(in srgb, var(--surface) 70%, transparent); border-radius: 999px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); } }
+@media (max-width: 359px) { .topbar .chip[data-today] { padding: 4px 8px; font-size: 11px; } }
+
+.inbox-sheet { --pad: 20px; }
+@media (min-width: 768px) { .inbox-sheet { width: min(560px, calc(100% - 48px)); } }
+.inbox-head { align-items: center; }
+.inbox-head h2 { font-size: 20px; }
+.inbox-head-actions { display: flex; align-items: center; gap: 4px; flex: none; }
+.inbox-head-actions .btn-text { display: inline-flex; align-items: center; gap: 4px; font-size: 13.5px; white-space: nowrap; padding: 8px; }
+.inbox-head-actions .btn-text:disabled { opacity: .45; cursor: default; }
+.inbox-tabs { display: flex; gap: 6px; padding: 10px 20px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--line-soft); flex: none; }
+.inbox-tabs::-webkit-scrollbar { display: none; }
+.inbox-tabs button {
+    flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border-radius: 999px;
+    border: 1px solid var(--outline); background: var(--surface); color: var(--ink-2); font: inherit; font-size: 14px; cursor: pointer;
+}
+.inbox-tabs button[aria-selected="true"] { background: var(--ink); border-color: var(--ink); color: var(--ground); font-weight: 600; }
+.inbox-count { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: #D93025; color: #fff; font-size: 11px; font-weight: 700; display: inline-grid; place-items: center; }
+.inbox-body { padding: 4px 12px 16px; display: flex; flex-direction: column; gap: 2px; }
+.inbox-group { font-size: 13px; font-weight: 600; color: var(--muted); padding: 14px 8px 6px; }
+.inbox-item { position: relative; display: flex; gap: 12px; padding: 12px 34px 12px 10px; border-radius: var(--r-md); cursor: pointer; outline: none; transition: background-color .15s; }
+.inbox-item:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+@media (hover: hover) { .inbox-item:hover { background: var(--field); } }
+.inbox-item.is-unread { background: color-mix(in srgb, var(--accent-soft) 45%, transparent); }
+.inbox-ic { flex: none; width: 40px; height: 40px; border-radius: 999px; display: grid; place-items: center; background: var(--container); color: var(--ink-2); }
+.inbox-ic .ic { width: 20px; height: 20px; }
+.inbox-ic.tone-news { background: #FCE8E6; color: #C5221F; }
+.inbox-ic.tone-accent, .inbox-ic.tone-update { background: var(--accent-soft); color: var(--accent); }
+.inbox-ic.tone-warn { background: var(--warn-soft); color: var(--warn); }
+.inbox-ic.tone-bad { background: var(--bad-soft); color: var(--bad); }
+.inbox-ic.tone-ok { background: var(--ok-soft); color: var(--ok); }
+:root[data-theme="dark"] .inbox-ic.tone-news { background: #5C1B17; color: #F2B8B5; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .inbox-ic.tone-news { background: #5C1B17; color: #F2B8B5; } }
+.inbox-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.inbox-top { display: flex; align-items: baseline; gap: 8px; }
+.inbox-top b { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; line-height: 1.4; color: var(--ink); overflow-wrap: anywhere; }
+.inbox-item:not(.is-unread) .inbox-top b { font-weight: 500; }
+.inbox-top time { flex: none; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.inbox-main p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--ink-2); white-space: pre-line; overflow-wrap: anywhere; }
+.inbox-main p.is-clamped { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.inbox-more { align-self: flex-start; padding: 2px 0; font-size: 13px; }
+.inbox-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
+.inbox-actions .btn-chip { min-height: 34px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+.inbox-ver { font-size: 12px; color: var(--muted); }
+.inbox-dot { position: absolute; top: 50%; right: 12px; width: 10px; height: 10px; margin-top: -5px; border-radius: 999px; background: var(--accent); }
+.inbox-item.is-pin .inbox-dot { background: #D93025; }
+.inbox-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 48px 20px; text-align: center; color: var(--muted); }
+.inbox-empty .ic { width: 40px; height: 40px; color: var(--outline); margin-bottom: 6px; }
+.inbox-empty b { color: var(--ink); font-size: 16px; font-weight: 500; }
+.inbox-empty span { font-size: 14px; max-width: 32ch; }
+.inbox-foot { flex-direction: row; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding-top: 10px; }
+.inbox-foot .btn-text { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
+.inbox-foot .btn-chip { display: inline-flex; align-items: center; gap: 4px; }
+@media (max-height: 500px) { .inbox-head p { display: none; } .inbox-tabs { padding-top: 6px; padding-bottom: 6px; } }
+/* จอแคบมาก: ชื่อแอปไม่ตัดสองบรรทัดเมื่อมีกระดิ่ง · หัวกล่องแจ้งเตือนกระชับ */
+.topbar .brand > span { white-space: nowrap; }
+@media (max-width: 359px) { .topbar .brand > span { display: none; } }
+@media (max-width: 479px) { .inbox-head p { display: none; } }
+/* จอเตี้ย (มือถือแนวนอน): กล่องแจ้งเตือนสูงเกือบเต็มจอ หัว/ท้ายบาง ให้เห็นรายการมากขึ้น */
+@media (max-height: 500px) {
+    .inbox-sheet { max-height: 96dvh; }
+    .inbox-head { padding-top: 8px; padding-bottom: 6px; }
+    .inbox-head h2 { font-size: 17px; }
+    .inbox-foot { padding-top: 4px; padding-bottom: calc(4px + env(safe-area-inset-bottom)); }
+    .inbox-foot .btn-text, .inbox-foot .btn-chip { min-height: 36px; }
+    .inbox-item { padding-top: 8px; padding-bottom: 8px; }
+    .inbox-group { padding-top: 8px; padding-bottom: 4px; }
 }
