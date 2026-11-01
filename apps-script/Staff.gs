@@ -123,6 +123,11 @@ function handleStaffRequest_(req) {
       return adminLogsList_(req);
     default:
       // แจ้งปัญหา / แบบสอบถาม (Feedback.gs)
+      // กล่องการแจ้งเตือน / ประกาศ (Inbox.gs)
+      if (/^(staff\.inbox|admin\.news)\./.test(req.action)) {
+        if (typeof handleInboxStaff_ !== 'function') return req.action === 'staff.inbox.list' ? { success: true, items: [] } : { success: false, message: 'ต้องเพิ่มไฟล์ Inbox.gs ใน Apps Script ก่อน' };
+        return handleInboxStaff_(req, staff, ua);
+      }
       if (/^(staff\.problem|admin\.problems|admin\.surveys)\./.test(req.action)) {
         if (typeof handleFeedbackStaff_ !== 'function') return { success: false, message: 'ต้องเพิ่มไฟล์ Feedback.gs ใน Apps Script ก่อน' };
         return handleFeedbackStaff_(req, staff, ua);

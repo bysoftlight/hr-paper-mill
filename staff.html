@@ -24,9 +24,9 @@
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <!-- เปลี่ยนเลข ?v= ทุกครั้งที่แก้ CSS/JS -->
-  <script src="js/settings.js?v=3.35.0"></script>
-  <link rel="stylesheet" href="css/style.css?v=3.35.0">
-  <link rel="stylesheet" href="css/staff.css?v=3.35.0">
+  <script src="js/settings.js?v=3.36.0"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.36.0">
+  <link rel="stylesheet" href="css/staff.css?v=3.36.0">
 </head>
 <body class="staff">
 
@@ -426,6 +426,35 @@
     </form>
   </dialog>
 
+  <dialog id="newsModal" class="sheet sv-sheet" aria-labelledby="newsTitleH">
+    <form id="newsForm" class="sheet-form" novalidate>
+      <div class="sheet-head">
+        <div><h2 id="newsTitleH">เขียนประกาศ</h2><p>แสดงในกล่องการแจ้งเตือนของผู้รับ</p></div>
+        <button type="button" class="icon-btn" data-close aria-label="ปิด"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+      </div>
+      <div class="sheet-body stack">
+        <label class="field"><span class="label">หัวข้อ</span><input class="input" id="newsTitle" maxlength="120" required placeholder="เช่น ปิดปรับปรุงระบบคืนวันศุกร์ 22:00–23:00 น."></label>
+        <label class="field"><span class="label">ข้อความ</span><textarea class="input textarea" id="newsBody" rows="5" maxlength="1500" required placeholder="รายละเอียดที่ต้องการแจ้ง"></textarea><small class="hint" id="newsCount">0/1500</small></label>
+        <fieldset class="fgroup">
+          <legend>ส่งถึง</legend>
+          <div class="set-seg" id="newsAudience" role="radiogroup" aria-label="ส่งถึง">
+            <button type="button" role="radio" data-v="all" aria-checked="true">ทุกคน</button>
+            <button type="button" role="radio" data-v="participants" aria-checked="false">ผู้ใช้สิทธิ์</button>
+            <button type="button" role="radio" data-v="staff" aria-checked="false">เจ้าหน้าที่</button>
+          </div>
+        </fieldset>
+        <div class="form-grid-2">
+          <label class="field"><span class="label">ลิงก์ (ไม่บังคับ)</span><input class="input" id="newsLink" type="url" inputmode="url" maxlength="300" placeholder="https://"></label>
+          <label class="field"><span class="label">แสดงถึง (ไม่บังคับ)</span><input class="input" id="newsExpires" type="datetime-local"></label>
+        </div>
+        <label class="check"><input type="checkbox" id="newsPush"><span>ส่งแจ้งเตือนบนมือถือด้วย (เฉพาะเครื่องที่เปิดการแจ้งเตือนไว้)</span></label>
+      </div>
+      <div class="sheet-foot sv-foot">
+        <button type="submit" class="btn btn-primary" id="newsSave">ประกาศ</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="svResultModal" class="sheet sv-sheet" aria-labelledby="svResTitle">
     <div class="sheet-head">
       <div><h2 id="svResTitle">ผลแบบสอบถาม</h2><p id="svResSub"></p></div>
@@ -485,7 +514,7 @@
   <!-- ===== Sign in ===== -->
   <div id="authView" class="login" hidden>
     <section class="login-intro" aria-labelledby="authTitle">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.35.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.36.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <p class="eyebrow">สำหรับเจ้าหน้าที่ HR และผู้ดูแลระบบ</p>
       <h1 id="authTitle">ติดตามรายงานการขาย<br>ของผู้ใช้สิทธิ์ทุกคนในที่เดียว</h1>
       <ol class="intro-steps">
@@ -536,18 +565,19 @@
   <!-- ===== App ===== -->
   <div id="appContainer" class="app" hidden>
     <header class="topbar">
-      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.35.0" alt="" width="36" height="36"><span>HR Staff</span></a>
-      <span class="live" data-live><span class="live-dot"></span><span data-live-text>อัปเดตสด</span></span>
+      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.36.0" alt="" width="36" height="36"><span>HR Staff</span></a>
+      <div class="topbar-actions"><span class="live" data-live><span class="live-dot"></span><span data-live-text>อัปเดตสด</span></span><button type="button" class="icon-btn bell-btn" data-inbox aria-label="การแจ้งเตือน"><svg class="ic" aria-hidden="true"><use href="#i-bell"/></svg><span class="bell-badge" data-inbox-badge hidden></span></button></div>
     </header>
 
     <nav class="sidenav" aria-label="เมนูหลัก">
-      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.35.0" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></a>
+      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.36.0" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></a>
       <div class="nav-items">
         <button type="button" class="nav-item" data-tab="overview" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-grid"/></svg><span>ภาพรวม</span></button>
         <button type="button" class="nav-item" data-tab="records" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-list"/></svg><span>รายงาน</span></button>
         <button type="button" class="nav-item" data-tab="participants" data-perm="participants.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-users"/></svg><span>ผู้ใช้สิทธิ์</span></button>
         <button type="button" class="nav-item" data-tab="admin" data-perm="admin"><svg class="ic ic-22" aria-hidden="true"><use href="#i-shield"/></svg><span>ผู้ดูแลระบบ</span><span class="nav-badge" data-pending-badge hidden></span></button>
         <button type="button" class="nav-item" data-tab="account"><svg class="ic ic-22" aria-hidden="true"><use href="#i-user"/></svg><span>บัญชี</span></button>
+        <button type="button" class="nav-item nav-bell" data-inbox aria-label="การแจ้งเตือน"><span class="nav-bell-ic"><svg class="ic ic-22" aria-hidden="true"><use href="#i-bell"/></svg><span class="bell-badge" data-inbox-badge hidden></span></span><span>แจ้งเตือน</span></button>
       </div>
       <div class="nav-user">
         <span class="live" data-live><span class="live-dot"></span><span data-live-text>อัปเดตสด</span></span>
@@ -725,6 +755,7 @@
         <button type="button" role="tab" data-t="security" aria-selected="false">ความปลอดภัย</button>
         <button type="button" role="tab" data-t="problems" aria-selected="false">แจ้งปัญหา <span class="count-pill is-bad" data-problem-badge hidden></span></button>
         <button type="button" role="tab" data-t="surveys" aria-selected="false">แบบสอบถาม</button>
+        <button type="button" role="tab" data-t="news" aria-selected="false">ประกาศ</button>
         <button type="button" role="tab" data-t="analytics" aria-selected="true">สถิติ</button>
       </div>
       <section class="toolbar an-toolbar" aria-label="ตัวกรองสถิติ">
@@ -799,6 +830,7 @@
         <button type="button" role="tab" data-t="security" aria-selected="false">ความปลอดภัย <span class="count-pill is-bad" id="secBadge" hidden>!</span></button>
         <button type="button" role="tab" data-t="problems" aria-selected="false">แจ้งปัญหา <span class="count-pill is-bad" data-problem-badge hidden></span></button>
         <button type="button" role="tab" data-t="surveys" aria-selected="false">แบบสอบถาม</button>
+        <button type="button" role="tab" data-t="news" aria-selected="false">ประกาศ</button>
         <button type="button" role="tab" data-t="analytics" aria-selected="false">สถิติ</button>
       </div>
 
@@ -875,6 +907,14 @@
         <div class="sv-list" id="svList"></div>
       </div>
 
+      <div id="admNews" class="stack" hidden>
+        <div class="card-head sv-head">
+          <p class="muted-text">ประกาศข่าวสารถึงผู้ใช้สิทธิ์หรือเจ้าหน้าที่ แสดงในกล่องการแจ้งเตือน (กระดิ่ง) และเลือกส่งแจ้งเตือนบนมือถือได้</p>
+          <button type="button" class="btn btn-primary btn-sm" id="newsNew"><svg class="ic ic-16" aria-hidden="true"><use href="#i-plus"/></svg> เขียนประกาศ</button>
+        </div>
+        <div class="news-list" id="newsList"></div>
+      </div>
+
       <div id="admLogs" class="stack" hidden>
         <section class="toolbar">
           <div class="toolbar-row">
@@ -945,24 +985,26 @@
 
   <div id="pdfStage" class="pdf-stage" aria-hidden="true"></div>
 
-  <script src="js/consent.js?v=3.35.0"></script>
-  <script src="js/config.js?v=3.35.0"></script>
-  <script src="js/utils.js?v=3.35.0"></script>
-  <script src="js/glass.js?v=3.35.0"></script>
-  <script src="js/analytics.js?v=3.35.0"></script>
-  <script src="js/api.js?v=3.35.0"></script>
-  <script src="js/charts.js?v=3.35.0"></script>
-  <script src="js/notify.js?v=3.35.0"></script>
-  <script src="js/staff/core.js?v=3.35.0"></script>
-  <script src="js/staff/mapkit.js?v=3.35.0"></script>
-  <script src="js/staff/overview.js?v=3.35.0"></script>
-  <script src="js/staff/records.js?v=3.35.0"></script>
-  <script src="js/staff/participants.js?v=3.35.0"></script>
-  <script src="js/staff/admin.js?v=3.35.0"></script>
-  <script src="js/staff/export.js?v=3.35.0"></script>
-  <script src="js/staff/reports.js?v=3.35.0"></script>
-  <script src="js/staff/analytics.js?v=3.35.0"></script>
-  <script src="js/feedback.js?v=3.35.0"></script>
-  <script src="js/staff/feedback.js?v=3.35.0"></script>
+  <script src="js/consent.js?v=3.36.0"></script>
+  <script src="js/config.js?v=3.36.0"></script>
+  <script src="js/utils.js?v=3.36.0"></script>
+  <script src="js/glass.js?v=3.36.0"></script>
+  <script src="js/analytics.js?v=3.36.0"></script>
+  <script src="js/api.js?v=3.36.0"></script>
+  <script src="js/charts.js?v=3.36.0"></script>
+  <script src="js/notify.js?v=3.36.0"></script>
+  <script src="js/staff/core.js?v=3.36.0"></script>
+  <script src="js/staff/mapkit.js?v=3.36.0"></script>
+  <script src="js/staff/overview.js?v=3.36.0"></script>
+  <script src="js/staff/records.js?v=3.36.0"></script>
+  <script src="js/staff/participants.js?v=3.36.0"></script>
+  <script src="js/staff/admin.js?v=3.36.0"></script>
+  <script src="js/staff/export.js?v=3.36.0"></script>
+  <script src="js/staff/reports.js?v=3.36.0"></script>
+  <script src="js/staff/analytics.js?v=3.36.0"></script>
+  <script src="js/feedback.js?v=3.36.0"></script>
+  <script src="js/staff/feedback.js?v=3.36.0"></script>
+  <script src="js/inbox.js?v=3.36.0"></script>
+  <script src="js/staff/inbox.js?v=3.36.0"></script>
 </body>
 </html>

@@ -12,7 +12,7 @@ const ACTION_LABELS = {
     'system.health': 'ตรวจสุขภาพระบบ', 'client.error': 'ข้อผิดพลาดบนเครื่องผู้ใช้', 'participants.contact': 'บันทึกการติดต่อ',
     'feedback.problem': 'แจ้งปัญหาการใช้งาน', 'admin.problem_status': 'เปลี่ยนสถานะเรื่องที่แจ้ง', 'survey.answer': 'ตอบแบบสอบถาม',
     'admin.survey_create': 'สร้างแบบสอบถาม', 'admin.survey_update': 'แก้ไขแบบสอบถาม', 'admin.survey_close': 'ปิดรับแบบสอบถาม', 'admin.survey_reopen': 'เปิดรับแบบสอบถามอีกครั้ง',
-    'admin.survey_delete': 'ลบแบบสอบถาม', 'system.survey_notify': 'แจ้งเตือนแบบสอบถามใหม่', 'system.survey_remind': 'เตือนทำแบบสอบถามซ้ำ'
+    'admin.survey_delete': 'ลบแบบสอบถาม', 'admin.news_create': 'ประกาศข่าวสาร', 'admin.news_update': 'แก้ไขประกาศ', 'admin.news_delete': 'ลบประกาศ', 'system.survey_notify': 'แจ้งเตือนแบบสอบถามใหม่', 'system.survey_remind': 'เตือนทำแบบสอบถามซ้ำ'
 };
 const ACTION_TONE = { delete: 'is-bad', reject: 'is-bad', suspend: 'is-bad', revoke: 'is-warn', rename: 'is-warn', login_failed: 'is-warn', approve: 'is-ok', create: 'is-ok', signup: 'is-accent', signup_admin: 'is-accent', restore: 'is-ok' };
 
@@ -49,8 +49,10 @@ VIEWS.admin = {
         $('admSecurity').hidden = t !== 'security';
         $('admProblems').hidden = t !== 'problems';
         $('admSurveys').hidden = t !== 'surveys';
+        $('admNews').hidden = t !== 'news';
         if (t === 'staff') this.loadStaff(); else if (t === 'security') this.loadSecurity();
         else if (t === 'problems') FeedbackAdmin.loadProblems(); else if (t === 'surveys') FeedbackAdmin.loadSurveys();
+        else if (t === 'news') NewsAdmin.load();
         else this.loadLogs();
     },
 

@@ -1,0 +1,188 @@
+// Inbox.gs — กล่องการแจ้งเตือนในแอป (ปุ่มกระดิ่ง) ของผู้ใช้สิทธิ์และเจ้าหน้าที่ + ประกาศ/ข่าวสารจากผู้ดูแลระบบ
+//
+// รายการที่ระบบสร้างให้ (ไม่ต้องตั้งค่า):
+//   ผู้ใช้สิทธิ์ — เจ้าหน้าที่แก้ไข/ลบ/กู้คืนรายงานของคุณ · ข้อมูลบัญชีถูกปรับปรุง · เรื่องที่แจ้งมีความคืบหน้า · ประกาศ
+//   เจ้าหน้าที่ — ประกาศ · เรื่องที่ตัวเองแจ้งมีความคืบหน้า · (ผู้ดูแลระบบ) แจ้งปัญหาใหม่ · บัญชีรออนุมัติ
+//   ส่วน "อัปเดตแอป", "ยังไม่ได้ส่งรายงานวันนี้", "แบบสอบถามรอทำ" หน้าเว็บสร้างเอง (js/inbox.js)
+// สถานะ "อ่านแล้ว" เก็บในเครื่องของผู้ใช้ (ไม่ต้องเขียนแผ่นงานทุกครั้งที่เปิดดู)
+//
+// ประกาศ: ผู้ดูแลระบบ › ประกาศ → แผ่นงาน "Announcements" (สร้างให้อัตโนมัติ) · เลือกส่งแจ้งเตือนบนมือถือได้
+
+const NEWS_SHEET = 'Announcements';
+const NWCOL = { ID: 0, TS: 1, TITLE: 2, BODY: 3, AUDIENCE: 4, LINK: 5, EXPIRES: 6, BY: 7, STATUS: 8, PUSHED: 9, UPDATED_AT: 10 };
+const NW_HEADERS = ['ID', 'เวลา', 'หัวข้อ', 'ข้อความ', 'ผู้รับ', 'ลิงก์', 'หมดอายุ', 'สร้างโดย', 'สถานะ', 'แจ้งเตือนมือถือ', 'แก้ไขล่าสุด'];
+const NEWS_AUDIENCES = { all: 'ทุกคน', participants: 'ผู้ใช้สิทธิ์', staff: 'เจ้าหน้าที่' };
+const INBOX_DAYS = 45; // แสดงย้อนหลังกี่วัน
+
+function inboxSheet_() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sh = ss.getSheetByName(NEWS_SHEET);
+  if (!sh) { sh = ss.insertSheet(NEWS_SHEET); sh.getRange(1, 1, 1, NW_HEADERS.length).setValues([NW_HEADERS]); sh.setFrozenRows(1); }
+  return sh;
+}
+const ibTime_ = v => { const d = toDate_(v); return d ? d.getTime() : null; };
+const ibThDate_ = ts => Utilities.formatDate(new Date(ts), TZ, 'd/M/') + (Number(Utilities.formatDate(new Date(ts), TZ, 'yyyy')) + 543);
+
+function readNews_() {
+  const sh = inboxSheet_(), last = sh.getLastRow();
+  if (last < 2) return [];
+  return sh.getRange(2, 1, last - 1, NW_HEADERS.length).getValues().map((r, i) => ({
+    row: i + 2, id: String(r[NWCOL.ID]), ts: ibTime_(r[NWCOL.TS]), title: String(r[NWCOL.TITLE]), body: String(r[NWCOL.BODY]),
+    audience: NEWS_AUDIENCES[r[NWCOL.AUDIENCE]] ? String(r[NWCOL.AUDIENCE]) : 'all', link: String(r[NWCOL.LINK] || ''), expiresAt: ibTime_(r[NWCOL.EXPIRES]),
+    by: String(r[NWCOL.BY] || ''), status: String(r[NWCOL.STATUS] || 'active'), pushed: Number(r[NWCOL.PUSHED]) || 0, updatedAt: ibTime_(r[NWCOL.UPDATED_AT])
+  })).filter(n => n.id);
+}
+function newsFor_(audience) {
+  const now = Date.now(), since = now - INBOX_DAYS * 86400000;
+  return readNews_().filter(n => n.status === 'active' && (n.audience === 'all' || n.audience === audience) && n.ts && n.ts >= since && (!n.expiresAt || n.expiresAt > now))
+    .map(n => ({ id: 'news-' + n.id, ts: n.ts, cat: 'news', icon: 'megaphone', title: n.title, body: n.body, link: n.link }));
+}
+
+// ---------- ผู้ใช้สิทธิ์ ----------
+function inboxForUser_(user) {
+  const out = [], since = Date.now() - INBOX_DAYS * 86400000, uid = String(user.id).toUpperCase();
+  try { out.push.apply(out, newsFor_('participants')); } catch (e) { console.warn('อ่านประกาศไม่สำเร็จ', e); }
+  // รายงานที่เจ้าหน้าที่แก้ไข/ลบ/กู้คืน (คอลัมน์ แก้ไขโดย/แก้ไขล่าสุด)
+  try {
+    readRows_(SHEET.RECORDS, R_HEADERS.length).forEach((r, i) => {
+      if (String(r[RCOL.USER_ID]).trim().toUpperCase() !== uid || !r[RCOL.UPDATED_BY]) return;
+      const at = ibTime_(r[RCOL.UPDATED_AT]), ts = toDate_(r[RCOL.TS]);
+      if (!at || at < since || !ts) return;
+      const day = ibThDate_(ts.getTime()), deleted = r[RCOL.STATUS] === 'deleted';
+      out.push({ id: 'rec-' + (i + 2) + '-' + at, ts: at, cat: 'usage', icon: deleted ? 'trash' : 'edit', tone: deleted ? 'bad' : '',
+        title: deleted ? 'เจ้าหน้าที่ลบรายงานวันที่ ' + day : 'เจ้าหน้าที่แก้ไขรายงานวันที่ ' + day,
+        body: deleted ? 'รายงานนี้ไม่นับเป็นการส่งแล้ว หากมีข้อสงสัยกรุณาติดต่อเจ้าหน้าที่' : 'ข้อมูลรายงาน (เช่น ประเภทการขายหรือหมายเหตุ) ถูกปรับให้ถูกต้อง ดูได้ในประวัติ',
+        action: { kind: 'tab', value: 'history', label: 'ดูประวัติ' } });
+    });
+  } catch (e) { console.warn('อ่านรายงานไม่สำเร็จ', e); }
+  // ข้อมูลบัญชีที่เจ้าหน้าที่ปรับปรุง
+  try {
+    const p = readParticipants_().filter(x => x.id === uid)[0];
+    if (p && p.updatedBy && p.updatedAt && p.updatedAt.getTime() >= since)
+      out.push({ id: 'acct-' + p.updatedAt.getTime(), ts: p.updatedAt.getTime(), cat: 'usage', icon: 'user', title: 'ข้อมูลบัญชีของคุณถูกปรับปรุง',
+        body: 'เจ้าหน้าที่อัปเดตข้อมูล เช่น ชื่อ จุดขาย หรือรูปโปรไฟล์ ตรวจดูได้ที่หน้าบัญชี', action: { kind: 'tab', value: 'account', label: 'ดูบัญชี' } });
+  } catch (e) { console.warn('อ่านบัญชีไม่สำเร็จ', e); }
+  out.push.apply(out, problemUpdatesFor_(uid, since));
+  return out.sort((a, b) => b.ts - a.ts).slice(0, 60);
+}
+
+// เรื่องที่แจ้ง (Feedback.gs) ที่ผู้ดูแลเปลี่ยนสถานะแล้ว
+function problemUpdatesFor_(reporterId, since) {
+  if (typeof feedbackRows_ !== 'function') return [];
+  try {
+    const key = String(reporterId).toLowerCase(), out = [];
+    feedbackRows_(PROBLEM_SHEET, P_HEADERS).forEach(r => {
+      if (String(r[PCOL.REPORTER_ID]).toLowerCase() !== key) return;
+      const at = ibTime_(r[PCOL.HANDLED_AT]);
+      if (!at || at < since) return;
+      const st = String(r[PCOL.STATUS]), note = String(r[PCOL.ADMIN_NOTE] || '');
+      out.push({ id: 'prob-' + r[PCOL.ID] + '-' + at, ts: at, cat: 'usage', icon: st === PROBLEM_STATUS.done ? 'check-circle' : 'alert', tone: st === PROBLEM_STATUS.done ? 'ok' : '',
+        title: 'เรื่องที่แจ้ง: ' + st, body: (String(r[PCOL.TITLE] || r[PCOL.CATEGORY]) + (note ? ' · ' + note : '')).slice(0, 220) });
+    });
+    return out;
+  } catch (e) { console.warn('อ่านเรื่องที่แจ้งไม่สำเร็จ', e); return []; }
+}
+
+// ---------- เจ้าหน้าที่ ----------
+function inboxForStaff_(staff) {
+  const out = [], since = Date.now() - INBOX_DAYS * 86400000, admin = can_(staff, 'admin');
+  if (staff.status === 'active') { try { out.push.apply(out, newsFor_('staff')); } catch (e) { console.warn(e); } }
+  out.push.apply(out, problemUpdatesFor_(staff.email || staff.id, since));
+  if (admin) {
+    // แจ้งปัญหาใหม่ (ยังไม่จัดการ) 14 วันล่าสุด
+    if (typeof feedbackRows_ === 'function') {
+      try {
+        feedbackRows_(PROBLEM_SHEET, P_HEADERS).forEach(r => {
+          const ts = ibTime_(r[PCOL.TS]);
+          if (!ts || ts < Date.now() - 14 * 86400000 || String(r[PCOL.STATUS] || PROBLEM_STATUS.new) !== PROBLEM_STATUS.new) return;
+          out.push({ id: 'newprob-' + r[PCOL.ID], ts: ts, cat: 'usage', icon: 'alert', tone: 'bad', title: 'แจ้งปัญหาใหม่: ' + String(r[PCOL.TITLE] || r[PCOL.CATEGORY]),
+            body: (String(r[PCOL.REPORTER_NAME] || r[PCOL.REPORTER_ID] || 'ไม่ระบุ') + ' · ' + String(r[PCOL.DETAIL])).slice(0, 200), action: { kind: 'admin', value: 'problems', label: 'เปิดดู' } });
+        });
+      } catch (e) { console.warn(e); }
+    }
+    // บัญชีเจ้าหน้าที่รออนุมัติ
+    try {
+      const pend = readStaff_().filter(s => s.status === 'pending');
+      if (pend.length) {
+        const newest = Math.max.apply(null, pend.map(s => (s.createdAt ? s.createdAt.getTime() : 0)));
+        out.push({ id: 'pend-' + pend.map(s => s.id).sort().join(','), ts: newest || Date.now(), cat: 'usage', icon: 'users', tone: 'warn',
+          title: 'บัญชีรออนุมัติ ' + pend.length + ' บัญชี', body: pend.slice(0, 3).map(s => s.name || s.email).join(', ') + (pend.length > 3 ? ' และอื่นๆ' : ''),
+          action: { kind: 'admin', value: 'staff', label: 'อนุมัติ' } });
+      }
+    } catch (e) { console.warn(e); }
+  }
+  return out.sort((a, b) => b.ts - a.ts).slice(0, 60);
+}
+
+// ---------- ผู้ดูแลระบบ: ประกาศ ----------
+function adminNewsList_() {
+  return { success: true, news: readNews_().filter(n => n.status !== 'deleted').reverse(), audiences: NEWS_AUDIENCES };
+}
+function adminNewsSave_(req, staff, ua) {
+  const title = clean_(req.title, 120), body = clean_(req.body, 1500);
+  if (!title) fail_('INVALID', 'กรุณาใส่หัวข้อประกาศ');
+  if (!body) fail_('INVALID', 'กรุณาใส่ข้อความประกาศ');
+  const audience = NEWS_AUDIENCES[req.audience] ? req.audience : 'all';
+  let link = String(req.link || '').trim();
+  if (link && !/^https:\/\/[^\s"'<>]+$/i.test(link)) fail_('INVALID', 'ลิงก์ต้องขึ้นต้นด้วย https://');
+  link = link.slice(0, 300);
+  const expires = req.expiresAt ? new Date(Number(req.expiresAt)) : '';
+  if (expires && (isNaN(expires) || expires.getTime() < Date.now())) fail_('INVALID', 'วันหมดอายุต้องเป็นอนาคต');
+  const sh = inboxSheet_(), now = new Date();
+  let item;
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    if (req.id) {
+      item = readNews_().filter(n => n.id === String(req.id) && n.status !== 'deleted')[0];
+      if (!item) fail_('NOT_FOUND', 'ไม่พบประกาศนี้ (อาจถูกลบ)');
+      sh.getRange(item.row, NWCOL.TITLE + 1, 1, 5).setValues([[title, body, audience, link, expires]]);
+      sh.getRange(item.row, NWCOL.UPDATED_AT + 1).setValue(now);
+    } else {
+      item = { id: 'N' + Utilities.formatDate(now, TZ, 'yyMMdd') + '-' + Utilities.getUuid().slice(0, 4).toUpperCase(), row: sh.getLastRow() + 1, pushed: 0 };
+      sh.getRange(item.row, 1, 1, NW_HEADERS.length).setValues([[item.id, now, title, body, audience, link, expires, staff.name || staff.email, 'active', 0, now]]);
+    }
+  } finally { lock.releaseLock(); }
+  let pushed = null;
+  if (req.push && typeof readNotify_ === 'function' && typeof sendPush_ === 'function') {
+    try {
+      const staffIds = typeof activeStaffIds_ === 'function' ? activeStaffIds_() : {};
+      const subs = readNotify_().filter(n => n.channel === 'push' && ((audience !== 'staff' && n.ownerType === 'user') || (audience !== 'participants' && n.ownerType === 'staff' && staffIds[n.ownerId])));
+      pushed = subs.length ? sendPush_(subs, { title: title, body: body.slice(0, 140), url: './#inbox', tag: 'news' }) : { sent: 0 };
+      sh.getRange(item.row, NWCOL.PUSHED + 1).setValue((item.pushed || 0) + (pushed.sent || 0));
+    } catch (e) { console.warn('ส่งแจ้งเตือนประกาศไม่สำเร็จ', e); }
+  }
+  log_(staff, req.id ? 'admin.news_update' : 'admin.news_create', item.id, { title: title, audience: audience, push: pushed ? pushed.sent : 0 }, ua);
+  return { success: true, id: item.id, pushed: pushed };
+}
+function adminNewsDelete_(req, staff, ua) {
+  const item = readNews_().filter(n => n.id === String(req.id) && n.status !== 'deleted')[0];
+  if (!item) fail_('NOT_FOUND', 'ไม่พบประกาศนี้');
+  inboxSheet_().getRange(item.row, NWCOL.STATUS + 1).setValue('deleted');
+  log_(staff, 'admin.news_delete', item.id, { title: item.title }, ua);
+  return { success: true };
+}
+
+// ---------- จุดเข้าใช้งานจาก Code.gs / Staff.gs ----------
+function handleInboxPublic_(req) {
+  const user = findUser_(req.userId);
+  if (!user) return { success: false, code: 'NOT_FOUND', message: 'ไม่พบรหัสผู้ใช้สิทธิ์ กรุณาเข้าสู่ระบบใหม่' };
+  if (req.action === 'inbox.list') return { success: true, items: inboxForUser_(user), at: Date.now() };
+  return { success: false, message: 'ไม่รู้จักคำสั่ง: ' + req.action };
+}
+function handleInboxStaff_(req, staff, ua) {
+  switch (req.action) {
+    case 'staff.inbox.list':
+      return { success: true, items: inboxForStaff_(staff), at: Date.now() };
+    case 'admin.news.list':
+      requirePerm_(staff, 'admin');
+      return adminNewsList_();
+    case 'admin.news.save':
+      requirePerm_(staff, 'admin');
+      return adminNewsSave_(req, staff, ua);
+    case 'admin.news.delete':
+      requirePerm_(staff, 'admin');
+      return adminNewsDelete_(req, staff, ua);
+  }
+  fail_('INVALID', 'ไม่รู้จักคำสั่ง: ' + req.action);
+}
