@@ -4,7 +4,7 @@
 //   ผู้ใช้สิทธิ์ — เจ้าหน้าที่แก้ไข/ลบ/กู้คืนรายงานของคุณ · ข้อมูลบัญชีถูกปรับปรุง · เรื่องที่แจ้งมีความคืบหน้า · ประกาศ
 //   เจ้าหน้าที่ — ประกาศ · เรื่องที่ตัวเองแจ้งมีความคืบหน้า · (ผู้ดูแลระบบ) แจ้งปัญหาใหม่ · บัญชีรออนุมัติ
 //   ส่วน "อัปเดตแอป", "ยังไม่ได้ส่งรายงานวันนี้", "แบบสอบถามรอทำ" หน้าเว็บสร้างเอง (js/inbox.js)
-// สถานะ "อ่านแล้ว" เก็บในเครื่องของผู้ใช้ (ไม่ต้องเขียนแผ่นงานทุกครั้งที่เปิดดู)
+// สถานะ "อ่านแล้ว" ซิงก์ทุกอุปกรณ์ของบัญชีเดียวกัน (แผ่นงาน InboxState) — ดูส่วน "สถานะอ่านแล้ว" ด้านล่าง
 //
 // ประกาศ: ผู้ดูแลระบบ › ประกาศ → แผ่นงาน "Announcements" (สร้างให้อัตโนมัติ) · เลือกส่งแจ้งเตือนบนมือถือได้
 
@@ -163,17 +163,82 @@ function adminNewsDelete_(req, staff, ua) {
   return { success: true };
 }
 
+// ---------- สถานะอ่านแล้ว (ซิงก์ทุกอุปกรณ์ของบัญชีเดียวกัน) ----------
+// แผ่นงาน "InboxState": หนึ่งแถวต่อบัญชี (u:<รหัสผู้ใช้สิทธิ์> / s:<ID เจ้าหน้าที่>)
+//   first = รายการก่อนเวลานี้ถือว่าอ่านแล้ว · seen = เปิดหน้าแจ้งเตือนล่าสุด (ใช้นับเลขบนกระดิ่ง) · read = รหัสรายการที่อ่านแล้ว
+// รวมแบบไม่มีวันถอยหลัง: read = รวมกัน · seen = ค่ามากสุด · first = ค่าน้อยสุด — อุปกรณ์ไหนส่งก่อน/หลังก็ได้ผลเดียวกัน
+const STATE_SHEET = 'InboxState';
+const ST_HEADERS = ['บัญชี', 'อ่านแล้วก่อน (first)', 'เปิดล่าสุด (seen)', 'รายการที่อ่านแล้ว (JSON)', 'แก้ไขล่าสุด'];
+const STATE_MAX_READ = 400;
+function stateSheet_() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sh = ss.getSheetByName(STATE_SHEET);
+  if (!sh) { sh = ss.insertSheet(STATE_SHEET); sh.getRange(1, 1, 1, ST_HEADERS.length).setValues([ST_HEADERS]); sh.setFrozenRows(1); }
+  return sh;
+}
+function stateFind_(key) {
+  const sh = stateSheet_(), last = sh.getLastRow();
+  if (last < 2) return null;
+  const keys = sh.getRange(2, 1, last - 1, 1).getValues();
+  for (let i = 0; i < keys.length; i++) {
+    if (String(keys[i][0]) !== key) continue;
+    const r = sh.getRange(i + 2, 1, 1, ST_HEADERS.length).getValues()[0];
+    let read = [];
+    try { read = JSON.parse(r[3] || '[]'); } catch (e) { read = []; }
+    return { row: i + 2, first: Number(r[1]) || 0, seen: Number(r[2]) || 0, read: Array.isArray(read) ? read : [], at: Number(r[4]) || 0 };
+  }
+  return null;
+}
+function inboxStateGet_(key) {
+  const c = CacheService.getScriptCache(), ck = 'ibs:' + key, hit = c.get(ck);
+  if (hit) { try { return JSON.parse(hit); } catch (e) {} }
+  const st = stateFind_(key);
+  const out = st ? { first: st.first, seen: st.seen, read: st.read, at: st.at } : { first: 0, seen: 0, read: [], at: 0 };
+  try { c.put(ck, JSON.stringify(out), 300); } catch (e) {}
+  return out;
+}
+function inboxStateMerge_(key, patch) {
+  patch = patch || {};
+  const ids = (Array.isArray(patch.read) ? patch.read : []).map(x => String(x).slice(0, 120)).filter(Boolean).slice(0, STATE_MAX_READ);
+  const seen = Math.min(Number(patch.seen) || 0, Date.now() + 60000), first = Number(patch.first) || 0;
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const sh = stateSheet_(), cur = stateFind_(key);
+    const read = cur ? cur.read.slice() : [];
+    const have = {};
+    read.forEach(x => { have[x] = true; });
+    ids.forEach(x => { if (!have[x]) { have[x] = true; read.push(x); } });
+    const out = {
+      first: cur && cur.first ? (first ? Math.min(cur.first, first) : cur.first) : first,
+      seen: Math.max(cur ? cur.seen : 0, seen), read: read.slice(-STATE_MAX_READ), at: Date.now()
+    };
+    const row = [key, out.first, out.seen, JSON.stringify(out.read), out.at];
+    if (cur) sh.getRange(cur.row, 1, 1, ST_HEADERS.length).setValues([row]);
+    else sh.getRange(sh.getLastRow() + 1, 1, 1, ST_HEADERS.length).setValues([row]);
+    try { CacheService.getScriptCache().put('ibs:' + key, JSON.stringify(out), 300); } catch (e) {}
+    return out;
+  } finally { lock.releaseLock(); }
+}
+
 // ---------- จุดเข้าใช้งานจาก Code.gs / Staff.gs ----------
 function handleInboxPublic_(req) {
   const user = findUser_(req.userId);
   if (!user) return { success: false, code: 'NOT_FOUND', message: 'ไม่พบรหัสผู้ใช้สิทธิ์ กรุณาเข้าสู่ระบบใหม่' };
-  if (req.action === 'inbox.list') return { success: true, items: inboxForUser_(user), at: Date.now() };
+  const key = 'u:' + String(user.id).toUpperCase();
+  if (req.action === 'inbox.list') return { success: true, items: inboxForUser_(user), state: inboxStateGet_(key), at: Date.now() };
+  if (req.action === 'inbox.state') return { success: true, state: inboxStateGet_(key) };
+  if (req.action === 'inbox.read') return { success: true, state: inboxStateMerge_(key, req) };
   return { success: false, message: 'ไม่รู้จักคำสั่ง: ' + req.action };
 }
 function handleInboxStaff_(req, staff, ua) {
   switch (req.action) {
     case 'staff.inbox.list':
-      return { success: true, items: inboxForStaff_(staff), at: Date.now() };
+      return { success: true, items: inboxForStaff_(staff), state: inboxStateGet_('s:' + staff.id), at: Date.now() };
+    case 'staff.inbox.state':
+      return { success: true, state: inboxStateGet_('s:' + staff.id) };
+    case 'staff.inbox.read':
+      return { success: true, state: inboxStateMerge_('s:' + staff.id, req) };
     case 'admin.news.list':
       requirePerm_(staff, 'admin');
       return adminNewsList_();

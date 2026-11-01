@@ -387,7 +387,7 @@ button.feed-item, button.person { cursor: pointer; }
 
 /* ช่องวันที่ในแถบตัวกรอง: ยืดหดตามพื้นที่ ไม่ล้นขอบบน iPhone */
 .toolbar-row input[type="date"], .toolbar-row .datefield { width: auto; flex: 1 1 140px; min-width: 0; }
-@media (max-width: 767px) {
+@media (max-width: 767px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
     /* iPhone ซูมหน้าเมื่อแตะช่องที่ตัวอักษรเล็กกว่า 16px */
     .input-sm, .toolbar-row .select, .search-field .input { font-size: 16px; }
     .toolbar-row .range-sep { flex: none; }
@@ -925,3 +925,17 @@ dialog:focus-visible { outline: none; } /* กรอบโฟกัสของ�
 .kpi-month .km-main > b .of { font-size: 15px; }
 /* จอแคบ: ช่วงวันที่ซ่อนไอคอนปฏิทิน ให้วันที่ภาษาไทยแสดงครบ */
 @media (max-width: 400px) { .period-inputs .datefield .df-ic { display: none; } .period-inputs .datefield.input { padding-left: 10px; padding-right: 10px; } }
+
+/* ปุ่มเข้าสู่ระบบด้วย Google แบบออกแบบเอง: แคปซูลฟ้าไล่สี โลโก้ G สีขาว (ขนาดเท่าปุ่ม LINE) */
+.btn-google {
+    gap: 10px; min-height: 52px; border: 0; border-radius: 999px; color: #fff; font-size: 16px; font-weight: 600;
+    background: linear-gradient(100deg, #4F82EE 0%, #3A66DD 55%, #2F55CC 100%);
+    box-shadow: 0 6px 18px rgba(47, 85, 204, .28), inset 0 1px 0 rgba(255, 255, 255, .18);
+    transition: filter .15s, transform .1s, box-shadow .15s;
+}
+.btn-google .g-logo { width: 22px; height: 22px; flex: none; }
+@media (hover: hover) { .btn-google:hover { filter: brightness(1.06); box-shadow: 0 8px 22px rgba(47, 85, 204, .34); } }
+.btn-google:active { transform: scale(.98); }
+.btn-google:focus-visible { outline: 3px solid color-mix(in srgb, #4F82EE 45%, transparent); outline-offset: 2px; }
+.auth-buttons .btn-line { min-height: 52px; border-radius: 999px; font-size: 16px; font-weight: 600; }
+.google-btn-slot:has(.btn-google) { background: none; padding: 0; min-height: 0; }

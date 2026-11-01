@@ -8,13 +8,14 @@ function handleStaffRequest_(req) {
       return {
         success: true,
         googleClientId: prop_('GOOGLE_CLIENT_ID'),
+        googleAccessToken: true, // รองรับปุ่ม Google แบบออกแบบเอง (access token) — เวอร์ชันเก่าไม่มีค่านี้ หน้าเว็บจะใช้ปุ่มมาตรฐานของ Google
         lineChannelId: prop_('LINE_CHANNEL_ID'),
         agentLimit: AGENT_LIMIT_PER_MONTH,
         anomalyRadius: anomalyRadius_(),
         salesTypes: SALES_TYPES
       };
     case 'staff.auth.google':
-      return loginStaff_(verifyGoogle_(req.credential), ua);
+      return loginStaff_(req.accessToken ? verifyGoogleAccess_(req.accessToken) : verifyGoogle_(req.credential), ua);
     case 'staff.auth.line':
       return loginStaff_(verifyLine_(req.code, req.codeVerifier, req.redirectUri), ua);
   }

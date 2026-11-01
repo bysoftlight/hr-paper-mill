@@ -6,8 +6,10 @@
 const Glass = (() => {
     const ua = navigator.userAgent || '';
     const ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
-    const mobile = () => !window.matchMedia || matchMedia('(max-width: 767px)').matches;
-    const landscape = () => !!window.matchMedia && matchMedia('(max-width: 767px) and (orientation: landscape) and (max-height: 500px)').matches; // แนวนอน: แถบซ่อนเมื่อเลื่อนลง
+    // มือถือ = จอแคบ หรือมือถือแนวนอน (เตี้ย + จอสัมผัส) — ตรงกับ CSS ใน style.css
+    const PHONE_LANDSCAPE = '(orientation: landscape) and (max-height: 500px) and (pointer: coarse)';
+    const mobile = () => !window.matchMedia || matchMedia('(max-width: 767px), ' + PHONE_LANDSCAPE).matches;
+    const landscape = () => !!window.matchMedia && matchMedia('(max-width: 767px) and (orientation: landscape) and (max-height: 500px), ' + PHONE_LANDSCAPE).matches; // แนวนอน: แถบซ่อนเมื่อเลื่อนลง
     const reduce = () => document.documentElement.dataset.motion === 'reduce' || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
     if (ios) document.documentElement.dataset.platform = 'ios';
 

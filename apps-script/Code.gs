@@ -116,7 +116,7 @@ function doPost(e) {
         if (HAS_THREATS_()) threatOnLogin_(guardDevice_(req), user.id, Number(guardCache_().get('g:f:' + guardDevice_(req)) || 0), guardClient_(req));
         const out = req.withHistory ? { success: true, data: user, history: getUserHistory(user.id), trust: trust } : { success: true, data: user, trust: trust };
         if (req.withHistory && HAS_FEEDBACK_()) out.surveys = surveyPendingFor_(user.id); // แบบสอบถามที่รอทำ
-        if (req.withHistory && HAS_INBOX_()) { try { out.inbox = inboxForUser_(user); } catch (e) { console.warn(e); } } // กล่องการแจ้งเตือน
+        if (req.withHistory && HAS_INBOX_()) { try { out.inbox = inboxForUser_(user); out.inboxState = inboxStateGet_('u:' + String(user.id).toUpperCase()); } catch (e) { console.warn(e); } } // กล่องการแจ้งเตือน + สถานะอ่านแล้ว
         return json_(out);
       }
       case 'history':

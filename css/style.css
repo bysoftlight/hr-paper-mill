@@ -1317,7 +1317,7 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
 
 /* มือถือ: แถบลอยแบบ Liquid Glass (Instagram) — แคปซูลใส เห็นเนื้อหาด้านหลัง · ไอคอนอย่างเดียว (เปิดชื่อเมนูได้ในตั้งค่า)
    เลื่อนลง = แถบย่อเล็กลง · เลื่อนขึ้น = กลับขนาดเดิม (js/glass.js) */
-@media (max-width: 767px) {
+@media (max-width: 767px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
     .bottomnav {
         /* ขนาดตาม Instagram: แถบสูง ~58px ห่างขอบ ~22px · ไอคอน 26px · ไฮไลต์ 76×46 */
         left: 22px; right: 22px; bottom: max(10px, calc(env(safe-area-inset-bottom) - 8px));
@@ -1350,7 +1350,7 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
     .nav-min .bottomnav { transform: scale(.88); }
     .app { padding-bottom: calc(108px + env(safe-area-inset-bottom)); }
 }
-@media (max-width: 767px) {
+@media (max-width: 767px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
     :root[data-theme="dark"] .bottomnav, :root[data-theme="dark"] .is-scrolled .bottomnav {
         border-color: rgba(255, 255, 255, .14);
         background: linear-gradient(180deg, rgba(38, 39, 43, .86), rgba(24, 25, 28, .8));
@@ -1358,7 +1358,7 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
     }
     :root[data-theme="dark"] .nav-pill { background: #3A3B3F; box-shadow: inset 0 1px 1px rgba(255, 255, 255, .12); }
 }
-@media (max-width: 767px) and (prefers-color-scheme: dark) {
+@media (max-width: 767px) and (prefers-color-scheme: dark), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) and (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) .bottomnav, :root:not([data-theme="light"]) .is-scrolled .bottomnav {
         border-color: rgba(255, 255, 255, .14);
         background: linear-gradient(180deg, rgba(38, 39, 43, .86), rgba(24, 25, 28, .8));
@@ -1368,7 +1368,7 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
 }
 
 /* หัวแอปแบบกระจก (ตั้งค่า → หัวแอป): ปุ่มโลโก้กลมลอย · ชื่อหน้าตรงกลาง · พื้นใสจนเลื่อนหน้า */
-@media (max-width: 767px) {
+@media (max-width: 767px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
     /* พื้นใสแบบ IG แต่ไล่ความเบลอและสีจากบนลงล่าง: ด้านบนทึบพออ่านชื่อหน้า แล้วจางหายใต้หัวแอป (ไม่มีขอบตัด) */
     [data-header="glass"] .topbar { min-height: 64px; justify-content: space-between; border-bottom: 0; box-shadow: none; background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; isolation: isolate; }
     [data-header="glass"] .topbar::before {
@@ -1390,13 +1390,14 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
     [data-header="glass"] .topbar-title { display: block; position: absolute; left: 72px; right: 72px; text-align: center; font-size: 17px; font-weight: 600; color: var(--ink);
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; padding-top: env(safe-area-inset-top); }
     [data-header="glass"] .topbar .live, [data-header="glass"] .topbar [data-today] { background: color-mix(in srgb, var(--surface) 70%, transparent); border-radius: 999px; padding: 6px 10px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-    [data-header="glass"] .topbar .live [data-live-text] { display: none; } /* เหลือแค่จุดเขียว = อัปเดตสด */
+    [data-header="glass"] .topbar .live { font-size: 12px; gap: 6px; white-space: nowrap; max-width: 132px; }
+    [data-header="glass"] .topbar .live [data-live-text] { overflow: hidden; text-overflow: ellipsis; } /* แสดงสถานะ "อัปเดตสด · x วิ" ข้างจุดเขียว */
 }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .bottomnav { background: var(--surface); } }
 
 /* ===== แผ่นด้านล่าง: แถบจับ + ลากลงเพื่อปิด (แบบแอป Claude) ===== */
 .sheet-grip { display: none; }
-@media (max-width: 767px) {
+@media (max-width: 767px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
     .sheet { border-radius: 24px 24px 0 0; }
     .sheet[open] { animation: sheet-rise .42s cubic-bezier(.32, .72, 0, 1); }
     @keyframes sheet-rise { from { transform: translateY(100%); } }
@@ -1413,7 +1414,7 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
 .chart, .chart *, .chart-box, .gauge-box, .legend, .ov-map, .map { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 
 /* มือถือแนวนอน (จอเตี้ย): แถบเมนูเป็นแคปซูลกลางจอไม่ยืดเต็มความกว้าง · หัวแอปเตี้ยลง ให้เนื้อหามีที่มากขึ้น */
-@media (max-width: 767px) and (orientation: landscape) and (max-height: 500px) {
+@media (max-width: 767px) and (orientation: landscape) and (max-height: 500px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
     .bottomnav { left: 0; right: 0; margin: 0 auto; width: min(420px, calc(100% - 44px)); bottom: max(8px, calc(env(safe-area-inset-bottom) - 8px)); }
     .topbar { min-height: 48px; }
     [data-header="glass"] .topbar { min-height: 52px; }
@@ -1422,9 +1423,9 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
 }
 
 /* ลากนิ้วบนแถบ: เมนูใต้นิ้วขยายเล็กน้อย (วงเทาเลื่อนตามนิ้ว) */
-@media (max-width: 767px) { .bottomnav .nav-item.is-hover { transform: scale(1.08); } }
+@media (max-width: 767px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) { .bottomnav .nav-item.is-hover { transform: scale(1.08); } }
 /* แนวนอน: เลื่อนลง = แถบซ่อนลงไปใต้จอ · เลื่อนขึ้นนิดเดียว = กลับมา */
-@media (max-width: 767px) and (orientation: landscape) and (max-height: 500px) {
+@media (max-width: 767px) and (orientation: landscape) and (max-height: 500px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
     .nav-min .bottomnav { transform: translateY(calc(100% + 32px)); opacity: 0; pointer-events: none; }
 }
 
@@ -1470,7 +1471,7 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
 .has-consent body { padding-bottom: var(--consent-h, 0px); }
 .has-consent .bottomnav { margin-bottom: var(--consent-h, 0px); }
 .has-consent #userToast, .has-consent .toast { margin-bottom: var(--consent-h, 0px); }
-@media (max-width: 767px) and (orientation: landscape) and (max-height: 500px) {
+@media (max-width: 767px) and (orientation: landscape) and (max-height: 500px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
     .has-consent.nav-min .bottomnav { transform: translateY(calc(100% + 32px + var(--consent-h, 0px))); }
 }
 
@@ -1595,7 +1596,7 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
 .nav-bell .bell-badge { top: -6px; right: -10px; border-color: var(--rail, var(--ground)); }
 .sidenav .nav-bell .bell-badge { border-color: var(--surface); }
 [data-header="glass"] .topbar-title { left: 116px; right: 116px; }
-@media (max-width: 767px) { [data-header="glass"] .topbar .bell-btn { background: color-mix(in srgb, var(--surface) 70%, transparent); border-radius: 999px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); } }
+@media (max-width: 767px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) { [data-header="glass"] .topbar .bell-btn { background: color-mix(in srgb, var(--surface) 70%, transparent); border-radius: 999px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); } }
 @media (max-width: 359px) { .topbar .chip[data-today] { padding: 4px 8px; font-size: 11px; } }
 
 .inbox-sheet { --pad: 20px; }
@@ -1759,7 +1760,8 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
     padding: 4px 0; border: 0; background: none; font: inherit; font-size: 14px; line-height: 1.5;
     color: var(--ink-2); text-decoration: none; cursor: pointer;
 }
-.foot-links > * + *::before { content: "·"; display: inline-block; width: 22px; text-align: center; color: var(--outline); font-weight: 700; pointer-events: none; }
+/* จุดคั่นวาดด้วย CSS (ไม่ใช้ตัวอักษร "·" ที่ฟอนต์ไทยวางไม่กึ่งกลาง): วงกลม 4px ระยะซ้ายขวาเท่ากัน */
+.foot-links > * + *::before { content: ""; display: inline-block; flex: none; width: 4px; height: 4px; margin: 0 12px; border-radius: 50%; background: var(--outline); opacity: .8; pointer-events: none; }
 @media (hover: hover) { .foot-links > a:hover, .foot-links > button:hover { color: var(--accent); } }
 .foot-links > a:focus-visible, .foot-links > button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 .foot-copy { margin: 0; font-size: 13px; color: var(--muted); }
@@ -1767,7 +1769,7 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
 @media (hover: hover) { .foot-copy a.credit:hover { color: var(--accent); } }
 .login-footer.site-foot { font-size: 13px; padding-top: 24px; }
 .login-footer.site-foot nav { margin-bottom: 0; }
-@media (max-width: 359px) { .foot-links > a, .foot-links > button { font-size: 13px; } .foot-links > * + *::before { width: 16px; } }
+@media (max-width: 359px) { .foot-links > a, .foot-links > button { font-size: 13px; } .foot-links > * + *::before { margin: 0 9px; } }
 .foot-links > .foot-br { flex: 0 0 100%; height: 0; }
 .foot-links > .foot-br::before, .foot-links > .foot-br + *::before { display: none; }
 
@@ -1806,3 +1808,30 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
 .login-legal { margin: 12px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--muted); text-align: center; text-wrap: balance; }
 .login-legal a { color: var(--accent); font-weight: 600; text-decoration: none; margin: 0 .25em; }
 .login-legal a:hover { text-decoration: underline; }
+
+/* =====================================================
+   มือถือแนวนอน (จอกว้าง ≥768 แต่เตี้ย และเป็นจอสัมผัส): ใช้หน้าตาเดียวกับแนวตั้ง
+   หัวแอป + แถบเมนูลอยด้านล่าง (เลื่อนลง = ซ่อน · เลื่อนขึ้น = กลับมา) แทนเมนูด้านข้าง ให้เนื้อหามีพื้นที่เต็มจอ
+   ===================================================== */
+@media (min-width: 768px) and (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+    :root { --side-w: 0px; }
+    .sidenav { display: none !important; }
+    .topbar { display: flex; }
+    .bottomnav { display: grid; }
+    .app { padding-left: 0; }
+}
+
+/* =====================================================
+   ภาพเคลื่อนไหว (js/reveal.js): ค่อยๆ ลอยขึ้นเมื่อเลื่อนมาถึง · เปลี่ยนแท็บแบบจางเข้า
+   ===================================================== */
+.rv { opacity: 0; transform: translateY(16px); }
+.rv.rv-in { opacity: 1; transform: none; transition: opacity .5s ease, transform .6s cubic-bezier(.2, .75, .25, 1); transition-delay: var(--rv-d, 0ms); }
+.view:not([hidden]) { animation: view-in .32s ease-out; } /* จางเข้าอย่างเดียว (ไม่ใช้ transform: ไม่กระทบองค์ประกอบ fixed/sticky ในหน้า) */
+@keyframes view-in { from { opacity: 0; } }
+.inbox-item { transition: background-color .35s ease; }
+.inbox-dot { transition: transform .25s, opacity .25s; }
+.kpi .kpi-meter i, .sv-progress-bar span, .fb-progress span { transition: width .8s cubic-bezier(.2, .75, .25, 1); }
+[data-motion="reduce"] .rv, [data-motion="reduce"] .rv.rv-in { opacity: 1; transform: none; transition: none; }
+[data-motion="reduce"] .view:not([hidden]) { animation: none; }
+@media (prefers-reduced-motion: reduce) { .rv, .rv.rv-in { opacity: 1; transform: none; transition: none; } .view:not([hidden]) { animation: none; } }
+@media print { .rv { opacity: 1 !important; transform: none !important; } }
