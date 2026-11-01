@@ -38,8 +38,8 @@
     /* กันไอคอนขยายเต็มจอ ถ้า stylesheet ยังโหลดไม่เสร็จหรือเป็นเวอร์ชันเก่า (:where = ไม่ทับขนาดใน style.css) */
     :where(svg.ic) { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; }
   </style>
-  <script src="js/settings.js?v=3.34.3"></script>
-  <link rel="stylesheet" href="css/style.css?v=3.34.3">
+  <script src="js/settings.js?v=3.35.0"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.35.0">
 </head>
 <body>
 
@@ -160,22 +160,6 @@
     <div class="sheet-foot"><button type="button" class="btn btn-outline" data-close>เข้าใจแล้ว</button></div>
   </dialog>
 
-  <dialog id="privacyModal" class="sheet" aria-labelledby="privacyTitle">
-    <div class="sheet-head">
-      <div><h2 id="privacyTitle">นโยบายความเป็นส่วนตัว</h2><p>ข้อมูลที่ระบบเก็บและเหตุผล</p></div>
-      <button type="button" class="icon-btn" data-close aria-label="ปิด"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
-    </div>
-    <div class="sheet-body">
-      <ul class="bullet-list">
-        <li>ชื่อ-นามสกุล และรหัสผู้ใช้สิทธิ์</li>
-        <li>ตำแหน่ง GPS ขณะส่งงาน</li>
-        <li>รูปภาพหลักฐานการขาย</li>
-      </ul>
-      <p class="muted-text"><b>วัตถุประสงค์:</b> เพื่อตรวจสอบการใช้สิทธิ์สัมปทาน</p>
-      <p class="muted-text"><b>การรักษาความปลอดภัย:</b> ข้อมูลจะถูกเก็บรักษาอย่างปลอดภัยและเข้าถึงได้เฉพาะเจ้าหน้าที่ที่เกี่ยวข้อง</p>
-    </div>
-    <div class="sheet-foot"><button type="button" class="btn btn-outline" data-close>ปิด</button></div>
-  </dialog>
 
   <dialog id="settingsModal" class="sheet" aria-labelledby="settingsTitle">
     <div class="sheet-head">
@@ -341,7 +325,7 @@
   <!-- ===== Login ===== -->
   <div id="loginView" class="login">
     <section class="login-intro" aria-labelledby="loginTitle">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.34.3" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.35.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <p class="eyebrow">โครงการใช้สิทธิ์สัมปทานผู้พิการตามมาตรา 35 · ปี 2569</p>
       <h1 id="loginTitle">รายงานการขายประจำวัน<br>ส่งได้ในไม่กี่ขั้นตอน</h1>
       <ol class="intro-steps">
@@ -369,13 +353,16 @@
         <div class="login-links">
           <button type="button" class="btn-text" data-open="rulesModal"><svg class="ic ic-16" aria-hidden="true"><use href="#i-book"/></svg> อ่านข้อปฏิบัติ</button>
           <button type="button" class="btn-text" data-open="howtoModal"><svg class="ic ic-16" aria-hidden="true"><use href="#i-help"/></svg> วิธีใช้งาน</button>
+          <button type="button" class="btn-text" data-problem><svg class="ic ic-16" aria-hidden="true"><use href="#i-alert"/></svg> แจ้งปัญหา</button>
         </div>
       </form>
 
       <footer class="login-footer">
         <nav aria-label="ข้อมูลระบบ">
           <button type="button" class="btn-text" data-open="aboutModal">เกี่ยวกับระบบ</button>
-          <button type="button" class="btn-text" data-open="privacyModal">นโยบายความเป็นส่วนตัว</button>
+          <a class="btn-text" href="faq.html">คำถามที่พบบ่อย</a>
+          <a class="btn-text" href="terms.html">ข้อกำหนดการใช้งาน</a>
+          <a class="btn-text" href="privacy.html">นโยบายความเป็นส่วนตัว</a>
           <button type="button" class="btn-text" data-settings>ตั้งค่าการแสดงผล</button>
           <a class="btn-text" href="staff.html">สำหรับเจ้าหน้าที่</a>
         </nav>
@@ -387,12 +374,12 @@
   <!-- ===== App ===== -->
   <div id="appContainer" class="app is-syncing" hidden>
     <header class="topbar">
-      <a class="brand" href="#form" data-home aria-label="HR Paper Mill — หน้าแรก"><img class="logo" src="img/logo.png?v=3.34.3" alt="" width="36" height="36"><span>HR Paper Mill</span></a>
+      <a class="brand" href="#form" data-home aria-label="HR Paper Mill — หน้าแรก"><img class="logo" src="img/logo.png?v=3.35.0" alt="" width="36" height="36"><span>HR Paper Mill</span></a>
       <span class="chip" data-today>&nbsp;</span>
     </header>
 
     <nav class="sidenav" aria-label="เมนูหลัก">
-      <a class="brand" href="#form" data-home aria-label="HR Paper Mill — หน้าแรก"><img class="logo" src="img/logo.png?v=3.34.3" alt="" width="36" height="36"><span class="brand-text">HR Paper Mill</span></a>
+      <a class="brand" href="#form" data-home aria-label="HR Paper Mill — หน้าแรก"><img class="logo" src="img/logo.png?v=3.35.0" alt="" width="36" height="36"><span class="brand-text">HR Paper Mill</span></a>
       <div class="nav-items">
         <button type="button" class="nav-item" data-tab="form" aria-current="page"><svg class="ic ic-22" aria-hidden="true"><use href="#i-send"/></svg><span>ส่งรายงาน</span></button>
         <button type="button" class="nav-item" data-tab="history"><svg class="ic ic-22" aria-hidden="true"><use href="#i-history"/></svg><span>ประวัติ</span></button>
@@ -414,6 +401,11 @@
         <h2 id="formTitle">ส่งรายงานการขาย</h2>
         <p>ทำ 3 ขั้นตอนให้ครบ แล้วกดบันทึก</p>
       </div>
+      <button type="button" class="banner banner-info survey-banner" data-survey-banner hidden>
+        <svg class="ic" aria-hidden="true"><use href="#i-help"/></svg>
+        <div><b data-survey-title>มีแบบสอบถามรอคุณอยู่</b><span>ช่วยบอกความเห็นการใช้งานแอป ใช้เวลาไม่ถึง 1 นาที</span></div>
+        <span class="btn-chip">ทำเลย</span>
+      </button>
       <div class="banner banner-warn outbox-banner" id="outboxBanner" role="status" hidden>
         <svg class="ic" aria-hidden="true"><use href="#i-wifi-off"/></svg>
         <div><b>รายงานรอส่ง (เก็บไว้ในเครื่อง)</b><span id="outboxText"></span></div>
@@ -604,6 +596,11 @@
       <div class="view-head"><h2 id="accTitle">บัญชีของฉัน</h2><p>ข้อมูลผู้ใช้สิทธิ์และความช่วยเหลือ</p></div>
       <div class="acc-grid">
         <div class="stack">
+          <button type="button" class="banner banner-info survey-banner" data-survey-banner hidden>
+            <svg class="ic" aria-hidden="true"><use href="#i-help"/></svg>
+            <div><b data-survey-title>มีแบบสอบถามรอคุณอยู่</b><span>ช่วยบอกความเห็นการใช้งานแอป ใช้เวลาไม่ถึง 1 นาที</span></div>
+            <span class="btn-chip">ทำเลย</span>
+          </button>
           <section class="card profile-card">
             <div class="avatar avatar-xl" data-user="avatar"></div>
             <b class="profile-name" data-user="name">&nbsp;</b>
@@ -631,7 +628,10 @@
             <li><button type="button" data-open="rulesModal"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg><span>ข้อปฏิบัติการใช้สิทธิ์</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></button></li>
             <li><button type="button" data-onboard><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg><span>แนะนำการใช้งาน (3 ขั้นตอน)</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></button></li>
             <li><button type="button" data-open="howtoModal"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg><span>วิธีการใช้งาน</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></button></li>
-            <li><button type="button" data-open="privacyModal"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg><span>นโยบายความเป็นส่วนตัว</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></button></li>
+            <li><button type="button" data-problem><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span>แจ้งปัญหาการใช้งาน</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></button></li>
+            <li><a href="faq.html"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg><span>คำถามที่พบบ่อย</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></a></li>
+            <li><a href="terms.html"><svg class="ic" aria-hidden="true"><use href="#i-file"/></svg><span>ข้อกำหนดการใช้งาน</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></a></li>
+            <li><a href="privacy.html"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg><span>นโยบายความเป็นส่วนตัวและคุกกี้</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></a></li>
             <li><button type="button" data-open="aboutModal"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span>เกี่ยวกับระบบ</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></button></li>
           </ul>
           <button type="button" class="btn btn-danger" data-action="logout"><svg class="ic" aria-hidden="true"><use href="#i-logout"/></svg> ออกจากระบบ</button>
@@ -647,16 +647,18 @@
     </nav>
   </div>
 
-  <script src="js/config.js?v=3.34.3"></script>
-  <script src="js/utils.js?v=3.34.3"></script>
-  <script src="js/glass.js?v=3.34.3"></script>
-  <script src="js/analytics.js?v=3.34.3"></script>
-  <script src="js/api.js?v=3.34.3"></script>
-  <script src="js/notify.js?v=3.34.3"></script>
-  <script src="js/outbox.js?v=3.34.3"></script>
-  <script src="js/camera.js?v=3.34.3"></script>
-  <script src="js/charts.js?v=3.34.3"></script>
-  <script src="js/app.js?v=3.34.3"></script>
-  <script src="js/report.js?v=3.34.3"></script>
+  <script src="js/consent.js?v=3.35.0"></script>
+  <script src="js/config.js?v=3.35.0"></script>
+  <script src="js/utils.js?v=3.35.0"></script>
+  <script src="js/glass.js?v=3.35.0"></script>
+  <script src="js/analytics.js?v=3.35.0"></script>
+  <script src="js/api.js?v=3.35.0"></script>
+  <script src="js/notify.js?v=3.35.0"></script>
+  <script src="js/outbox.js?v=3.35.0"></script>
+  <script src="js/camera.js?v=3.35.0"></script>
+  <script src="js/charts.js?v=3.35.0"></script>
+  <script src="js/feedback.js?v=3.35.0"></script>
+  <script src="js/app.js?v=3.35.0"></script>
+  <script src="js/report.js?v=3.35.0"></script>
 </body>
 </html>

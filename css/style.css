@@ -1430,3 +1430,130 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
 /* Safari (iOS) ตัดเนื้อ SVG ตาม border-radius ของตัว svg เอง — กฎเก่าใส่ border-radius: 999px ให้ไอคอนเมนูที่เลือก
    Chrome/Edge ไม่ตัด แต่ iPhone ตัดไอคอนเป็นวงกลม (มุมของไอคอนภาพรวมหาย) → ไอคอนในแถบล่างต้องไม่มีมุมโค้ง/พื้นหลังของตัวเอง */
 .bottomnav .nav-item .ic, .bottomnav .nav-item[aria-current="page"] .ic { border-radius: 0; background: none; clip-path: none; }
+
+/* =====================================================
+   แถบแจ้งการใช้คุกกี้ (js/consent.js) — แบบ Google Trends: แถบเข้มล่างสุดของจอ ปุ่มข้อความสีฟ้า
+   เมนูล่าง / toast / ปุ่มลอย เลื่อนขึ้นพ้นแถบด้วย --consent-h
+   ===================================================== */
+.consent {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 12px max(16px, env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    background: #303134; color: #E8EAED; font-size: 13px; line-height: 1.5;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, .18);
+    animation: consent-in .3s ease-out;
+}
+.consent p { margin: 0; max-width: 88ch; }
+.consent-actions { display: flex; justify-content: flex-end; gap: 4px; flex-wrap: wrap; }
+.consent-btn {
+    display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; border: 0; border-radius: 999px;
+    background: none; color: #A8C7FA; font: inherit; font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer;
+}
+.consent-btn:hover { background: rgba(168, 199, 250, .12); }
+.consent-btn:focus-visible { outline: 2px solid #A8C7FA; outline-offset: 1px; }
+.consent.is-leaving { transform: translateY(100%); opacity: 0; transition: transform .2s ease-in, opacity .2s; }
+@keyframes consent-in { from { transform: translateY(100%); } }
+[data-motion="reduce"] .consent { animation: none; }
+@media (min-width: 768px) {
+    .consent { flex-direction: row; align-items: center; justify-content: space-between; gap: 16px; padding-top: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+    .consent-actions { flex: none; }
+}
+.has-consent .bottomnav { margin-bottom: var(--consent-h, 0px); }
+.has-consent #userToast, .has-consent .toast { margin-bottom: var(--consent-h, 0px); }
+.has-consent body { padding-bottom: var(--consent-h, 0px); }
+
+/* =====================================================
+   แจ้งปัญหา + แบบสอบถาม (js/feedback.js)
+   ===================================================== */
+.fb-form { display: flex; flex-direction: column; gap: 18px; }
+.fb-field { display: flex; flex-direction: column; gap: 8px; border: 0; padding: 0; margin: 0; min-width: 0; }
+.fb-field > .label, .fb-field legend.label { padding: 0; }
+.fb-req { color: var(--bad); font-weight: 600; }
+.fb-textarea { height: auto; min-height: 104px; padding: 12px 14px; line-height: 1.55; resize: vertical; font: inherit; font-size: 16px; }
+.fb-count { align-self: flex-end; margin-top: -4px; font-size: 12px; color: var(--muted); font-family: var(--mono); }
+.fb-cats { display: flex; flex-wrap: wrap; gap: 8px; }
+.fb-chip { position: relative; }
+.fb-chip input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.fb-chip span {
+    display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px;
+    border: 1px solid var(--outline); border-radius: 999px; background: var(--surface); color: var(--ink-2);
+    font-size: 14px; cursor: pointer; transition: background-color .15s, border-color .15s, color .15s;
+}
+.fb-chip input:checked + span { background: var(--accent-soft); border-color: transparent; color: var(--on-accent-soft); font-weight: 600; }
+.fb-chip input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fb-shot { display: flex; align-items: center; gap: 12px; }
+.fb-attach { gap: 8px; border-radius: 999px; padding: 0 18px; cursor: pointer; align-self: flex-start; }
+.fb-attach[hidden] { display: none; }
+.fb-thumb { position: relative; width: 112px; height: 112px; border-radius: var(--r-md); overflow: hidden; border: 1px solid var(--line); background: var(--field); }
+.fb-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fb-thumb .icon-btn { position: absolute; top: 4px; right: 4px; width: 32px; height: 32px; min-height: 32px; background: rgba(0, 0, 0, .55); color: #fff; border-radius: 999px; }
+.fb-guest { display: grid; gap: 18px; }
+.fb-note { display: flex; gap: 8px; font-size: 12.5px; color: var(--muted); line-height: 1.5; margin: 0; }
+.fb-note .ic { flex: none; margin-top: 2px; }
+.fb-note a { color: var(--accent); }
+.fb-urgent { align-items: center; }
+.fb-urgent a { color: inherit; font-weight: 600; }
+.fb-tag { color: var(--accent); }
+
+.fb-q { border: 0; margin: 0; padding: 14px; border-radius: var(--r-lg); background: var(--container); min-width: 0; display: flex; flex-direction: column; gap: 12px; transition: box-shadow .2s; }
+.fb-q legend { display: flex; gap: 10px; align-items: flex-start; float: left; width: 100%; font-size: 15px; font-weight: 500; line-height: 1.45; padding: 0; }
+.fb-q legend + * { clear: both; }
+.fb-qn { flex: none; display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 999px; background: var(--surface); color: var(--accent); font-size: 13px; }
+.fb-q.is-missing { box-shadow: inset 0 0 0 2px var(--bad); }
+.fb-rate { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.fb-rate-opt { position: relative; min-width: 0; }
+.fb-rate-opt input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.fb-rate-opt span {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 64px; padding: 6px 2px;
+    border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line); cursor: pointer;
+    transition: background-color .15s, border-color .15s, transform .15s;
+}
+.fb-rate-opt i { font-style: normal; font-size: 26px; line-height: 1; filter: grayscale(.6); opacity: .8; transition: filter .15s, opacity .15s, transform .15s; }
+.fb-rate-opt b { font-family: var(--mono); font-size: 13px; color: var(--muted); font-weight: 500; }
+.fb-rate-opt input:checked + span { background: var(--accent-soft); border-color: var(--accent); }
+.fb-rate-opt input:checked + span i { filter: none; opacity: 1; transform: scale(1.12); }
+.fb-rate-opt input:checked + span b { color: var(--on-accent-soft); font-weight: 700; }
+.fb-rate-opt input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fb-rate-opt:active span { transform: scale(.96); }
+.fb-rate-ends { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--muted); margin-top: -4px; }
+.fb-choices { display: flex; flex-direction: column; gap: 8px; }
+.fb-choice { position: relative; }
+.fb-choice input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.fb-choice span { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 8px 14px; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line); font-size: 15px; cursor: pointer; }
+.fb-choice span::before { content: ""; flex: none; width: 18px; height: 18px; border-radius: 999px; border: 2px solid var(--outline); box-sizing: border-box; }
+.fb-choice input:checked + span { border-color: var(--accent); background: var(--accent-soft); color: var(--on-accent-soft); }
+.fb-choice input:checked + span::before { border: 5px solid var(--accent); }
+.fb-choice input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fb-survey-foot { gap: 8px; }
+.fb-progress { height: 4px; border-radius: 4px; background: var(--line-soft); overflow: hidden; margin-bottom: 4px; }
+.fb-progress span { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 4px; transition: width .25s; }
+.fb-later { align-self: center; min-height: var(--tap); }
+@media (min-width: 768px) { .fb-sheet { width: min(600px, calc(100% - 48px)); } }
+
+/* แถบเตือนแบบสอบถามที่รอทำ (หน้าส่งรายงาน + บัญชี) */
+.survey-banner { align-items: center; margin-bottom: 14px; cursor: pointer; border: 0; width: 100%; text-align: left; font: inherit; }
+.survey-banner > div { flex: 1; min-width: 0; }
+.survey-banner span { display: block; font-size: 13px; }
+.survey-banner .btn-chip { flex: none; pointer-events: none; }
+.menu a { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 16px; color: inherit; text-decoration: none; }
+.menu a > .ic:first-child { color: var(--accent); }
+.menu a span { flex: 1; }
+.menu a > .ic:last-child { color: var(--muted); }
+@media (hover: hover) { .menu a:hover { background: var(--field); } }
+/* จอเตี้ย (มือถือแนวนอน): ปุ่มส่ง + ทำภายหลังอยู่แถวเดียวกัน หัวเรื่องกระชับ ให้เห็นคำถามมากขึ้น */
+@media (max-height: 500px) {
+    .fb-survey-foot { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding-top: 8px; }
+    .fb-survey-foot .fb-progress { flex: 1 0 100%; margin-bottom: 0; }
+    .fb-survey-foot .btn { flex: 1 1 0; width: auto; min-height: 44px; }
+    .fb-survey-foot .fb-later { flex: none; }
+    .fb-sheet .sheet-head { padding-top: 10px; padding-bottom: 8px; }
+    .fb-sheet .sheet-head h2 { font-size: 17px; }
+    .fb-sheet .sheet-head p { display: none; }
+    .fb-rate-opt span { min-height: 52px; }
+    .fb-rate-opt i { font-size: 22px; }
+    #problemModal .sheet-foot .btn { min-height: 44px; }
+}
+/* แนวนอน + แถบคุกกี้ยังแสดง: ซ่อนเมนูลงไปพ้นจอทั้งหมด (รวมระยะที่ยกขึ้นพ้นแถบคุกกี้) */
+@media (max-width: 767px) and (orientation: landscape) and (max-height: 500px) {
+    .has-consent.nav-min .bottomnav { transform: translateY(calc(100% + 32px + var(--consent-h, 0px))); }
+}

@@ -394,6 +394,14 @@ function switchTab(tab, push = true) {
     window.scrollTo({ top: 0 });
     Analytics.page(tab);
     if (VIEWS[tab] && VIEWS[tab].show) VIEWS[tab].show();
+    if (tab === 'analytics') centerSelectedTab($('anAdmTabs'), true);
+}
+
+// แถบแท็บผู้ดูแล (6 แท็บ) เลื่อนแนวนอนได้บนมือถือ: เลื่อนแท็บที่เลือกมาไว้กลางแถบ (ไม่เลื่อนหน้าแนวตั้ง)
+function centerSelectedTab(bar, instant) {
+    const sel = bar && bar.querySelector('[aria-selected="true"]');
+    if (!sel || bar.scrollWidth <= bar.clientWidth) return;
+    bar.scrollTo({ left: Math.max(0, sel.offsetLeft - bar.offsetLeft - (bar.clientWidth - sel.offsetWidth) / 2), behavior: instant ? 'auto' : 'smooth' });
 }
 
 function initShell() {

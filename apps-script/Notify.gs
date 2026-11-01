@@ -16,7 +16,7 @@
 const NCOL = { ID: 0, OWNER_TYPE: 1, OWNER_ID: 2, CHANNEL: 3, ENDPOINT: 4, TOPICS: 5, DEVICE: 6, CREATED_AT: 7, LAST_SENT: 8, FAILS: 9, MESSAGE: 10 };
 const N_HEADERS = ['ID', 'ประเภท', 'เจ้าของ (รหัส)', 'ช่องทาง', 'ปลายทาง', 'หัวข้อ', 'อุปกรณ์', 'สร้างเมื่อ', 'ส่งล่าสุด', 'ส่งไม่สำเร็จ', 'ข้อความล่าสุด'];
 const NOTIFY_SHEET = 'Notify';
-const NOTIFY_TOPICS = { user: ['remind'], staff: ['new', 'summary'] };
+const NOTIFY_TOPICS = { user: ['remind'], staff: ['new', 'summary'] }; // แบบสอบถาม (Feedback.gs) ส่งถึงทุกเครื่องของผู้ใช้สิทธิ์ที่เปิดการแจ้งเตือน
 const DEFAULT_REMIND_HOUR = 17;
 const SITE_URL = 'https://bysoftlight.github.io/hr-paper-mill/';
 
@@ -240,15 +240,16 @@ function activeStaffIds_() {
 // ตั้งเวลาทั้งหมดของระบบ (รันครั้งเดียว — รันซ้ำได้ ไม่สร้างซ้ำ)
 //   07:00 ตรวจสุขภาพระบบ · NOTIFY_REMIND_HOUR (17:00) เตือนผู้ใช้สิทธิ์ · 18:00 สรุปประจำวัน · วันที่ 1 08:00 รายงานประจำเดือน
 function installNotifyTriggers() {
-  const handlers = ['sendDailyReminders', 'sendDailySummary', 'sendMonthlyReport', 'morningHealthCheck'];
+  const handlers = ['sendDailyReminders', 'sendDailySummary', 'sendMonthlyReport', 'morningHealthCheck', 'surveyTick'];
   ScriptApp.getProjectTriggers().filter(t => handlers.indexOf(t.getHandlerFunction()) !== -1).forEach(t => ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger('sendDailyReminders').timeBased().everyDays(1).atHour(remindHour_()).inTimezone(TZ).create();
   ScriptApp.newTrigger('sendDailySummary').timeBased().everyDays(1).atHour(18).inTimezone(TZ).create();
   ScriptApp.newTrigger('sendMonthlyReport').timeBased().onMonthDay(1).atHour(8).inTimezone(TZ).create();
   ScriptApp.newTrigger('morningHealthCheck').timeBased().everyDays(1).atHour(7).inTimezone(TZ).create();
+  if (typeof surveyTick === 'function') ScriptApp.newTrigger('surveyTick').timeBased().everyMinutes(15).create(); // แบบสอบถาม (Feedback.gs)
   vapidKeys_();
   notifySheet_();
-  Logger.log('ตั้งเวลาแล้ว: ตรวจระบบ 07:00 · เตือนผู้ใช้สิทธิ์ ' + remindHour_() + ':00 · สรุปเจ้าหน้าที่ 18:00 · รายงานประจำเดือน วันที่ 1 เวลา 08:00');
+  Logger.log('ตั้งเวลาแล้ว: ตรวจระบบ 07:00 · เตือนผู้ใช้สิทธิ์ ' + remindHour_() + ':00 · สรุปเจ้าหน้าที่ 18:00 · รายงานประจำเดือน วันที่ 1 เวลา 08:00' + (typeof surveyTick === 'function' ? ' · แบบสอบถาม ทุก 15 นาที' : ''));
 }
 function installAllTriggers() { installNotifyTriggers(); }
 
@@ -320,7 +321,7 @@ function morningHealthCheck() {
     Object.keys(h.folders).forEach(k => { if (!h.folders[k]) problems.push('เข้าถึงโฟลเดอร์ ' + k + ' ไม่ได้'); });
   }
   const handlers = ScriptApp.getProjectTriggers().map(t => t.getHandlerFunction());
-  ['sendDailyReminders', 'sendDailySummary', 'sendMonthlyReport'].forEach(f => { if (handlers.indexOf(f) === -1) problems.push('ตัวตั้งเวลา ' + f + ' ไม่ได้ติดตั้ง (รัน installNotifyTriggers)'); });
+  ['sendDailyReminders', 'sendDailySummary', 'sendMonthlyReport'].concat(typeof surveyTick === 'function' ? ['surveyTick'] : []).forEach(f => { if (handlers.indexOf(f) === -1) problems.push('ตัวตั้งเวลา ' + f + ' ไม่ได้ติดตั้ง (รัน installNotifyTriggers)'); });
   // ข้อผิดพลาดจากเครื่องผู้ใช้ใน 24 ชั่วโมง
   let clientErrors = 0, loginFails = 0;
   try {

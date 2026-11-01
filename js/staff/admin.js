@@ -9,7 +9,10 @@ const ACTION_LABELS = {
     'participant.submit': 'ส่งรายงาน (ผู้ใช้สิทธิ์)', 'participant.login_failed': 'เข้าสู่ระบบไม่สำเร็จ (ผู้ใช้สิทธิ์)',
     'export.xlsx': 'ส่งออก Excel', 'export.pdf': 'ส่งออก PDF', 'export.gsheet': 'ส่งออก Google Sheets', 'export.logs': 'ส่งออก Log',
     'system.daily_summary': 'ส่งสรุปรายวัน', 'system.notify_remind': 'เตือนผู้ใช้สิทธิ์ที่ยังไม่ส่ง', 'system.monthly_report': 'ส่งรายงานประจำเดือน',
-    'system.health': 'ตรวจสุขภาพระบบ', 'client.error': 'ข้อผิดพลาดบนเครื่องผู้ใช้', 'participants.contact': 'บันทึกการติดต่อ'
+    'system.health': 'ตรวจสุขภาพระบบ', 'client.error': 'ข้อผิดพลาดบนเครื่องผู้ใช้', 'participants.contact': 'บันทึกการติดต่อ',
+    'feedback.problem': 'แจ้งปัญหาการใช้งาน', 'admin.problem_status': 'เปลี่ยนสถานะเรื่องที่แจ้ง', 'survey.answer': 'ตอบแบบสอบถาม',
+    'admin.survey_create': 'สร้างแบบสอบถาม', 'admin.survey_update': 'แก้ไขแบบสอบถาม', 'admin.survey_close': 'ปิดรับแบบสอบถาม', 'admin.survey_reopen': 'เปิดรับแบบสอบถามอีกครั้ง',
+    'admin.survey_delete': 'ลบแบบสอบถาม', 'system.survey_notify': 'แจ้งเตือนแบบสอบถามใหม่', 'system.survey_remind': 'เตือนทำแบบสอบถามซ้ำ'
 };
 const ACTION_TONE = { delete: 'is-bad', reject: 'is-bad', suspend: 'is-bad', revoke: 'is-warn', rename: 'is-warn', login_failed: 'is-warn', approve: 'is-ok', create: 'is-ok', signup: 'is-accent', signup_admin: 'is-accent', restore: 'is-ok' };
 
@@ -40,16 +43,22 @@ VIEWS.admin = {
         if (t === 'analytics') return switchTab('analytics'); // สถิติ = หน้าแยก แต่อยู่ในเมนูผู้ดูแล (แถบล่างไม่เกิน 5 เมนู)
         this.tab = t;
         $('admTabs').querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.t === t)));
+        centerSelectedTab($('admTabs'));
         $('admStaff').hidden = t !== 'staff';
         $('admLogs').hidden = t !== 'logs';
         $('admSecurity').hidden = t !== 'security';
-        if (t === 'staff') this.loadStaff(); else if (t === 'security') this.loadSecurity(); else this.loadLogs();
+        $('admProblems').hidden = t !== 'problems';
+        $('admSurveys').hidden = t !== 'surveys';
+        if (t === 'staff') this.loadStaff(); else if (t === 'security') this.loadSecurity();
+        else if (t === 'problems') FeedbackAdmin.loadProblems(); else if (t === 'surveys') FeedbackAdmin.loadSurveys();
+        else this.loadLogs();
     },
 
     onLive() {
         if (ST.view !== 'admin' || document.querySelector('dialog[open]')) return;
         if (this.tab === 'logs' && this.logPage === 1) this.loadLogs(true);
         if (this.tab === 'security') this.loadSecurity(true);
+        if (this.tab === 'problems') FeedbackAdmin.loadProblems(true);
     },
 
     // ---------- ความปลอดภัย: ป้องกันการเดารหัสผู้ใช้สิทธิ์ ----------

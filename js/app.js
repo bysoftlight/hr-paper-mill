@@ -46,6 +46,7 @@ window.addEventListener('DOMContentLoaded', () => {
     initForm();
     initHistory();
     initNav();
+    initFeedback();
     document.querySelectorAll('[data-action="logout"]').forEach(btn => btn.addEventListener('click', logout));
     initSettings();
 
@@ -226,10 +227,12 @@ async function performLogin(userId, isAuto, background = false) {
         if (!isAuto) Analytics.track('login', { l: 'manual' });
         userStore.set(USER_KEY, res.data.id);
         CURRENT_USER = res.data;
+        if (Array.isArray(res.surveys)) setSurveys(res.surveys);
         if (!isAuto) maybeOnboard();
         if (!background) return setupApp(res.history);
         renderUser();
         if (Array.isArray(res.history)) applyHistory(res.history); else loadHistoryData(true);
+        surveyOnOpen();
     } else if (!isAccountGone(res) && background) {
         // ออฟไลน์ / ระบบขัดข้องชั่วคราว: ใช้ข้อมูลที่บันทึกไว้ในเครื่องต่อ (ยังจำการเข้าสู่ระบบไว้)
         $('histRefresh').disabled = false;
@@ -277,6 +280,7 @@ function endSession() {
     ALL_HISTORY = [];
     HISTORY_LOADED = false;
     TODAY_RECORD = null;
+    SURVEYS = []; SURVEY_PROMPTED = false;
     // สลับไปหน้าเข้าสู่ระบบก่อนเสมอ แล้วจึงเก็บกวาด — ขั้นใดผิดพลาดในบางเบราว์เซอร์ (เช่น Safari แบบแอป) ก็ไม่ค้างหน้าเดิม
     backToLogin();
     runSteps([
@@ -288,6 +292,7 @@ function endSession() {
         () => { PICKED_FILE = null; GPS_FIX = null; updateFileName().catch(() => {}); },
         () => { $('historyList').innerHTML = ''; },
         () => renderUser(),
+        () => { store.remove(SURVEY_KEY); renderSurveys(); },
         () => setUrl(location.pathname),
         () => window.scrollTo(0, 0),
         () => showRulesModal(true)
@@ -309,6 +314,8 @@ function setupApp(history, cachedAt) {
     switchTab(tabFromHash(), false);
     if (!Array.isArray(history)) loadHistoryData();
     refreshOutbox().then(() => { if (navigator.onLine) flushOutbox(); });
+    if (cachedAt) loadStoredSurveys(); // เปิดจากข้อมูลในเครื่อง: แสดงแถบเตือนทันที แล้วอัปเดตเมื่อเข้าระบบเบื้องหลังเสร็จ
+    else surveyOnOpen();
 }
 
 function renderUser() {
@@ -372,7 +379,11 @@ function initNav() {
     document.querySelectorAll('[data-tab]').forEach(btn => btn.addEventListener('click', () => { haptic(); switchTab(btn.dataset.tab); }));
     // โลโก้ = กลับหน้าแรก (ส่งรายงาน)
     document.querySelectorAll('[data-home]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); haptic(); switchTab('form'); }));
-    window.addEventListener('hashchange', () => { if (!$('appContainer').hidden) switchTab(tabFromHash(), false); });
+    window.addEventListener('hashchange', () => {
+        if ($('appContainer').hidden) return;
+        if (/^#survey=/.test(location.hash)) return handleSurveyLink();
+        switchTab(tabFromHash(), false);
+    });
 }
 
 function switchTab(tab, pushHash = true) {
@@ -678,7 +689,10 @@ async function handleFormSubmit(e) {
         if (res.success) {
             Analytics.track('submit_success', { p: 'form', l: selectedSalesType === AGENT_TYPE ? 'agent' : 'self', v: Date.now() - t0 });
             const time = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-            await showMessage({ title: 'บันทึกรายงานแล้ว', text: `${res.message || 'บันทึกข้อมูลเรียบร้อย'} · ${selectedSalesType} · ${time} น.`, tone: 'ok', okText: 'ดูประวัติ' });
+            if (Array.isArray(res.surveys)) setSurveys(res.surveys);
+            await showMessage({ title: 'บันทึกรายงานแล้ว', text: `${res.message || 'บันทึกข้อมูลเรียบร้อย'} · ${selectedSalesType} · ${time} น.`, tone: 'ok', okText: SURVEYS.length ? 'ถัดไป' : 'ดูประวัติ' });
+            // มีแบบสอบถามรออยู่: ให้ทำต่อหลังส่งรายงานของวันนั้น (กด "ทำภายหลัง" ได้)
+            if (SURVEYS.length && session === SESSION) { SURVEY_PROMPTED = true; await openSurvey(SURVEYS[0], 'after_submit'); }
             resetReportForm();
             loadHistoryData(true);
             switchTab('history');
@@ -1383,3 +1397,99 @@ function openOnboarding() {
 }
 function closeOnboarding() { if ($('onboardModal').open) Analytics.track('onboarding_close'); $('onboardModal').close(); }
 function maybeOnboard() { if (!store.get(ONBOARD_KEY)) setTimeout(openOnboarding, 400); }
+
+
+// ---------- แจ้งปัญหา + แบบสอบถาม (js/feedback.js · Feedback.gs) ----------
+const SURVEY_KEY = 'HRPM_SURVEYS';          // แบบสอบถามที่รอทำ (แสดงแถบเตือนได้ทันทีตอนเปิดแอป)
+const SURVEY_SNOOZE_KEY = 'HRPM_SURVEY_SNOOZE'; // กด "ทำภายหลัง" → ไม่เด้งเองอีกจนถึงวันถัดไป (แถบเตือนยังอยู่)
+let SURVEYS = [];
+let SURVEY_PROMPTED = false;                  // เด้งเองไม่เกินครั้งละหนึ่งครั้งต่อการเปิดแอป
+const todayKey = () => new Date().toLocaleDateString('en-CA');
+
+function initFeedback() {
+    // ลิงก์จากหน้าคำถามที่พบบ่อย (./#problem): เปิดฟอร์มแจ้งปัญหาเลย
+    if (location.hash === '#problem') setTimeout(() => { setUrl(location.pathname + (CURRENT_USER.id ? '#form' : '')); openProblemReport(); }, 700);
+    document.addEventListener('click', e => {
+        if (e.target.closest('[data-problem]')) { haptic(); openProblemReport(); return; }
+        if (e.target.closest('[data-survey-banner]') && SURVEYS.length) { haptic(); openSurvey(SURVEYS[0], 'banner'); }
+    });
+}
+
+function openProblemReport() {
+    const guest = !CURRENT_USER.id;
+    const page = guest ? 'login' : (location.hash.replace('#', '') || 'form');
+    Analytics.track('problem_open', { p: page });
+    Feedback.openProblem({
+        who: guest ? 'guest' : 'participant', page: page, userId: guest ? $('loginId').value : '',
+        urgent: 'เรื่องด่วน เช่น ส่งรายงานวันนี้ไม่ได้ โทร <a href="tel:0858354911">085-835-4911</a> (คุณศิวดลย์) หรือ <a href="tel:0858353663">085-835-3663</a> (คุณศักดิพัฒน์)',
+        send: payload => callApi('problem.report', guest ? payload : Object.assign(payload, { userId: CURRENT_USER.id }))
+    });
+}
+
+function setSurveys(list) {
+    SURVEYS = (Array.isArray(list) ? list : []).filter(x => x && x.id && Array.isArray(x.questions) && (!x.endAt || x.endAt > Date.now()));
+    if (CURRENT_USER.id) store.set(SURVEY_KEY, JSON.stringify({ uid: CURRENT_USER.id, list: SURVEYS, at: Date.now() }));
+    renderSurveys();
+}
+function loadStoredSurveys() {
+    try {
+        const o = JSON.parse(store.get(SURVEY_KEY) || 'null');
+        if (o && o.uid === CURRENT_USER.id) { SURVEYS = (o.list || []).filter(x => !x.endAt || x.endAt > Date.now()); renderSurveys(); }
+    } catch (e) { /* ข้อมูลเสีย: รอจากระบบ */ }
+}
+function renderSurveys() {
+    const n = SURVEYS.length;
+    document.querySelectorAll('[data-survey-banner]').forEach(b => {
+        b.hidden = !n || !CURRENT_USER.id;
+        const t = b.querySelector('[data-survey-title]');
+        if (t && n) t.textContent = n > 1 ? `มีแบบสอบถามรอคุณอยู่ ${n} ชุด` : `แบบสอบถาม: ${SURVEYS[0].title}`;
+    });
+}
+
+// เปิดแอป: มาจากการแจ้งเตือน (#survey=…) → เปิดเลย · ส่งรายงานวันนี้แล้วและยังไม่ได้กดเลื่อนวันนี้ → เตือนหนึ่งครั้ง
+function surveyOnOpen() {
+    renderSurveys();
+    if (/^#survey=/.test(location.hash)) return handleSurveyLink();
+    if (!SURVEYS.length || SURVEY_PROMPTED || !TODAY_RECORD || store.get(SURVEY_SNOOZE_KEY) === todayKey()) return;
+    SURVEY_PROMPTED = true;
+    setTimeout(() => {
+        if (!SURVEYS.length || !CURRENT_USER.id || document.querySelector('dialog[open]')) return;
+        openSurvey(SURVEYS[0], 'later');
+    }, 1200);
+}
+
+async function handleSurveyLink() {
+    const id = decodeURIComponent(location.hash.replace(/^#survey=/, ''));
+    setUrl(location.pathname + '#form');
+    switchTab('form', false);
+    if (!id || !CURRENT_USER.id) return;
+    SURVEY_PROMPTED = true;
+    let s = SURVEYS.find(x => x.id === id);
+    if (!s) {
+        const res = await callApi('survey.pending', { userId: CURRENT_USER.id });
+        if (res.success) setSurveys(res.surveys);
+        s = SURVEYS.find(x => x.id === id);
+    }
+    if (s) openSurvey(s, 'push');
+    else toastUser('ทำแบบสอบถามนี้แล้ว หรือแบบสอบถามปิดรับแล้ว');
+}
+
+// คืนค่าเมื่อปิดหน้าต่าง: 'done' | 'later'
+async function openSurvey(survey, when) {
+    Analytics.track('survey_open', { l: when });
+    const uid = CURRENT_USER.id, session = SESSION;
+    const r = await Feedback.openSurvey(survey, {
+        send: answers => callApi('survey.answer', { userId: uid, surveyId: survey.id, answers: answers, when: when })
+    });
+    if (session !== SESSION) return r;
+    if (r === 'done') {
+        setSurveys(SURVEYS.filter(x => x.id !== survey.id));
+        Analytics.track('survey_done', { l: when });
+        toastUser('ขอบคุณสำหรับความคิดเห็น');
+    } else {
+        store.set(SURVEY_SNOOZE_KEY, todayKey());
+        Analytics.track('survey_later', { l: when });
+        if (when !== 'banner') toastUser('ทำได้ทุกเมื่อจากแถบ "แบบสอบถาม" ด้านบน');
+    }
+    return r;
+}
