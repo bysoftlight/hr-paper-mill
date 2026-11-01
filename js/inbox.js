@@ -3,10 +3,11 @@
 //   Inbox.setServer(items) · Inbox.refresh(force) · Inbox.update() (คำนวณรายการในเครื่องใหม่) · Inbox.open()
 // item = { id, ts, cat: 'usage'|'update'|'news', icon, tone?, title, body, link?, action?: { kind, value, label } }
 // หน้าเว็บต้องมี #inboxView (#inboxTabs #inboxBody #inboxReadAll #inboxSettings [#inboxManage]) และส่ง show() ที่สลับไปแท็บนี้
-// อ่านแล้ว/เปิดดูล่าสุด เก็บในเครื่อง (HRPM_INBOX_<app>_<uid>) — กระดิ่งนับเฉพาะรายการใหม่หลังเปิดกล่องครั้งล่าสุด
+// อ่านแล้ว/เปิดดูล่าสุด เก็บในเครื่อง (HRPM_INBOX_<app>_<uid>) และซิงก์กับระบบ (push/pullState) ให้ทุกอุปกรณ์ของบัญชีตรงกัน — กระดิ่งนับเฉพาะรายการใหม่หลังเปิดครั้งล่าสุด
 const Inbox = (() => {
     // ประวัติการอัปเดตแอป (ใหม่สุดก่อน) — who: all | user | staff
     const CHANGELOG = [
+        { v: '3.39.0', date: '2026-11-02', who: 'all', title: 'สถานะอ่านแล้วตรงกันทุกเครื่อง', body: 'อ่านการแจ้งเตือนที่เครื่องไหน เครื่องอื่นที่เข้าสู่ระบบบัญชีเดียวกันก็แสดงว่าอ่านแล้วภายในไม่กี่วินาที · มือถือแนวนอนใช้แถบเมนูลอยแบบแนวตั้ง เลื่อนลงแล้วซ่อน' },
         { v: '3.38.0', date: '2026-11-01', who: 'all', title: 'แท็บแจ้งเตือนย้ายมาอยู่แถบเมนูด้านล่าง', body: 'แตะ "แจ้งเตือน" ก่อนแท็บบัญชีเพื่อดูการแจ้งเตือนทั้งหมด แท็บบัญชีแสดงรูปโปรไฟล์ และแตะโปรไฟล์ของคุณที่ไหนก็เปิดหน้าบัญชีได้' },
         { v: '3.37.0', date: '2026-11-01', who: 'user', title: 'แบบสอบถามแบบใหม่ ทำทีละข้อ', body: 'คำถามตัวใหญ่ขึ้น ปุ่มคะแนนกดง่าย เลือกแล้วไปข้อถัดไปเอง ย้อนกลับแก้คำตอบได้', vkey: 'user' },
         { v: '3.37.0', date: '2026-11-01', who: 'staff', title: 'ดูภาพรวมย้อนหลังได้', body: 'หน้าภาพรวมเลือก วันนี้ / เมื่อวาน / เลือกวันเองได้ ช่องวันที่แสดงแบบไทยและพอดีจอทุกเครื่อง', vkey: 'staff' },
@@ -101,7 +102,7 @@ const Inbox = (() => {
         bound = true;
         if (typeof ScrollFade !== 'undefined') ScrollFade.watch(el('inboxTabs'));
         el('inboxTabs').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (!b) return; filter = b.dataset.cat; render(); });
-        el('inboxReadAll').addEventListener('click', () => { const s = state(); items().forEach(it => { if (s.read.indexOf(it.id) === -1) s.read.push(it.id); }); save(s); render(); badge(); });
+        el('inboxReadAll').addEventListener('click', () => { const s = state(), ids = []; items().forEach(it => { if (s.read.indexOf(it.id) === -1) { s.read.push(it.id); ids.push(it.id); } }); save(s); queue(ids); render(); badge(); });
         el('inboxBody').addEventListener('click', onClick);
         el('inboxBody').addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('inbox-item')) { e.preventDefault(); e.target.click(); } });
         el('inboxSettings').addEventListener('click', () => { if (O.openSettings) O.openSettings(); });
@@ -140,7 +141,49 @@ const Inbox = (() => {
         el('inboxBody').innerHTML = (neu.length ? `<h3 class="inbox-group">ใหม่</h3>${neu.map(card).join('')}` : '') + (old.length ? `<h3 class="inbox-group">${neu.length ? 'ก่อนหน้านี้' : 'ล่าสุด'}</h3>${old.map(card).join('')}` : '');
     }
 
-    function markRead(id) { const s = state(); if (s.read.indexOf(id) === -1) { s.read.push(id); save(s); } }
+    function markRead(id) { const s = state(); if (s.read.indexOf(id) === -1) { s.read.push(id); save(s); queue([id]); } }
+
+    // ---------- ซิงก์สถานะอ่านแล้วข้ามอุปกรณ์ (Inbox.gs: inbox.read / inbox.state) ----------
+    // อ่านที่เครื่องไหน → ส่งขึ้นระบบ (รวบเป็นชุดทุก 0.6 วิ) · ทุกเครื่องดึงสถานะทุก 20 วิ ขณะเปิดแอป และทันทีที่กลับมาที่แอป
+    // รวมแบบไม่ถอยหลัง: read = รวมกัน · seen = ค่ามากสุด · first = ค่าน้อยสุด
+    let pend = { read: new Set(), seen: 0 }, pushTimer = 0, pushing = false;
+    function queue(ids, seen) {
+        if (!O || !O.push || !O.uid()) return;
+        (ids || []).forEach(x => pend.read.add(x));
+        if (seen) pend.seen = Math.max(pend.seen, seen);
+        clearTimeout(pushTimer);
+        pushTimer = setTimeout(flushPush, 600);
+    }
+    async function flushPush() {
+        if (pushing || !O || !O.uid() || (!pend.read.size && !pend.seen)) return;
+        const uid = O.uid(), batch = { read: [...pend.read].slice(-300), seen: pend.seen, first: state().first };
+        pend = { read: new Set(), seen: 0 };
+        pushing = true;
+        let r = null;
+        try { r = await O.push(batch); } catch (e) { r = null; }
+        pushing = false;
+        if (O.uid() !== uid) return; // สลับบัญชีระหว่างรอ
+        if (r && r.success && r.state) applyState(r.state);
+        else if (!r || r.networkError) { batch.read.forEach(x => pend.read.add(x)); pend.seen = Math.max(pend.seen, batch.seen); pushTimer = setTimeout(flushPush, 15000); } // เน็ตหลุด: ลองใหม่
+        // ระบบหลังบ้านยังไม่รองรับ (ยังไม่ได้วาง Inbox.gs รุ่นใหม่): เก็บไว้ในเครื่องอย่างเดียว ไม่ส่งซ้ำ
+    }
+    function applyState(st) {
+        if (!st || !O || !O.uid()) return;
+        const s = state(), have = new Set(s.read);
+        let changed = false;
+        (st.read || []).forEach(x => { if (!have.has(x)) { have.add(x); s.read.push(x); changed = true; } });
+        if ((st.seen || 0) > s.seen) { s.seen = st.seen; changed = true; }
+        if (st.first && st.first < s.first) { s.first = st.first; changed = true; }
+        // เครื่องนี้มีที่ระบบยังไม่มี (เช่น อ่านตอนออฟไลน์) → ส่งขึ้นไปด้วย
+        const srv = new Set(st.read || []), extra = s.read.filter(x => !srv.has(x));
+        if (extra.length || s.seen > (st.seen || 0) || !st.at) queue(extra.slice(-300), s.seen > (st.seen || 0) ? s.seen : 0);
+        if (changed) { save(s); if (shown()) render(); badge(); }
+    }
+    async function pullState() {
+        if (!O || !O.uid() || !O.pullState || document.hidden) return;
+        const uid = O.uid();
+        try { const r = await O.pullState(); if (O.uid() === uid && r && r.success && r.state) applyState(r.state); } catch (e) { /* ลองรอบหน้า */ }
+    }
     function onClick(e) {
         const art = e.target.closest('.inbox-item'); if (!art) return;
         const it = items().find(x => x.id === art.dataset.id); if (!it) return;
@@ -161,14 +204,14 @@ const Inbox = (() => {
         bind();
         filter = cat || pendingCat || 'all'; // เปิดแท็บใหม่ทุกครั้งเริ่มที่ "ทั้งหมด" (เว้นแต่ขอหมวดมา)
         pendingCat = null;
-        const s = state(); s.seen = Date.now(); save(s);
+        const s = state(); s.seen = Date.now(); save(s); queue([], s.seen);
         if (el('inboxManage')) {
             el('inboxManage').hidden = !(O.manage && O.manage.show());
             if (O.manage) el('inboxManage').querySelector('span').textContent = O.manage.label;
         }
         render();
         badge();
-        refresh(false).then(() => { if (shown()) { const s2 = state(); s2.seen = Date.now(); save(s2); badge(); } });
+        refresh(false).then(() => { if (shown()) { const s2 = state(); s2.seen = Date.now(); save(s2); queue([], s2.seen); badge(); } });
         try { if (window.Analytics) Analytics.track('inbox_open', { v: items().filter(it => isUnread(it, s)).length }); } catch (e) {}
     }
 
@@ -178,21 +221,24 @@ const Inbox = (() => {
         if (loading) return loading;
         if (!force && Date.now() - serverAt < 60000) return Promise.resolve();
         loading = (async () => {
-            try { const r = await O.fetch(); if (r && r.success) setServer(r.items, Date.now()); } catch (e) { /* ใช้ของเดิม */ }
+            try { const r = await O.fetch(); if (r && r.success) { setServer(r.items, Date.now()); if (r.state) applyState(r.state); } } catch (e) { /* ใช้ของเดิม */ }
             finally { loading = null; }
         })();
         return loading;
     }
-    function reset() { server = []; serverAt = 0; expanded.clear(); filter = 'all'; badge(); }
+    function reset() { server = []; serverAt = 0; expanded.clear(); filter = 'all'; clearTimeout(pushTimer); pend = { read: new Set(), seen: 0 }; badge(); }
 
     function init(opts) {
         O = opts;
         bind();
         document.addEventListener('click', e => { if (e.target.closest('[data-inbox]')) { if (typeof haptic === 'function') haptic(); open(); } });
-        // กลับมาที่แอป/ทุก 5 นาทีที่เปิดค้าง: ดึงใหม่
-        document.addEventListener('visibilitychange', () => { if (!document.hidden) { badge(); refresh(false); } });
-        setInterval(() => { if (!document.hidden) refresh(true); }, 5 * 60000);
+        // กลับมาที่แอป: ดึงสถานะ + รายการใหม่ · เปิดค้าง: สถานะอ่านแล้วทุก 20 วิ รายการใหม่ทุก 2 นาที · ปิดแอป: ส่งที่ค้างทันที
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) { badge(); pullState(); refresh(false); } else flushPush(); });
+        setInterval(pullState, O.stateEvery || 20000);
+        setInterval(() => { if (!document.hidden) refresh(true); }, 2 * 60000);
+        // แท็บอื่นในเบราว์เซอร์เดียวกัน: อัปเดตทันที
+        window.addEventListener('storage', e => { if (O.uid() && e.key === storeKey()) { if (shown()) render(); badge(); } });
         badge();
     }
-    return { init, open, onShow, setServer, refresh, update: badge, reset, items, CHANGELOG };
+    return { init, open, onShow, setServer, setState: applyState, pullState, refresh, update: badge, reset, items, CHANGELOG };
 })();

@@ -92,6 +92,8 @@ document.addEventListener('DOMContentLoaded', () => {
         app: 'staff',
         uid: () => (ST.me && ST.token ? ST.me.id : ''),
         fetch: () => api('staff.inbox.list'),
+        push: patch => api('staff.inbox.read', patch),
+        pullState: () => api('staff.inbox.state'),
         openSettings: () => openSettings(),
         show: () => switchTab('inbox'),
         manage: { label: 'เขียนประกาศ', show: () => can('admin'), open: () => { VIEWS.admin.tab = 'news'; switchTab('admin'); setTimeout(() => NewsAdmin.openEditor(null), 150); } },

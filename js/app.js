@@ -230,6 +230,7 @@ async function performLogin(userId, isAuto, background = false) {
         CURRENT_USER = res.data;
         if (Array.isArray(res.surveys)) setSurveys(res.surveys);
         if (Array.isArray(res.inbox)) Inbox.setServer(res.inbox);
+        if (res.inboxState) Inbox.setState(res.inboxState);
         if (!isAuto) maybeOnboard();
         if (!background) return setupApp(res.history);
         renderUser();
@@ -1514,6 +1515,8 @@ function initInbox() {
         app: 'user',
         uid: () => CURRENT_USER.id || '',
         fetch: () => callApi('inbox.list', { userId: CURRENT_USER.id }),
+        push: patch => callApi('inbox.read', Object.assign({ userId: CURRENT_USER.id }, patch)),
+        pullState: () => callApi('inbox.state', { userId: CURRENT_USER.id }),
         openSettings: () => openSettings(),
         show: () => switchTab('inbox'),
         local: inboxLocalItems,

@@ -34,6 +34,26 @@ function verifyGoogle_(credential) {
   return { provider: 'google', sub: String(info.sub), email: String(info.email || '').toLowerCase(), name: info.name || info.email, picture: info.picture || '' };
 }
 
+// ปุ่ม "เข้าสู่ระบบด้วย Google" แบบออกแบบเอง (js/staff/core.js): หน้าเว็บได้ access token จาก Google (popup เลือกบัญชี)
+// ตรวจว่า token ออกให้ Client ID ของระบบนี้ อีเมลยืนยันแล้ว และยังไม่หมดอายุ แล้วอ่านชื่อ/รูปจาก userinfo
+function verifyGoogleAccess_(accessToken) {
+  const clientId = prop_('GOOGLE_CLIENT_ID');
+  if (!clientId) fail_('CONFIG', 'ระบบยังไม่ได้ตั้งค่า GOOGLE_CLIENT_ID');
+  if (!accessToken) fail_('INVALID', 'ไม่พบข้อมูลการเข้าสู่ระบบจาก Google');
+  const res = UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo?access_token=' + encodeURIComponent(accessToken), { muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) fail_('AUTH', 'ยืนยันตัวตนกับ Google ไม่สำเร็จ กรุณาลองใหม่');
+  const info = JSON.parse(res.getContentText());
+  if (info.aud !== clientId && info.azp !== clientId) fail_('AUTH', 'Token ไม่ได้ออกให้ระบบนี้');
+  if (String(info.email_verified) !== 'true' || !info.email) fail_('AUTH', 'อีเมล Google ยังไม่ได้ยืนยัน');
+  if (Number(info.exp) * 1000 < Date.now() && Number(info.expires_in) <= 0) fail_('AUTH', 'Token หมดอายุ กรุณาเข้าสู่ระบบใหม่');
+  let name = info.email, picture = '';
+  try {
+    const u = UrlFetchApp.fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: 'Bearer ' + accessToken }, muteHttpExceptions: true });
+    if (u.getResponseCode() === 200) { const p = JSON.parse(u.getContentText()); if (p.sub && String(p.sub) !== String(info.sub)) fail_('AUTH', 'ข้อมูลบัญชี Google ไม่ตรงกัน'); name = p.name || name; picture = p.picture || ''; }
+  } catch (e) { if (e.code) throw e; }
+  return { provider: 'google', sub: String(info.sub), email: String(info.email).toLowerCase(), name: name, picture: picture };
+}
+
 function verifyLine_(code, codeVerifier, redirectUri) {
   const channelId = prop_('LINE_CHANNEL_ID'), channelSecret = prop_('LINE_CHANNEL_SECRET');
   if (!channelId || !channelSecret) fail_('CONFIG', 'ระบบยังไม่ได้ตั้งค่า LINE_CHANNEL_ID / LINE_CHANNEL_SECRET');
