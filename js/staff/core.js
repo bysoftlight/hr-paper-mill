@@ -371,7 +371,7 @@ function applyPerms() {
 }
 
 // ---------- Navigation ----------
-const TAB_ORDER = ['overview', 'records', 'participants', 'analytics', 'admin', 'account'];
+const TAB_ORDER = ['overview', 'records', 'participants', 'analytics', 'admin', 'inbox', 'account'];
 const TAB_PERM = { overview: 'records.view', records: 'records.view', participants: 'participants.view', analytics: 'admin', admin: 'admin' };
 function tabAllowed(t) { return !TAB_PERM[t] || can(TAB_PERM[t]); }
 function tabFromHash() {
@@ -395,6 +395,7 @@ function switchTab(tab, push = true) {
     Analytics.page(tab);
     if (VIEWS[tab] && VIEWS[tab].show) VIEWS[tab].show();
     if (tab === 'analytics') centerSelectedTab($('anAdmTabs'), true);
+    if (tab === 'inbox' && typeof Inbox !== 'undefined') Inbox.onShow();
 }
 
 // แถบแท็บผู้ดูแล (6 แท็บ) เลื่อนแนวนอนได้บนมือถือ: เลื่อนแท็บที่เลือกมาไว้กลางแถบ (ไม่เลื่อนหน้าแนวตั้ง)

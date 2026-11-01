@@ -2,13 +2,15 @@
 //   Inbox.init({ app: 'user'|'staff', uid(), fetch() → Promise<{success, items}>, local() → items[], onAction(item), manage?: { label, show(), open() } })
 //   Inbox.setServer(items) · Inbox.refresh(force) · Inbox.update() (คำนวณรายการในเครื่องใหม่) · Inbox.open()
 // item = { id, ts, cat: 'usage'|'update'|'news', icon, tone?, title, body, link?, action?: { kind, value, label } }
+// หน้าเว็บต้องมี #inboxView (#inboxTabs #inboxBody #inboxReadAll #inboxSettings [#inboxManage]) และส่ง show() ที่สลับไปแท็บนี้
 // อ่านแล้ว/เปิดดูล่าสุด เก็บในเครื่อง (HRPM_INBOX_<app>_<uid>) — กระดิ่งนับเฉพาะรายการใหม่หลังเปิดกล่องครั้งล่าสุด
 const Inbox = (() => {
     // ประวัติการอัปเดตแอป (ใหม่สุดก่อน) — who: all | user | staff
     const CHANGELOG = [
+        { v: '3.38.0', date: '2026-11-01', who: 'all', title: 'แท็บแจ้งเตือนย้ายมาอยู่แถบเมนูด้านล่าง', body: 'แตะ "แจ้งเตือน" ก่อนแท็บบัญชีเพื่อดูการแจ้งเตือนทั้งหมด แท็บบัญชีแสดงรูปโปรไฟล์ และแตะโปรไฟล์ของคุณที่ไหนก็เปิดหน้าบัญชีได้' },
         { v: '3.37.0', date: '2026-11-01', who: 'user', title: 'แบบสอบถามแบบใหม่ ทำทีละข้อ', body: 'คำถามตัวใหญ่ขึ้น ปุ่มคะแนนกดง่าย เลือกแล้วไปข้อถัดไปเอง ย้อนกลับแก้คำตอบได้', vkey: 'user' },
         { v: '3.37.0', date: '2026-11-01', who: 'staff', title: 'ดูภาพรวมย้อนหลังได้', body: 'หน้าภาพรวมเลือก วันนี้ / เมื่อวาน / เลือกวันเองได้ ช่องวันที่แสดงแบบไทยและพอดีจอทุกเครื่อง', vkey: 'staff' },
-        { v: '3.36.0', date: '2026-11-01', who: 'all', title: 'ใหม่: กล่องการแจ้งเตือน', body: 'แตะกระดิ่งด้านบนเพื่อดูการแจ้งเตือนทั้งหมดในที่เดียว ทั้งการใช้งาน การอัปเดตแอป และข่าวสารจากผู้ดูแลระบบ' },
+        { v: '3.36.0', date: '2026-11-01', who: 'all', title: 'ใหม่: กล่องการแจ้งเตือน', body: 'ดูการแจ้งเตือนทั้งหมดในที่เดียว ทั้งการใช้งาน การอัปเดตแอป และข่าวสารจากผู้ดูแลระบบ' },
         { v: '3.36.0', date: '2026-11-01', who: 'staff', title: 'ผู้ดูแลระบบประกาศข่าวสารได้แล้ว', body: 'ผู้ดูแลระบบ › ประกาศ — เขียนประกาศถึงผู้ใช้สิทธิ์หรือเจ้าหน้าที่ และเลือกส่งแจ้งเตือนบนมือถือได้', vkey: 'staff' },
         { v: '3.35.0', date: '2026-11-01', who: 'all', title: 'แจ้งปัญหาการใช้งานได้ในแอป', body: 'เจอปัญหา แจ้งได้ที่ บัญชี › แจ้งปัญหาการใช้งาน แนบภาพหน้าจอได้ เรื่องจะส่งถึงผู้ดูแลระบบทันที' },
         { v: '3.35.0', date: '2026-11-01', who: 'user', title: 'แบบสอบถามความพึงพอใจ', body: 'ช่วยบอกความเห็นการใช้งานแอป ใช้เวลาไม่ถึง 1 นาที ทำหลังส่งรายงาน หรือทำภายหลังก็ได้', vkey: 'user' },
@@ -88,39 +90,22 @@ const Inbox = (() => {
         const n = list.filter(it => isUnread(it, s) && it.ts > s.seen).length;
         document.querySelectorAll('[data-inbox-badge]').forEach(b => { b.hidden = !n; b.textContent = n > 9 ? '9+' : String(n); });
         document.querySelectorAll('[data-inbox]').forEach(b => b.setAttribute('aria-label', n ? `การแจ้งเตือน (${n} รายการใหม่)` : 'การแจ้งเตือน'));
-        if (el('inboxModal') && el('inboxModal').open) render();
+        if (shown()) render();
     }
 
-    // ---------- กล่อง ----------
-    function dialog() {
-        let d = el('inboxModal');
-        if (d) return d;
-        d = document.createElement('dialog');
-        d.id = 'inboxModal';
-        d.className = 'sheet inbox-sheet';
-        d.setAttribute('aria-labelledby', 'inboxTitle');
-        d.innerHTML = `
-            <div class="sheet-head inbox-head">
-                <div><h2 id="inboxTitle">การแจ้งเตือน</h2><p id="inboxSub">การใช้งาน อัปเดตแอป และข่าวสาร</p></div>
-                <div class="inbox-head-actions">
-                    <button type="button" class="btn-text" id="inboxReadAll">${svg('check', 'ic-16')} อ่านทั้งหมด</button>
-                    <button type="button" class="icon-btn" data-close aria-label="ปิด">${svg('x')}</button>
-                </div>
-            </div>
-            <div class="inbox-tabs" role="tablist" aria-label="ประเภทการแจ้งเตือน" id="inboxTabs" data-scrollfade></div>
-            <div class="sheet-body inbox-body" id="inboxBody" aria-live="polite"></div>
-            <div class="sheet-foot inbox-foot">
-                <button type="button" class="btn-text" id="inboxSettings">${svg('settings', 'ic-16')} ตั้งค่าการแจ้งเตือนบนเครื่อง</button>
-                <button type="button" class="btn-chip" id="inboxManage" hidden>${svg('plus', 'ic-16')} <span></span></button>
-            </div>`;
-        document.body.appendChild(d);
+    // ---------- หน้าการแจ้งเตือน (แท็บ "แจ้งเตือน" ก่อนแท็บบัญชี แบบ Facebook) ----------
+    let bound = false;
+    const shown = () => { const v = el('inboxView'); return !!(v && !v.hidden); };
+    function bind() {
+        if (bound || !el('inboxView')) return;
+        bound = true;
         if (typeof ScrollFade !== 'undefined') ScrollFade.watch(el('inboxTabs'));
         el('inboxTabs').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (!b) return; filter = b.dataset.cat; render(); });
         el('inboxReadAll').addEventListener('click', () => { const s = state(); items().forEach(it => { if (s.read.indexOf(it.id) === -1) s.read.push(it.id); }); save(s); render(); badge(); });
         el('inboxBody').addEventListener('click', onClick);
-        el('inboxSettings').addEventListener('click', () => { d.close(); if (O.openSettings) O.openSettings(); });
-        el('inboxManage').addEventListener('click', () => { d.close(); if (O.manage) O.manage.open(); });
-        return d;
+        el('inboxBody').addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('inbox-item')) { e.preventDefault(); e.target.click(); } });
+        el('inboxSettings').addEventListener('click', () => { if (O.openSettings) O.openSettings(); });
+        if (el('inboxManage')) el('inboxManage').addEventListener('click', () => { if (O.manage) O.manage.open(); });
     }
 
     function render() {
@@ -163,44 +148,51 @@ const Inbox = (() => {
         if (a && a.dataset.ia === 'more') { expanded.has(it.id) ? expanded.delete(it.id) : expanded.add(it.id); markRead(it.id); render(); badge(); return; }
         markRead(it.id);
         if (a && a.dataset.ia === 'link') { setTimeout(() => { render(); badge(); }, 0); return; } // ให้ลิงก์เปิดตามปกติ
-        if ((a && a.dataset.ia === 'act') || (!a && it.action)) { el('inboxModal').close(); badge(); if (O.onAction) O.onAction(it); return; }
+        if ((a && a.dataset.ia === 'act') || (!a && it.action)) { badge(); if (O.onAction) O.onAction(it); return; }
         render(); badge();
     }
 
-    function open(cat) {
+    // เปิดแท็บแจ้งเตือน (ปุ่ม/ลิงก์อื่นที่ต้องการพาไปหน้านี้)
+    let pendingCat = null;
+    function open(cat) { if (!O) return; pendingCat = cat || null; if (O.show) O.show(); }
+    // เรียกตอนแท็บแจ้งเตือนแสดง: เลขบนกระดิ่งหาย (จุด "ยังไม่อ่าน" ยังอยู่) · ดึงรายการใหม่
+    function onShow(cat) {
         if (!O) return;
-        const d = dialog();
-        filter = cat || 'all'; // เปิดใหม่ทุกครั้งเริ่มที่ "ทั้งหมด"
-        const s = state(); s.seen = Date.now(); save(s); // เปิดกล่องแล้ว: เลขบนกระดิ่งหาย (จุด "ยังไม่อ่าน" ยังอยู่)
-        el('inboxManage').hidden = !(O.manage && O.manage.show());
-        if (O.manage) el('inboxManage').querySelector('span').textContent = O.manage.label;
+        bind();
+        filter = cat || pendingCat || 'all'; // เปิดแท็บใหม่ทุกครั้งเริ่มที่ "ทั้งหมด" (เว้นแต่ขอหมวดมา)
+        pendingCat = null;
+        const s = state(); s.seen = Date.now(); save(s);
+        if (el('inboxManage')) {
+            el('inboxManage').hidden = !(O.manage && O.manage.show());
+            if (O.manage) el('inboxManage').querySelector('span').textContent = O.manage.label;
+        }
         render();
-        if (!d.open) d.showModal();
-        el('inboxBody').scrollTop = 0;
         badge();
-        refresh(false);
+        refresh(false).then(() => { if (shown()) { const s2 = state(); s2.seen = Date.now(); save(s2); badge(); } });
         try { if (window.Analytics) Analytics.track('inbox_open', { v: items().filter(it => isUnread(it, s)).length }); } catch (e) {}
     }
 
     function setServer(list, at) { server = Array.isArray(list) ? list.filter(x => x && x.id && x.ts) : []; serverAt = at || Date.now(); badge(); }
     async function refresh(force) {
-        if (!O || !O.uid() || loading) return loading;
-        if (!force && Date.now() - serverAt < 60000) return;
+        if (!O || !O.uid()) return Promise.resolve();
+        if (loading) return loading;
+        if (!force && Date.now() - serverAt < 60000) return Promise.resolve();
         loading = (async () => {
             try { const r = await O.fetch(); if (r && r.success) setServer(r.items, Date.now()); } catch (e) { /* ใช้ของเดิม */ }
             finally { loading = null; }
         })();
         return loading;
     }
-    function reset() { server = []; serverAt = 0; expanded.clear(); filter = 'all'; if (el('inboxModal') && el('inboxModal').open) el('inboxModal').close(); badge(); }
+    function reset() { server = []; serverAt = 0; expanded.clear(); filter = 'all'; badge(); }
 
     function init(opts) {
         O = opts;
+        bind();
         document.addEventListener('click', e => { if (e.target.closest('[data-inbox]')) { if (typeof haptic === 'function') haptic(); open(); } });
         // กลับมาที่แอป/ทุก 5 นาทีที่เปิดค้าง: ดึงใหม่
         document.addEventListener('visibilitychange', () => { if (!document.hidden) { badge(); refresh(false); } });
         setInterval(() => { if (!document.hidden) refresh(true); }, 5 * 60000);
         badge();
     }
-    return { init, open, setServer, refresh, update: badge, reset, items, CHANGELOG };
+    return { init, open, onShow, setServer, refresh, update: badge, reset, items, CHANGELOG };
 })();

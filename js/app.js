@@ -319,7 +319,6 @@ function setupApp(history, cachedAt) {
     refreshOutbox().then(() => { if (navigator.onLine) flushOutbox(); });
     if (cachedAt) loadStoredSurveys(); // เปิดจากข้อมูลในเครื่อง: แสดงแถบเตือนทันที แล้วอัปเดตเมื่อเข้าระบบเบื้องหลังเสร็จ
     else surveyOnOpen();
-    if (location.hash === '#inbox') { setUrl(location.pathname + '#form'); setTimeout(() => Inbox.open(), 500); } // จากการแจ้งเตือนประกาศ
     Inbox.update();
 }
 
@@ -374,7 +373,7 @@ function renderAvatar(el) {
     }
 }
 
-const TABS = ['form', 'history', 'account'];
+const TABS = ['form', 'history', 'inbox', 'account'];
 function tabFromHash() {
     const t = location.hash.replace('#', '');
     return TABS.includes(t) ? t : 'form';
@@ -387,7 +386,6 @@ function initNav() {
     window.addEventListener('hashchange', () => {
         if ($('appContainer').hidden) return;
         if (/^#survey=/.test(location.hash)) return handleSurveyLink();
-        if (location.hash === '#inbox') { setUrl(location.pathname + '#form'); return Inbox.open(); }
         switchTab(tabFromHash(), false);
     });
 }
@@ -396,6 +394,7 @@ function switchTab(tab, pushHash = true) {
     $('formView').hidden = tab !== 'form';
     $('historyView').hidden = tab !== 'history';
     $('accountView').hidden = tab !== 'account';
+    $('inboxView').hidden = tab !== 'inbox';
     document.querySelectorAll('[data-tab]').forEach(btn => {
         if (btn.dataset.tab === tab) btn.setAttribute('aria-current', 'page'); else btn.removeAttribute('aria-current');
     });
@@ -403,6 +402,7 @@ function switchTab(tab, pushHash = true) {
     window.scrollTo({ top: 0 });
     Analytics.page(tab);
     if (tab === 'history' && !HISTORY_LOADED) loadHistoryData();
+    if (tab === 'inbox') Inbox.onShow();
 }
 
 // --- FORM HANDLING ---
@@ -1414,6 +1414,10 @@ let SURVEYS = [];
 let SURVEY_PROMPTED = false;                  // เด้งเองไม่เกินครั้งละหนึ่งครั้งต่อการเปิดแอป
 const todayKey = () => new Date().toLocaleDateString('en-CA');
 
+// แตะโปรไฟล์ของตัวเอง (การ์ดในหน้าส่งรายงาน / ชื่อในเมนูด้านข้าง) = เปิดหน้าบัญชี
+document.addEventListener('click', e => { if (e.target.closest('[data-goto-account]') && !e.target.closest('a, button')) { haptic(); switchTab('account'); } });
+document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-goto-account]')) { e.preventDefault(); switchTab('account'); } });
+
 function initFeedback() {
     // ลิงก์จากหน้าคำถามที่พบบ่อย (./#problem): เปิดฟอร์มแจ้งปัญหาเลย
     if (location.hash === '#problem') setTimeout(() => { setUrl(location.pathname + (CURRENT_USER.id ? '#form' : '')); openProblemReport(); }, 700);
@@ -1511,6 +1515,7 @@ function initInbox() {
         uid: () => CURRENT_USER.id || '',
         fetch: () => callApi('inbox.list', { userId: CURRENT_USER.id }),
         openSettings: () => openSettings(),
+        show: () => switchTab('inbox'),
         local: inboxLocalItems,
         onAction: it => {
             const a = it.action || {};

@@ -145,3 +145,4 @@ body.page-faq .doc-bar { background: color-mix(in srgb, var(--field) 88%, transp
 .home-pill { margin-top: 18px; display: inline-flex; align-items: center; min-height: 44px; padding: 0 22px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none; font-size: 14px; font-weight: 500; box-shadow: 0 2px 8px rgba(16, 24, 40, .06); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (hover: hover) { .home-pill:hover { border-color: var(--accent); color: var(--accent); } }
 @media print { .brand-foot { display: none; } }
+.prose .cookie-open { width: auto; min-height: 44px; border-radius: 999px; padding: 0 20px; font-size: 15px; }

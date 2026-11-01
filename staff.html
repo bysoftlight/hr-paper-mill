@@ -24,9 +24,9 @@
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <!-- เปลี่ยนเลข ?v= ทุกครั้งที่แก้ CSS/JS -->
-  <script src="js/settings.js?v=3.37.0"></script>
-  <link rel="stylesheet" href="css/style.css?v=3.37.0">
-  <link rel="stylesheet" href="css/staff.css?v=3.37.0">
+  <script src="js/settings.js?v=3.38.0"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.38.0">
+  <link rel="stylesheet" href="css/staff.css?v=3.38.0">
 </head>
 <body class="staff">
 
@@ -514,7 +514,7 @@
   <!-- ===== Sign in ===== -->
   <div id="authView" class="login" hidden>
     <section class="login-intro" aria-labelledby="authTitle">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.37.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.38.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <p class="eyebrow">สำหรับเจ้าหน้าที่ HR และผู้ดูแลระบบ</p>
       <h1 id="authTitle">ติดตามรายงานการขาย<br>ของผู้ใช้สิทธิ์ทุกคนในที่เดียว</h1>
       <ol class="intro-steps">
@@ -535,6 +535,7 @@
           </button>
         </div>
         <p class="hint" id="authHint" role="status"></p>
+        <p class="login-legal">การเข้าสู่ระบบถือว่าท่านยอมรับ<a href="terms.html">ข้อกำหนดการใช้งาน</a>และ<a href="privacy.html">นโยบายความเป็นส่วนตัว</a>ของเรา</p>
         <div class="banner banner-info auth-note">
           <svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg>
           <div><b>บัญชีใหม่ต้องได้รับอนุมัติ</b>หลังเข้าสู่ระบบครั้งแรก ผู้ดูแลระบบต้องให้สิทธิ์ก่อนจึงจะเห็นข้อมูล</div>
@@ -572,23 +573,23 @@
   <!-- ===== App ===== -->
   <div id="appContainer" class="app" hidden>
     <header class="topbar">
-      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.37.0" alt="" width="36" height="36"><span>HR Staff</span></a>
-      <div class="topbar-actions"><span class="live" data-live><span class="live-dot"></span><span data-live-text>อัปเดตสด</span></span><button type="button" class="icon-btn bell-btn" data-inbox aria-label="การแจ้งเตือน"><svg class="ic" aria-hidden="true"><use href="#i-bell"/></svg><span class="bell-badge" data-inbox-badge hidden></span></button></div>
+      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.38.0" alt="" width="36" height="36"><span>HR Staff</span></a>
+      <div class="topbar-actions"><span class="live" data-live><span class="live-dot"></span><span data-live-text>อัปเดตสด</span></span></div>
     </header>
 
     <nav class="sidenav" aria-label="เมนูหลัก">
-      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.37.0" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></a>
+      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.38.0" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></a>
       <div class="nav-items">
         <button type="button" class="nav-item" data-tab="overview" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-grid"/></svg><span>ภาพรวม</span></button>
         <button type="button" class="nav-item" data-tab="records" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-list"/></svg><span>รายงาน</span></button>
         <button type="button" class="nav-item" data-tab="participants" data-perm="participants.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-users"/></svg><span>ผู้ใช้สิทธิ์</span></button>
         <button type="button" class="nav-item" data-tab="admin" data-perm="admin"><svg class="ic ic-22" aria-hidden="true"><use href="#i-shield"/></svg><span>ผู้ดูแลระบบ</span><span class="nav-badge" data-pending-badge hidden></span></button>
-        <button type="button" class="nav-item" data-tab="account"><svg class="ic ic-22" aria-hidden="true"><use href="#i-user"/></svg><span>บัญชี</span></button>
-        <button type="button" class="nav-item nav-bell" data-inbox aria-label="การแจ้งเตือน"><span class="nav-bell-ic"><svg class="ic ic-22" aria-hidden="true"><use href="#i-bell"/></svg><span class="bell-badge" data-inbox-badge hidden></span></span><span>แจ้งเตือน</span></button>
+        <button type="button" class="nav-item nav-bell" data-tab="inbox"><span class="nav-bell-ic"><svg class="ic ic-22" aria-hidden="true"><use href="#i-bell"/></svg><span class="bell-badge" data-inbox-badge hidden></span></span><span>แจ้งเตือน</span></button>
+        <button type="button" class="nav-item nav-account" data-tab="account"><span class="nav-ava-wrap"><svg class="ic ic-22 nav-ava-fallback" aria-hidden="true"><use href="#i-user"/></svg><span class="avatar nav-ava" data-me="avatar" aria-hidden="true"></span></span><span>บัญชี</span></button>
       </div>
       <div class="nav-user">
         <span class="live" data-live><span class="live-dot"></span><span data-live-text>อัปเดตสด</span></span>
-        <div class="nav-user-row">
+        <div class="nav-user-row" data-goto="account" role="link" tabindex="0" aria-label="บัญชีของฉัน">
           <div class="avatar" data-me="avatar"></div>
           <div class="nav-user-text"><b data-me="name"></b><small data-me="role"></small></div>
         </div>
@@ -955,6 +956,20 @@
     </main>
 
     <!-- Account -->
+    <!-- การแจ้งเตือน (js/inbox.js) -->
+    <main id="inboxView" class="view inbox-view" hidden aria-labelledby="inboxTitle">
+      <div class="view-head view-head-row">
+        <div><h2 id="inboxTitle">การแจ้งเตือน</h2><p>การใช้งาน อัปเดตแอป และข่าวสาร</p></div>
+        <div class="head-actions head-inline"><button type="button" class="btn-text" id="inboxReadAll"><svg class="ic ic-16" aria-hidden="true"><use href="#i-check"/></svg> อ่านทั้งหมด</button></div>
+      </div>
+      <div class="inbox-tabs" role="tablist" aria-label="ประเภทการแจ้งเตือน" id="inboxTabs" data-scrollfade></div>
+      <div class="inbox-body" id="inboxBody" aria-live="polite"></div>
+      <div class="inbox-foot">
+        <button type="button" class="btn-text" id="inboxSettings"><svg class="ic ic-16" aria-hidden="true"><use href="#i-settings"/></svg> ตั้งค่าการแจ้งเตือนบนเครื่อง</button>
+        <button type="button" class="btn-chip" id="inboxManage" hidden><svg class="ic ic-16" aria-hidden="true"><use href="#i-plus"/></svg> <span></span></button>
+      </div>
+    </main>
+
     <main id="accountView" class="view" hidden aria-labelledby="accTitle">
       <div class="view-head"><h2 id="accTitle">บัญชีของฉัน</h2><p>ข้อมูลการเข้าสู่ระบบและสิทธิ์</p></div>
       <div class="acc-grid">
@@ -991,32 +1006,33 @@
       <button type="button" class="nav-item" data-tab="records" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-list"/></svg><span>รายงาน</span></button>
       <button type="button" class="nav-item" data-tab="participants" data-perm="participants.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-users"/></svg><span>ผู้ใช้สิทธิ์</span></button>
       <button type="button" class="nav-item" data-tab="admin" data-perm="admin"><svg class="ic ic-22" aria-hidden="true"><use href="#i-shield"/></svg><span>ผู้ดูแล</span><span class="nav-badge" data-pending-badge hidden></span></button>
-      <button type="button" class="nav-item" data-tab="account"><svg class="ic ic-22" aria-hidden="true"><use href="#i-user"/></svg><span>บัญชี</span></button>
+      <button type="button" class="nav-item nav-bell" data-tab="inbox"><span class="nav-bell-ic"><svg class="ic ic-22" aria-hidden="true"><use href="#i-bell"/></svg><span class="bell-badge" data-inbox-badge hidden></span></span><span>แจ้งเตือน</span></button>
+        <button type="button" class="nav-item nav-account" data-tab="account"><span class="nav-ava-wrap"><svg class="ic ic-22 nav-ava-fallback" aria-hidden="true"><use href="#i-user"/></svg><span class="avatar nav-ava" data-me="avatar" aria-hidden="true"></span></span><span>บัญชี</span></button>
     </nav>
   </div>
 
   <div id="pdfStage" class="pdf-stage" aria-hidden="true"></div>
 
-  <script src="js/consent.js?v=3.37.0"></script>
-  <script src="js/config.js?v=3.37.0"></script>
-  <script src="js/utils.js?v=3.37.0"></script>
-  <script src="js/glass.js?v=3.37.0"></script>
-  <script src="js/analytics.js?v=3.37.0"></script>
-  <script src="js/api.js?v=3.37.0"></script>
-  <script src="js/charts.js?v=3.37.0"></script>
-  <script src="js/notify.js?v=3.37.0"></script>
-  <script src="js/staff/core.js?v=3.37.0"></script>
-  <script src="js/staff/mapkit.js?v=3.37.0"></script>
-  <script src="js/staff/overview.js?v=3.37.0"></script>
-  <script src="js/staff/records.js?v=3.37.0"></script>
-  <script src="js/staff/participants.js?v=3.37.0"></script>
-  <script src="js/staff/admin.js?v=3.37.0"></script>
-  <script src="js/staff/export.js?v=3.37.0"></script>
-  <script src="js/staff/reports.js?v=3.37.0"></script>
-  <script src="js/staff/analytics.js?v=3.37.0"></script>
-  <script src="js/feedback.js?v=3.37.0"></script>
-  <script src="js/staff/feedback.js?v=3.37.0"></script>
-  <script src="js/inbox.js?v=3.37.0"></script>
-  <script src="js/staff/inbox.js?v=3.37.0"></script>
+  <script src="js/consent.js?v=3.38.0"></script>
+  <script src="js/config.js?v=3.38.0"></script>
+  <script src="js/utils.js?v=3.38.0"></script>
+  <script src="js/glass.js?v=3.38.0"></script>
+  <script src="js/analytics.js?v=3.38.0"></script>
+  <script src="js/api.js?v=3.38.0"></script>
+  <script src="js/charts.js?v=3.38.0"></script>
+  <script src="js/notify.js?v=3.38.0"></script>
+  <script src="js/staff/core.js?v=3.38.0"></script>
+  <script src="js/staff/mapkit.js?v=3.38.0"></script>
+  <script src="js/staff/overview.js?v=3.38.0"></script>
+  <script src="js/staff/records.js?v=3.38.0"></script>
+  <script src="js/staff/participants.js?v=3.38.0"></script>
+  <script src="js/staff/admin.js?v=3.38.0"></script>
+  <script src="js/staff/export.js?v=3.38.0"></script>
+  <script src="js/staff/reports.js?v=3.38.0"></script>
+  <script src="js/staff/analytics.js?v=3.38.0"></script>
+  <script src="js/feedback.js?v=3.38.0"></script>
+  <script src="js/staff/feedback.js?v=3.38.0"></script>
+  <script src="js/inbox.js?v=3.38.0"></script>
+  <script src="js/staff/inbox.js?v=3.38.0"></script>
 </body>
 </html>

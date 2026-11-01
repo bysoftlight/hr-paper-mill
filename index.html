@@ -38,8 +38,8 @@
     /* กันไอคอนขยายเต็มจอ ถ้า stylesheet ยังโหลดไม่เสร็จหรือเป็นเวอร์ชันเก่า (:where = ไม่ทับขนาดใน style.css) */
     :where(svg.ic) { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; }
   </style>
-  <script src="js/settings.js?v=3.37.0"></script>
-  <link rel="stylesheet" href="css/style.css?v=3.37.0">
+  <script src="js/settings.js?v=3.38.0"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.38.0">
 </head>
 <body>
 
@@ -326,7 +326,7 @@
   <!-- ===== Login ===== -->
   <div id="loginView" class="login">
     <section class="login-intro" aria-labelledby="loginTitle">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.37.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.38.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <p class="eyebrow">โครงการใช้สิทธิ์สัมปทานผู้พิการตามมาตรา 35 · ปี 2569</p>
       <h1 id="loginTitle">รายงานการขายประจำวัน<br>ส่งได้ในไม่กี่ขั้นตอน</h1>
       <ol class="intro-steps">
@@ -351,6 +351,7 @@
         <button type="submit" class="btn btn-primary" id="loginBtn" disabled>
           เข้าสู่ระบบ <svg class="ic" aria-hidden="true"><use href="#i-arrow-right"/></svg>
         </button>
+        <p class="login-legal">การเข้าสู่ระบบถือว่าท่านยอมรับ<a href="terms.html">ข้อกำหนดการใช้งาน</a>และ<a href="privacy.html">นโยบายความเป็นส่วนตัว</a>ของเรา</p>
         <div class="login-links">
           <button type="button" class="btn-text" data-open="rulesModal"><svg class="ic ic-16" aria-hidden="true"><use href="#i-book"/></svg> อ่านข้อปฏิบัติ</button>
           <button type="button" class="btn-text" data-open="howtoModal"><svg class="ic ic-16" aria-hidden="true"><use href="#i-help"/></svg> วิธีใช้งาน</button>
@@ -375,21 +376,21 @@
   <!-- ===== App ===== -->
   <div id="appContainer" class="app is-syncing" hidden>
     <header class="topbar">
-      <a class="brand" href="#form" data-home aria-label="HR Paper Mill — หน้าแรก"><img class="logo" src="img/logo.png?v=3.37.0" alt="" width="36" height="36"><span>HR Paper Mill</span></a>
-      <div class="topbar-actions"><span class="chip" data-today>&nbsp;</span><button type="button" class="icon-btn bell-btn" data-inbox aria-label="การแจ้งเตือน"><svg class="ic" aria-hidden="true"><use href="#i-bell"/></svg><span class="bell-badge" data-inbox-badge hidden></span></button></div>
+      <a class="brand" href="#form" data-home aria-label="HR Paper Mill — หน้าแรก"><img class="logo" src="img/logo.png?v=3.38.0" alt="" width="36" height="36"><span>HR Paper Mill</span></a>
+      <div class="topbar-actions"><span class="chip" data-today>&nbsp;</span></div>
     </header>
 
     <nav class="sidenav" aria-label="เมนูหลัก">
-      <a class="brand" href="#form" data-home aria-label="HR Paper Mill — หน้าแรก"><img class="logo" src="img/logo.png?v=3.37.0" alt="" width="36" height="36"><span class="brand-text">HR Paper Mill</span></a>
+      <a class="brand" href="#form" data-home aria-label="HR Paper Mill — หน้าแรก"><img class="logo" src="img/logo.png?v=3.38.0" alt="" width="36" height="36"><span class="brand-text">HR Paper Mill</span></a>
       <div class="nav-items">
         <button type="button" class="nav-item" data-tab="form" aria-current="page"><svg class="ic ic-22" aria-hidden="true"><use href="#i-send"/></svg><span>ส่งรายงาน</span></button>
         <button type="button" class="nav-item" data-tab="history"><svg class="ic ic-22" aria-hidden="true"><use href="#i-history"/></svg><span>ประวัติ</span></button>
-        <button type="button" class="nav-item" data-tab="account"><svg class="ic ic-22" aria-hidden="true"><use href="#i-user"/></svg><span>บัญชี</span></button>
-        <button type="button" class="nav-item nav-bell" data-inbox aria-label="การแจ้งเตือน"><span class="nav-bell-ic"><svg class="ic ic-22" aria-hidden="true"><use href="#i-bell"/></svg><span class="bell-badge" data-inbox-badge hidden></span></span><span>แจ้งเตือน</span></button>
+        <button type="button" class="nav-item nav-bell" data-tab="inbox"><span class="nav-bell-ic"><svg class="ic ic-22" aria-hidden="true"><use href="#i-bell"/></svg><span class="bell-badge" data-inbox-badge hidden></span></span><span>แจ้งเตือน</span></button>
+        <button type="button" class="nav-item nav-account" data-tab="account"><span class="nav-ava-wrap"><svg class="ic ic-22 nav-ava-fallback" aria-hidden="true"><use href="#i-user"/></svg><span class="avatar nav-ava" data-user="avatar" aria-hidden="true"></span></span><span>บัญชี</span></button>
       </div>
       <div class="nav-user">
         <span class="chip" data-today>&nbsp;</span>
-        <div class="nav-user-row">
+        <div class="nav-user-row" data-goto-account role="link" tabindex="0" aria-label="บัญชีของฉัน">
           <div class="avatar" data-user="avatar"></div>
           <div class="nav-user-text"><b data-user="name">&nbsp;</b><small class="mono" data-user="id">&nbsp;</small></div>
         </div>
@@ -427,7 +428,7 @@
         <input type="hidden" id="lat" name="lat"><input type="hidden" id="long" name="long">
 
         <div class="area-top stack">
-          <section class="card profile" aria-label="ข้อมูลของฉัน">
+          <section class="card profile" aria-label="ข้อมูลของฉัน — แตะเพื่อเปิดบัญชี" data-goto-account role="link" tabindex="0">
             <div class="avatar avatar-lg" data-user="avatar"></div>
             <div class="profile-text">
               <b data-user="name">&nbsp;</b>
@@ -594,6 +595,20 @@
     </main>
 
     <!-- Account -->
+    <!-- การแจ้งเตือน (js/inbox.js) -->
+    <main id="inboxView" class="view inbox-view" hidden aria-labelledby="inboxTitle">
+      <div class="view-head view-head-row">
+        <div><h2 id="inboxTitle">การแจ้งเตือน</h2><p>การใช้งาน อัปเดตแอป และข่าวสาร</p></div>
+        <div class="head-actions head-inline"><button type="button" class="btn-text" id="inboxReadAll"><svg class="ic ic-16" aria-hidden="true"><use href="#i-check"/></svg> อ่านทั้งหมด</button></div>
+      </div>
+      <div class="inbox-tabs" role="tablist" aria-label="ประเภทการแจ้งเตือน" id="inboxTabs" data-scrollfade></div>
+      <div class="inbox-body" id="inboxBody" aria-live="polite"></div>
+      <div class="inbox-foot">
+        <button type="button" class="btn-text" id="inboxSettings"><svg class="ic ic-16" aria-hidden="true"><use href="#i-settings"/></svg> ตั้งค่าการแจ้งเตือนบนเครื่อง</button>
+        
+      </div>
+    </main>
+
     <main id="accountView" class="view" hidden aria-labelledby="accTitle">
       <div class="view-head"><h2 id="accTitle">บัญชีของฉัน</h2><p>ข้อมูลผู้ใช้สิทธิ์และความช่วยเหลือ</p></div>
       <div class="acc-grid">
@@ -645,23 +660,24 @@
     <nav class="bottomnav" aria-label="เมนูหลัก (มือถือ)">
       <button type="button" class="nav-item" data-tab="form" aria-current="page"><svg class="ic ic-22" aria-hidden="true"><use href="#i-send"/></svg><span>ส่งรายงาน</span></button>
       <button type="button" class="nav-item" data-tab="history"><svg class="ic ic-22" aria-hidden="true"><use href="#i-history"/></svg><span>ประวัติ</span></button>
-      <button type="button" class="nav-item" data-tab="account"><svg class="ic ic-22" aria-hidden="true"><use href="#i-user"/></svg><span>บัญชี</span></button>
+      <button type="button" class="nav-item nav-bell" data-tab="inbox"><span class="nav-bell-ic"><svg class="ic ic-22" aria-hidden="true"><use href="#i-bell"/></svg><span class="bell-badge" data-inbox-badge hidden></span></span><span>แจ้งเตือน</span></button>
+        <button type="button" class="nav-item nav-account" data-tab="account"><span class="nav-ava-wrap"><svg class="ic ic-22 nav-ava-fallback" aria-hidden="true"><use href="#i-user"/></svg><span class="avatar nav-ava" data-user="avatar" aria-hidden="true"></span></span><span>บัญชี</span></button>
     </nav>
   </div>
 
-  <script src="js/consent.js?v=3.37.0"></script>
-  <script src="js/config.js?v=3.37.0"></script>
-  <script src="js/utils.js?v=3.37.0"></script>
-  <script src="js/glass.js?v=3.37.0"></script>
-  <script src="js/analytics.js?v=3.37.0"></script>
-  <script src="js/api.js?v=3.37.0"></script>
-  <script src="js/notify.js?v=3.37.0"></script>
-  <script src="js/outbox.js?v=3.37.0"></script>
-  <script src="js/camera.js?v=3.37.0"></script>
-  <script src="js/charts.js?v=3.37.0"></script>
-  <script src="js/feedback.js?v=3.37.0"></script>
-  <script src="js/inbox.js?v=3.37.0"></script>
-  <script src="js/app.js?v=3.37.0"></script>
-  <script src="js/report.js?v=3.37.0"></script>
+  <script src="js/consent.js?v=3.38.0"></script>
+  <script src="js/config.js?v=3.38.0"></script>
+  <script src="js/utils.js?v=3.38.0"></script>
+  <script src="js/glass.js?v=3.38.0"></script>
+  <script src="js/analytics.js?v=3.38.0"></script>
+  <script src="js/api.js?v=3.38.0"></script>
+  <script src="js/notify.js?v=3.38.0"></script>
+  <script src="js/outbox.js?v=3.38.0"></script>
+  <script src="js/camera.js?v=3.38.0"></script>
+  <script src="js/charts.js?v=3.38.0"></script>
+  <script src="js/feedback.js?v=3.38.0"></script>
+  <script src="js/inbox.js?v=3.38.0"></script>
+  <script src="js/app.js?v=3.38.0"></script>
+  <script src="js/report.js?v=3.38.0"></script>
 </body>
 </html>
