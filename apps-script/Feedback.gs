@@ -142,18 +142,18 @@ function problemEmail_(row, blob, extra) {
   const rows = [['เลขที่', row[PCOL.ID]], ['เวลา', Utilities.formatDate(row[PCOL.TS], TZ, 'd MMM yyyy HH:mm')], ['ผู้แจ้ง', [row[PCOL.REPORTER_NAME], row[PCOL.REPORTER_ID]].filter(Boolean).join(' · ') + ' (' + roleTh + (row[PCOL.ROLE] === 'guest' && row[PCOL.REPORTER_ID] ? ', รหัสที่กรอกยังไม่ยืนยัน' : '') + ')'],
     ['ติดต่อกลับ', row[PCOL.CONTACT]], ['หมวด', row[PCOL.CATEGORY]], ['หน้า', row[PCOL.PAGE]], ['อุปกรณ์', row[PCOL.CLIENT]], ['เวอร์ชัน', row[PCOL.VERSION]]].concat(extra).filter(r => r[1]);
   const site = SITE_URL + 'staff.html#admin';
-  const title = row[PCOL.TITLE] || row[PCOL.CATEGORY];
+  const title = plain_(row[PCOL.TITLE] || row[PCOL.CATEGORY]);
   const html = '<div style="font-family:Arial,sans-serif;max-width:600px">' +
     '<p style="margin:0 0 4px;color:#0850D1;font-weight:bold">แจ้งปัญหาการใช้งาน · ' + fbEsc_(roleTh) + '</p>' +
     '<h2 style="margin:0 0 12px;font-weight:500">' + fbEsc_(title) + '</h2>' +
-    '<div style="margin:0 0 16px;padding:12px 14px;background:#F0F4F9;border-radius:12px;font-size:15px;white-space:pre-wrap">' + fbEsc_(row[PCOL.DETAIL]) + '</div>' +
+    '<div style="margin:0 0 16px;padding:12px 14px;background:#F0F4F9;border-radius:12px;font-size:15px;white-space:pre-wrap">' + fbEsc_(plain_(row[PCOL.DETAIL])) + '</div>' +
     '<table style="border-collapse:collapse;font-size:14px">' + rows.map(r => '<tr><td style="padding:4px 12px 4px 0;color:#5F6368;vertical-align:top;white-space:nowrap">' + r[0] + '</td><td style="padding:4px 0">' + fbEsc_(r[1]) + '</td></tr>').join('') + '</table>' +
     (row[PCOL.IMAGE] ? '<p style="font-size:14px">ภาพหน้าจอ: แนบมากับอีเมลนี้ · <a href="' + fbEsc_(row[PCOL.IMAGE]) + '">เปิดใน Google Drive</a></p>' : '') +
     '<p><a href="' + site + '" style="display:inline-block;padding:10px 18px;background:#0850D1;color:#fff;border-radius:999px;text-decoration:none">เปิดรายการแจ้งปัญหา</a></p>' +
     '<p style="font-size:12px;color:#5F6368">ดูทั้งหมดได้ในแผ่นงาน Problems · เปลี่ยนสถานะได้ที่หน้า Staff › ผู้ดูแลระบบ › แจ้งปัญหา</p></div>';
   try {
     const mail = { to: to.join(','), subject: 'HR Paper Mill — แจ้งปัญหา: ' + title + ' (' + row[PCOL.ID] + ')', htmlBody: html,
-      body: title + '\n\n' + row[PCOL.DETAIL] + '\n\n' + rows.map(r => r[0] + ': ' + r[1]).join('\n') + '\n\n' + site };
+      body: title + '\n\n' + plain_(row[PCOL.DETAIL]) + '\n\n' + rows.map(r => r[0] + ': ' + r[1]).join('\n') + '\n\n' + site };
     if (blob) mail.attachments = [blob];
     if (row[PCOL.ROLE] === 'staff' && /@/.test(row[PCOL.REPORTER_ID])) mail.replyTo = row[PCOL.REPORTER_ID];
     MailApp.sendEmail(mail);
@@ -165,7 +165,7 @@ function adminProblemsList_(req) {
   const rows = feedbackRows_(PROBLEM_SHEET, P_HEADERS);
   const list = rows.map((r, i) => ({
     row: i + 2, id: String(r[PCOL.ID]), ts: fbTime_(r[PCOL.TS]), role: String(r[PCOL.ROLE]), reporterId: String(r[PCOL.REPORTER_ID]), reporterName: String(r[PCOL.REPORTER_NAME]),
-    contact: String(r[PCOL.CONTACT]), category: String(r[PCOL.CATEGORY]), title: String(r[PCOL.TITLE]), detail: String(r[PCOL.DETAIL]), page: String(r[PCOL.PAGE]),
+    contact: plain_(r[PCOL.CONTACT]), category: String(r[PCOL.CATEGORY]), title: plain_(r[PCOL.TITLE]), detail: plain_(r[PCOL.DETAIL]), page: String(r[PCOL.PAGE]),
     client: String(r[PCOL.CLIENT]), version: String(r[PCOL.VERSION]), status: String(r[PCOL.STATUS] || PROBLEM_STATUS.new), handledBy: String(r[PCOL.HANDLED_BY]),
     handledAt: fbTime_(r[PCOL.HANDLED_AT]), note: String(r[PCOL.ADMIN_NOTE]), image: String(r[PCOL.IMAGE]), verified: String(r[PCOL.VERIFIED]) !== 'ไม่'
   })).filter(p => p.id).reverse();

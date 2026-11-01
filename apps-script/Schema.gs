@@ -81,6 +81,9 @@ function clean_(v, max) {
   return /^[=+\-@]/.test(s) ? "'" + s : s;
 }
 
+// ข้อความที่ผ่าน clean_ (มี ' นำหน้ากันสูตร) → ข้อความจริงสำหรับแสดงผล/อีเมล/การแจ้งเตือน
+function plain_(v) { return String(v === null || v === undefined ? '' : v).replace(/^'(?=[=+\-@])/, ''); }
+
 function num_(v) {
   if (v === '' || v === null || v === undefined) return null;
   const n = Number(v);

@@ -27,7 +27,7 @@ function readNews_() {
   const sh = inboxSheet_(), last = sh.getLastRow();
   if (last < 2) return [];
   return sh.getRange(2, 1, last - 1, NW_HEADERS.length).getValues().map((r, i) => ({
-    row: i + 2, id: String(r[NWCOL.ID]), ts: ibTime_(r[NWCOL.TS]), title: String(r[NWCOL.TITLE]), body: String(r[NWCOL.BODY]),
+    row: i + 2, id: String(r[NWCOL.ID]), ts: ibTime_(r[NWCOL.TS]), title: plain_(r[NWCOL.TITLE]), body: plain_(r[NWCOL.BODY]),
     audience: NEWS_AUDIENCES[r[NWCOL.AUDIENCE]] ? String(r[NWCOL.AUDIENCE]) : 'all', link: String(r[NWCOL.LINK] || ''), expiresAt: ibTime_(r[NWCOL.EXPIRES]),
     by: String(r[NWCOL.BY] || ''), status: String(r[NWCOL.STATUS] || 'active'), pushed: Number(r[NWCOL.PUSHED]) || 0, updatedAt: ibTime_(r[NWCOL.UPDATED_AT])
   })).filter(n => n.id);
@@ -35,7 +35,7 @@ function readNews_() {
 function newsFor_(audience) {
   const now = Date.now(), since = now - INBOX_DAYS * 86400000;
   return readNews_().filter(n => n.status === 'active' && (n.audience === 'all' || n.audience === audience) && n.ts && n.ts >= since && (!n.expiresAt || n.expiresAt > now))
-    .map(n => ({ id: 'news-' + n.id, ts: n.ts, cat: 'news', icon: 'megaphone', title: n.title, body: n.body, link: n.link }));
+    .map(n => ({ id: 'news-' + n.id, ts: n.ts, cat: 'news', icon: 'megaphone', title: plain_(n.title), body: plain_(n.body), link: n.link }));
 }
 
 // ---------- ผู้ใช้สิทธิ์ ----------
@@ -148,7 +148,7 @@ function adminNewsSave_(req, staff, ua) {
     try {
       const staffIds = typeof activeStaffIds_ === 'function' ? activeStaffIds_() : {};
       const subs = readNotify_().filter(n => n.channel === 'push' && ((audience !== 'staff' && n.ownerType === 'user') || (audience !== 'participants' && n.ownerType === 'staff' && staffIds[n.ownerId])));
-      pushed = subs.length ? sendPush_(subs, { title: title, body: body.slice(0, 140), url: './#inbox', tag: 'news' }) : { sent: 0 };
+      pushed = subs.length ? sendPush_(subs, { title: plain_(title), body: plain_(body).slice(0, 160), url: './#inbox', tag: 'news' }) : { sent: 0 };
       sh.getRange(item.row, NWCOL.PUSHED + 1).setValue((item.pushed || 0) + (pushed.sent || 0));
     } catch (e) { console.warn('ส่งแจ้งเตือนประกาศไม่สำเร็จ', e); }
   }

@@ -4,7 +4,8 @@
 //      ไฟล์ที่มี ?v= (css/js/รูป) ใช้จากแคชได้เลย เพราะเปลี่ยนเวอร์ชันทุกครั้งที่อัปเดต
 //   2) ส่งรายงานที่ค้างในเครื่อง (js/outbox.js) เมื่อเน็ตกลับมา แม้ปิดแอปอยู่ (Background Sync — Android/Chrome)
 //   3) การแจ้งเตือน (Web Push): ระบบส่ง push แบบไม่มีเนื้อหา → ดึงข้อความล่าสุดของเครื่องนี้ (notify.inbox) แล้วแสดง
-const VERSION = '3.39.0';
+const APP_ALERT = 'HR Paper Mill Alerts'; // บรรทัดแรกของการแจ้งเตือนทุกอัน
+const VERSION = '3.39.1';
 importScripts('js/config.js?v=' + VERSION, 'js/outbox.js?v=' + VERSION);
 
 const SHELL = 'hrpm-shell-' + VERSION;
@@ -89,8 +90,8 @@ async function flushOutbox() {
     wins.forEach(w => w.postMessage({ type: 'outbox', sent: sent.length, rejected: rejected.map(r => r.res && r.res.message) }));
     // ปิดแอปอยู่: แจ้งผลบนเครื่อง (ถ้าอนุญาตการแจ้งเตือนไว้)
     if (!wins.length && (sent.length || rejected.length) && self.Notification && Notification.permission === 'granted') {
-        await self.registration.showNotification(sent.length ? 'ส่งรายงานที่ค้างไว้แล้ว' : 'ส่งรายงานที่ค้างไว้ไม่สำเร็จ', {
-            body: sent.length ? `ส่งสำเร็จ ${sent.length} รายการเมื่อสัญญาณกลับมา` : (rejected[0].res && rejected[0].res.message) || 'กรุณาเปิดแอปเพื่อตรวจสอบ',
+        await self.registration.showNotification(APP_ALERT, {
+            body: (sent.length ? 'ส่งรายงานที่ค้างไว้แล้ว' : 'ส่งรายงานที่ค้างไว้ไม่สำเร็จ') + '\n' + (sent.length ? `ส่งสำเร็จ ${sent.length} รายการเมื่อสัญญาณกลับมา` : (rejected[0].res && rejected[0].res.message) || 'กรุณาเปิดแอปเพื่อตรวจสอบ'),
             icon: 'img/apple-touch-icon.png', tag: 'outbox', data: { url: './#history' }
         });
     }
@@ -119,9 +120,10 @@ async function showLatest() {
         }
     } catch (e) { /* ออฟไลน์: แสดงข้อความทั่วไป */ }
     // เบราว์เซอร์บังคับให้แสดงการแจ้งเตือนทุกครั้งที่ได้รับ push
-    if (!msg) msg = { title: 'HR Paper Mill', body: 'มีการแจ้งเตือนใหม่ แตะเพื่อเปิดดู', url: './', tag: 'hrpm' };
-    return self.registration.showNotification(msg.title, {
-        body: msg.body,
+    if (!msg) msg = { title: 'มีการแจ้งเตือนใหม่', body: 'แตะเพื่อเปิดดู', url: './', tag: 'hrpm' };
+    // รูปแบบ: บรรทัดแรก = ชื่อแอป (HR Paper Mill Alerts) · ต่อด้วยหัวข้อ · แล้วรายละเอียด
+    return self.registration.showNotification(APP_ALERT, {
+        body: [msg.title, msg.body].filter(Boolean).join('\n'),
         icon: 'img/apple-touch-icon.png',
         badge: 'img/favicon-50x50.png',
         tag: msg.tag || 'hrpm',
