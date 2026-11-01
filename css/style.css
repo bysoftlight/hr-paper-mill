@@ -1564,10 +1564,21 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
 @media (min-width: 768px) { .fb-sheet { width: min(600px, calc(100% - 48px)); } }
 
 /* แถบเตือนแบบสอบถามที่รอทำ (หน้าส่งรายงาน + บัญชี) */
-.survey-banner { align-items: center; margin-bottom: 14px; cursor: pointer; border: 0; width: 100%; text-align: left; font: inherit; }
-.survey-banner > div { flex: 1; min-width: 0; }
-.survey-banner span { display: block; font-size: 13px; }
-.survey-banner .btn-chip { flex: none; pointer-events: none; }
+/* แถบเตือนแบบสอบถาม: ไอคอน · ข้อความ · ปุ่ม "ทำเลย" (สีหลัก) — จอกว้างปุ่มอยู่ขวากึ่งกลางแนวตั้ง · จอแคบปุ่มลงมาใต้ข้อความ */
+.survey-banner { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; column-gap: 12px; row-gap: 10px; margin-bottom: 14px; padding: 14px 16px; cursor: pointer; border: 0; width: 100%; text-align: left; font: inherit; border-radius: var(--r-lg); }
+.survey-banner[hidden] { display: none; }
+.survey-banner > .ic { align-self: center; width: 24px; height: 24px; }
+.survey-banner > div { min-width: 0; }
+.survey-banner > div b { display: block; font-size: 15px; line-height: 1.45; }
+.survey-banner > div span { display: block; font-size: 13px; line-height: 1.5; margin-top: 2px; opacity: .9; }
+.survey-go { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 0 16px; border-radius: 999px;
+    background: var(--accent); color: var(--on-accent); font-size: 14px; font-weight: 600; white-space: nowrap; pointer-events: none; box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent); }
+@media (hover: hover) { .survey-banner:hover .survey-go { filter: brightness(1.08); } }
+@media (max-width: 479px) {
+    .survey-banner { grid-template-columns: auto minmax(0, 1fr); }
+    .survey-banner > .ic { align-self: start; margin-top: 2px; }
+    .survey-go { grid-column: 2; justify-self: start; }
+}
 .menu a { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 16px; color: inherit; text-decoration: none; }
 .menu a > .ic:first-child { color: var(--accent); }
 .menu a span { flex: 1; }

@@ -222,7 +222,7 @@ function notifyNewRecord_(user, type, time) {
   try {
     const subs = readNotify_().filter(n => n.ownerType === 'staff' && n.channel === 'push' && n.topics.indexOf('new') !== -1 && activeStaffIds_()[n.ownerId]);
     if (!subs.length) return;
-    sendPush_(subs, { title: user.name + ' ส่งรายงานแล้ว', body: user.id + ' · ' + type + ' · ' + time + ' น.', url: 'staff.html#records', tag: 'new' });
+    sendPush_(subs, { title: user.id + ' - ' + user.name, body: 'ส่งรายงานแล้ว - ' + type + ' - ' + time + ' น.', url: 'staff.html#records', tag: 'new' });
   } catch (e) {
     console.warn('แจ้งเตือนรายงานใหม่ไม่สำเร็จ', e);
   }
