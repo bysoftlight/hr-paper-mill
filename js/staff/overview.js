@@ -3,9 +3,41 @@
 VIEWS.overview = {
     data: null,
     loading: false,
+    date: null, // null = วันนี้ · 'yyyy-MM-dd' = ดูย้อนหลัง
 
     init() {
         $('ovRefresh').addEventListener('click', () => this.load(true));
+        // เลือกวัน: วันนี้ / เมื่อวาน / เลือกวันเอง
+        $('ovDates').addEventListener('click', e => {
+            const b = e.target.closest('[data-d]'); if (!b) return;
+            haptic();
+            this.setDate(b.dataset.d === 'yesterday' ? isoDate(new Date(Date.now() - 86400000)) : null);
+        });
+        $('ovDay').max = todayIso();
+        $('ovDay').addEventListener('change', e => { const v = e.target.value; if (v) this.setDate(v >= todayIso() ? null : v); });
+    },
+
+    setDate(d) {
+        if (d === this.date) return;
+        this.date = d;
+        Analytics.track('overview_date', { l: !d ? 'today' : d === isoDate(new Date(Date.now() - 86400000)) ? 'yesterday' : 'pick' });
+        this.syncDateUi();
+        this.skeleton();
+        this.load();
+    },
+    syncDateUi() {
+        const y = isoDate(new Date(Date.now() - 86400000)), kind = !this.date ? 'today' : this.date === y ? 'yesterday' : 'pick';
+        $('ovDates').querySelectorAll('[data-d]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.d === kind)));
+        $('ovPick').classList.toggle('is-on', kind === 'pick');
+        $('ovDay').max = todayIso();
+        $('ovDay').value = kind === 'pick' ? this.date : '';
+    },
+    // คำที่ใช้แทน "วันนี้" ในหัวข้อ/การ์ด ตามวันที่เลือก
+    words() {
+        const d = this.data, y = isoDate(new Date(Date.now() - 86400000));
+        if (!d || d.isToday !== false) return { day: 'วันนี้', title: 'ภาพรวมวันนี้', month: 'เดือนนี้' };
+        const m = Number(d.today.slice(5, 7)) - 1, sameMonth = d.today.slice(0, 7) === todayIso().slice(0, 7);
+        return { day: d.today === y ? 'เมื่อวาน' : 'วันนั้น', title: d.today === y ? 'ภาพรวมเมื่อวาน' : 'ภาพรวม ' + thDate(d.today), month: sameMonth ? 'เดือนนี้' : 'เดือน' + MONTHS[m] };
     },
 
     show() {
@@ -16,6 +48,7 @@ VIEWS.overview = {
     reset() { this.data = null; this.loading = false; this.stale = false; },
 
     onLive() {
+        if (this.date) return; // ดูวันย้อนหลังอยู่: ไม่ต้องอัปเดตสด
         if (ST.view === 'overview' && !document.querySelector('dialog[open]')) this.load();
         else this.stale = true;
     },
@@ -33,9 +66,11 @@ VIEWS.overview = {
         if (this.loading) return;
         this.loading = true;
         if (manual) $('ovRefresh').disabled = true;
-        const pre = !manual && ST.prefetch && ST.prefetch.overview;
+        const pre = !manual && !this.date && ST.prefetch && ST.prefetch.overview;
         if (ST.prefetch) ST.prefetch.overview = null;
-        const r = await (pre || api('staff.overview'));
+        const want = this.date;
+        const r = await (pre || api('staff.overview', want ? { date: want } : {}));
+        if (want !== this.date) { this.loading = false; return this.load(); } // เปลี่ยนวันระหว่างรอ
         this.loading = false;
         $('ovRefresh').disabled = false;
         if (!r.success) {
@@ -50,27 +85,32 @@ VIEWS.overview = {
     },
 
     render() {
-        const d = this.data, k = d.kpi;
-        $('ovDate').textContent = `${thDateLong(d.today)} · อัปเดต ${thTime(d.generatedAt)} น.`;
+        const d = this.data, k = d.kpi, W = this.words();
+        $('ovTitle').textContent = W.title;
+        $('ovDate').textContent = d.isToday === false ? `${thDateLong(d.today)} · ข้อมูลย้อนหลัง` : `${thDateLong(d.today)} · อัปเดต ${thTime(d.generatedAt)} น.`;
+        $('missTitle').firstChild.textContent = 'ยังไม่ส่ง' + W.day + ' ';
+        $('anomTitle').textContent = 'ต้องตรวจสอบ (' + W.day + ')';
+        $('gaugeTitle').textContent = 'อัตราการส่ง' + W.month;
         const rate = k.participants ? Math.round(k.reportedToday / k.participants * 100) : 0;
         // รายการที่ต้องตรวจ (นับรายการ ไม่นับซ้ำถ้ามีหลายปัญหา)
         const review = d.anomalies.length;
         $('ovKpis').innerHTML = `
           <button type="button" class="kpi is-ok" data-ov-filter="today">
-            <small>ส่งแล้ววันนี้</small><b>${cnum(k.reportedToday, 'today')}<span class="of"> / ${fmtNum(k.participants)}</span></b>
+            <small>ส่งแล้ว${W.day}</small><b>${cnum(k.reportedToday, 'today')}<span class="of"> / ${fmtNum(k.participants)}</span></b>
             <span>${cnum(rate, 'rate')}% ของผู้ใช้สิทธิ์ที่ใช้งาน</span><div class="kpi-meter"><i style="width:${rate}%"></i></div>
           </button>
           <button type="button" class="kpi ${k.missingToday ? 'is-bad' : 'is-ok'}" data-ov-filter="missing">
-            <small>ยังไม่ส่งวันนี้</small><b>${cnum(k.missingToday, 'missing')}</b><span>คน · แตะเพื่อดูรายชื่อ</span>
+            <small>ยังไม่ส่ง${W.day}</small><b>${cnum(k.missingToday, 'missing')}</b><span>คน · แตะเพื่อดูรายชื่อ</span>
           </button>
           <button type="button" class="kpi" data-ov-filter="agentToday">
-            <small>ขายโดยตัวแทนวันนี้</small><b>${cnum(k.agentToday, 'agent')}</b><span>${k.agentOverLimit ? `<b class="text-bad">${k.agentOverLimit} คน</b> เกิน ${ST.config && ST.config.agentLimit || 10} ครั้ง/เดือน` : 'ไม่มีผู้เกินโควตาเดือนนี้'}</span>
+            <small>ขายโดยตัวแทน${W.day}</small><b>${cnum(k.agentToday, 'agent')}</b><span>${k.agentOverLimit ? `<b class="text-bad">${k.agentOverLimit} คน</b> เกิน ${ST.config && ST.config.agentLimit || 10} ครั้ง/เดือน` : 'ไม่มีผู้เกินโควตาเดือนนี้'}</span>
           </button>
           <button type="button" class="kpi ${review ? 'is-warn' : ''}" data-ov-filter="anomaly">
-            <small>ต้องตรวจสอบวันนี้</small><b>${cnum(review, 'review')}</b><span>ตำแหน่งผิดปกติ ${k.anomaliesToday} · ไม่มี GPS ${k.nogpsToday}${k.duplicatesToday !== undefined ? ` · รูปซ้ำ ${k.duplicatesToday} · GPS ไม่แม่น ${k.lowAccToday}` : ''}</span>
+            <small>ต้องตรวจสอบ${W.day}</small><b>${cnum(review, 'review')}</b><span>ตำแหน่งผิดปกติ ${k.anomaliesToday} · ไม่มี GPS ${k.nogpsToday}${k.duplicatesToday !== undefined ? ` · รูปซ้ำ ${k.duplicatesToday} · GPS ไม่แม่น ${k.lowAccToday}` : ''}</span>
           </button>
-          <button type="button" class="kpi" data-ov-filter="month">
-            <small>อัตราการส่งเดือนนี้</small><b>${cnum(k.monthRate, 'monthRate')}<span class="of">%</span></b><span>${cnum(k.monthRecords, 'monthRecords')} รายการ</span>
+          <button type="button" class="kpi kpi-month" data-ov-filter="month">
+            <span class="km-main"><small>อัตราการส่ง${W.month}</small><b>${cnum(k.monthRate, 'monthRate')}<span class="of">%</span></b></span>
+            <span class="km-side"><span>${cnum(k.monthRecords, 'monthRecords')} รายการ${k.monthExpected ? ` <em>จาก ${fmtNum(k.monthExpected)} ที่ควรส่ง</em>` : ''}</span><div class="kpi-meter"><i style="width:${Math.min(100, k.monthRate)}%"></i></div><small class="km-note">ถึง${d.isToday === false ? 'วันที่ ' + thDate(d.today, { day: 'numeric', month: 'short' }) : 'วันนี้'} · ${fmtNum(k.participants)} คน</small></span>
           </button>`;
         Counting.scan($('ovKpis'), this.counts || (this.counts = {}));
         $('ovKpis').querySelectorAll('[data-ov-filter]').forEach(b => {
@@ -111,7 +151,7 @@ VIEWS.overview = {
             <span class="fi-text"><b>${esc(m.name)}</b><small><span class="mono">${esc(m.id)}</span>${m.site ? ' · ' + esc(m.site) : ''}</small>${m.contact ? `<small class="contacted">${icon('check', 'ic-16')}${esc(m.contact.resultLabel)}${m.contact.note ? ' · ' + esc(m.contact.note) : ''} (${thTime(m.contact.ts)} น.)</small>` : ''}</span>
             ${m.phone ? `<a class="call-btn" href="tel:${esc(m.phone.replace(/[^0-9+]/g, ''))}" aria-label="โทรหา ${esc(m.name)}">${icon('phone')}</a>` : ''}
             ${can('participants.view') ? `<button type="button" class="icon-btn" data-pid="${esc(m.id)}" aria-label="ดูข้อมูล ${esc(m.name)}" style="margin:0">${icon('chevron-right')}</button>` : ''}
-          </div>`).join('') : `<div class="empty">${icon('check-circle')}ทุกคนส่งรายงานวันนี้แล้ว</div>`;
+          </div>`).join('') : `<div class="empty">${icon('check-circle')}ทุกคนส่งรายงาน${W.day}แล้ว</div>`;
         $('ovMissing').querySelectorAll('[data-pid]').forEach(b => b.addEventListener('click', () => VIEWS.participants.openDetail(b.dataset.pid)));
 
         // เฝ้าระวังโควตาตัวแทน
@@ -132,7 +172,7 @@ VIEWS.overview = {
             ${avatarHtml(r.userName, r.userPic)}
             <span class="fi-text"><b>${esc(r.userName)}</b><small>${esc(r.site || '-')} · ${esc(r.time)} น.</small></span>
             <span class="fi-side">${!r.hasGps ? '<span class="badge is-warn">ไม่มี GPS</span>' : r.anomaly ? `<span class="badge is-bad">${icon('alert')}ห่าง ${fmtDistance(r.distance)}</span>` : ''}${qualityBadges(r)}</span>
-          </button>`).join('') : `<div class="empty">${icon('check-circle')}ไม่มีรายการผิดปกติวันนี้</div>`;
+          </button>`).join('') : `<div class="empty">${icon('check-circle')}ไม่มีรายการผิดปกติ${W.day}</div>`;
         $('ovAnom').querySelectorAll('[data-i]').forEach(b => b.addEventListener('click', () => VIEWS.records.openDetail(d.anomalies[b.dataset.i])));
     },
 
@@ -257,11 +297,11 @@ VIEWS.overview = {
     },
 
     drill(kind) {
-        const today = todayIso();
+        const today = (this.data && this.data.today) || todayIso();
         if (kind === 'missing') return can('participants.view') ? VIEWS.participants.openWith('missing') : null;
         if (kind === 'today') return VIEWS.records.openWith({ period: 'day', day: today });
         if (kind === 'agentToday') return VIEWS.records.openWith({ period: 'day', day: today, types: [AGENT_TYPE] });
         if (kind === 'anomaly') return VIEWS.records.openWith({ period: 'day', day: today, location: 'review' });
-        if (kind === 'month') return VIEWS.records.openWith({ period: 'month' });
+        if (kind === 'month') return VIEWS.records.openWith(this.date ? { period: 'range', from: today.slice(0, 8) + '01', to: today } : { period: 'month' });
     }
 };

@@ -312,7 +312,10 @@ const FeedbackAdmin = {
         const err = this.validate();
         if (err) return showMessage({ title: 'ยังไม่ครบ', text: err, tone: 'warn' });
         const end = $('svEnd').value ? new Date($('svEnd').value).getTime() : null;
-        Feedback.openSurvey({ title: $('svTitle').value.trim(), intro: $('svIntro').value.trim(), questions: this.payloadQuestions(), endAt: end }, { preview: true });
+        // ซ่อนหน้าแก้ไขระหว่างดูตัวอย่าง (ไม่ให้เห็นกรอบหน้าต่างซ้อนกันสองชั้น)
+        $('svEditModal').classList.add('is-behind');
+        Feedback.openSurvey({ title: $('svTitle').value.trim(), intro: $('svIntro').value.trim(), questions: this.payloadQuestions(), endAt: end }, { preview: true })
+            .then(() => $('svEditModal').classList.remove('is-behind'));
     },
     async save(draft) {
         const err = this.validate();
