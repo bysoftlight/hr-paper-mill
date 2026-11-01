@@ -136,7 +136,9 @@ button.feed-item, button.person { cursor: pointer; }
 .search-field .input { padding-left: 36px; width: 100%; }
 .select-lg { height: 48px; width: 100%; font-size: 15px; font-weight: 400; }
 .period { max-width: 520px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.period-inputs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.period-inputs { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; }
+.period-inputs > .datefield, .period-inputs > .select { flex: 1 1 0; width: auto; min-width: 0; }
+.period-inputs > .range-sep { flex: none; }
 .period-inputs > [hidden] { display: none !important; }
 .range-sep { font-size: 13px; color: var(--muted); }
 .view-toggle { grid-template-columns: repeat(2, auto); }
@@ -384,7 +386,7 @@ button.feed-item, button.person { cursor: pointer; }
 .cal-day { min-height: 0; }
 
 /* ช่องวันที่ในแถบตัวกรอง: ยืดหดตามพื้นที่ ไม่ล้นขอบบน iPhone */
-.toolbar-row input[type="date"] { width: auto; flex: 1 1 140px; min-width: 0; }
+.toolbar-row input[type="date"], .toolbar-row .datefield { width: auto; flex: 1 1 140px; min-width: 0; }
 @media (max-width: 767px) {
     /* iPhone ซูมหน้าเมื่อแตะช่องที่ตัวอักษรเล็กกว่า 16px */
     .input-sm, .toolbar-row .select, .search-field .input { font-size: 16px; }
@@ -782,13 +784,13 @@ dialog:focus-visible { outline: none; } /* กรอบโฟกัสของ�
 /* =====================================================
    ผู้ดูแลระบบ › แจ้งปัญหา / แบบสอบถาม (js/staff/feedback.js)
    ===================================================== */
-/* แถบแท็บผู้ดูแล 6 แท็บ: เลื่อนแนวนอนได้บนจอแคบ ไม่บีบตัวหนังสือ */
-.adm-tabs { display: flex; grid-template-columns: none; overflow-x: auto; scrollbar-width: none; max-width: 100%; width: fit-content; justify-content: flex-start; scroll-snap-type: x proximity; }
+/* แถบแท็บผู้ดูแล (7 แท็บ): อยู่ในขอบเนื้อหาเหมือนส่วนอื่น เลื่อนแนวนอนได้ · ขอบที่ยังมีแท็บซ่อนอยู่จางลง (ScrollFade) แทนการตัดชิดขอบจอ */
+.adm-tabs { display: flex; grid-template-columns: none; gap: 4px; overflow-x: auto; scrollbar-width: none; max-width: 100%; width: fit-content; justify-content: flex-start; scroll-snap-type: x proximity; scroll-padding-inline: 4px; overscroll-behavior-x: contain; }
 .adm-tabs::-webkit-scrollbar { display: none; }
-.adm-tabs button { flex: none; scroll-snap-align: start; padding: 0 14px; }
+.adm-tabs button { flex: none; scroll-snap-align: start; padding: 0 16px; }
 @media (max-width: 479px) {
-    .adm-tabs { width: auto; margin-left: calc(-1 * var(--gutter)); margin-right: calc(-1 * var(--gutter)); border-radius: 0; padding-left: var(--gutter); padding-right: var(--gutter); background: none; gap: 6px; }
-    .adm-tabs button { padding: 0 14px; font-size: 14px; background: var(--container); }
+    .adm-tabs { width: auto; }
+    .adm-tabs button { padding: 0 14px; font-size: 14px; }
 }
 @media (max-width: 359px) { .adm-tabs button { padding: 0 12px; font-size: 13px; } }
 
@@ -896,3 +898,30 @@ dialog:focus-visible { outline: none; } /* กรอบโฟกัสของ�
 .news-link { font-size: 13px; color: var(--accent); overflow-wrap: anywhere; }
 .news-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
 @media (max-width: 479px) { #newsModal .form-grid-2 { grid-template-columns: 1fr; } }
+.sheet.is-behind { visibility: hidden; }
+.sheet.is-behind::backdrop { background: transparent; }
+
+/* ภาพรวม: เลือกวัน (วันนี้ / เมื่อวาน / เลือกวันเอง) */
+.ov-dates { display: inline-flex; flex-wrap: nowrap; align-items: center; gap: 4px; margin: -4px 0 16px; max-width: 100%; }
+.ov-dates > button { flex: none; }
+.ov-pick { display: flex; min-width: 0; }
+.ov-dates .datefield.input { height: 36px; min-height: 36px; padding: 0 10px 0 14px; border: 0; border-radius: 999px; background: transparent; font-size: 14px; font-weight: 500; box-shadow: none; width: auto; min-width: 0; }
+.ov-dates .datefield .df-text { color: var(--muted); }
+.ov-pick.is-on .datefield.input { background: var(--accent-soft); }
+.ov-pick.is-on .datefield .df-text { color: var(--on-accent-soft); font-weight: 600; }
+.ov-dates .datefield .df-ic svg { width: 16px; height: 16px; }
+@media (max-width: 359px) { .ov-dates > button { padding: 0 10px; } .ov-dates .datefield.input { padding: 0 8px 0 10px; } }
+
+/* KPI อัตราการส่งเดือนนี้: มือถือเต็มแถว จัดแนวนอน (ตัวเลขซ้าย · แถบความคืบหน้าและรายละเอียดขวา) ไม่ทิ้งพื้นที่ว่าง */
+.kpi-month .km-main, .kpi-month .km-side { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.kpi-month .km-side em { font-style: normal; color: var(--muted); }
+.kpi-month .km-note { font-size: 12px; color: var(--muted); }
+@media (max-width: 599px) {
+    .kpis > .kpi-month:last-child:nth-child(odd) { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 20px; align-items: center; }
+    .kpis > .kpi-month:last-child:nth-child(odd) .kpi-go { grid-column: 1 / -1; }
+    .kpi-month .km-side .kpi-meter { margin: 4px 0; }
+}
+.kpi-month .km-main > b { font-size: 28px; line-height: 1.15; }
+.kpi-month .km-main > b .of { font-size: 15px; }
+/* จอแคบ: ช่วงวันที่ซ่อนไอคอนปฏิทิน ให้วันที่ภาษาไทยแสดงครบ */
+@media (max-width: 400px) { .period-inputs .datefield .df-ic { display: none; } .period-inputs .datefield.input { padding-left: 10px; padding-right: 10px; } }

@@ -166,51 +166,66 @@ const Feedback = (() => {
         }
     }
 
-    // ---------------- แบบสอบถาม ----------------
-    let S = null; // { survey, opts, resolve }
+    // ---------------- แบบสอบถาม (ทีละข้อ) ----------------
+    // มือถือ: หนึ่งคำถามต่อหนึ่งหน้า แถบความคืบหน้าด้านบน · เลือกคะแนนแล้วไปข้อถัดไปเอง · ย้อนกลับได้
+    let S = null; // { survey, opts, resolve, step, done }
     function surveyDialog() {
         let d = el('surveyModal');
         if (d) return d;
         d = document.createElement('dialog');
         d.id = 'surveyModal';
-        d.className = 'sheet fb-sheet';
+        d.className = 'sheet fb-sheet fb-survey';
         d.setAttribute('aria-labelledby', 'surveyTitle');
         d.innerHTML = `
-            <div class="sheet-head">
-                <div><span class="sheet-tag fb-tag">${ic('help', 'ic-16')} <span id="surveyTag">แบบสอบถาม · ใช้เวลาไม่ถึง 1 นาที</span></span><h2 id="surveyTitle"></h2><p id="surveyIntro"></p></div>
+            <div class="sheet-head fb-survey-head">
+                <div class="fb-survey-meta">
+                    <span class="fb-tag">${ic('help', 'ic-16')} <span id="surveyTag">แบบสอบถาม</span></span>
+                    <h2 id="surveyTitle"></h2>
+                </div>
                 <button type="button" class="icon-btn" data-close aria-label="ปิด">${ic('x')}</button>
             </div>
-            <form class="sheet-body fb-form" id="surveyForm" novalidate></form>
+            <div class="fb-steps" aria-hidden="true"><div class="fb-progress"><span id="surveyBar"></span></div><span class="fb-step-n" id="surveyStepN"></span></div>
+            <form class="sheet-body fb-form fb-survey-body" id="surveyForm" novalidate></form>
             <div class="sheet-foot fb-survey-foot">
-                <div class="fb-progress" aria-hidden="true"><span id="surveyBar"></span></div>
-                <button type="submit" form="surveyForm" class="btn btn-primary" id="surveySend">ส่งคำตอบ</button>
+                <p class="fb-hint" id="surveyHint" role="status" aria-live="polite"></p>
+                <div class="fb-nav">
+                    <button type="button" class="btn btn-outline" id="surveyBack">ย้อนกลับ</button>
+                    <button type="submit" form="surveyForm" class="btn btn-primary" id="surveySend">ถัดไป</button>
+                </div>
                 <button type="button" class="btn-text fb-later" id="surveyLater">ทำภายหลัง</button>
             </div>`;
         document.body.appendChild(d);
-        el('surveyForm').addEventListener('submit', e => { e.preventDefault(); sendSurvey(); });
+        el('surveyForm').addEventListener('submit', e => { e.preventDefault(); next(); });
+        el('surveyForm').addEventListener('change', e => {
+            progress();
+            // เลือกคะแนน/ตัวเลือกแล้วไปข้อถัดไปเอง (ไม่ใช่ข้อสุดท้าย)
+            if (e.target.type === 'radio' && S && S.step < S.survey.questions.length - 1) {
+                clearTimeout(S.auto); S.auto = setTimeout(() => { if (S && el('surveyModal').open) go(S.step + 1); }, 380);
+            }
+        });
         el('surveyForm').addEventListener('input', progress);
-        el('surveyForm').addEventListener('change', progress);
+        el('surveyBack').addEventListener('click', () => { if (S && S.step > 0) go(S.step - 1); });
         el('surveyLater').addEventListener('click', () => d.close());
-        d.addEventListener('close', () => { if (S && S.resolve) { const r = S.resolve; S.resolve = null; r(S.done ? 'done' : 'later'); } });
+        d.addEventListener('close', () => { if (S) clearTimeout(S.auto); if (S && S.resolve) { const r = S.resolve; S.resolve = null; r(S.done ? 'done' : 'later'); } });
         return d;
     }
 
-    function questionHtml(q, i) {
-        const req = q.required ? ' <b class="fb-req" aria-hidden="true">*</b>' : '';
+    function questionHtml(q, i, n) {
         const name = 'sq_' + q.id;
         let body = '';
         if (q.type === 'rating') {
-            const n = q.scale || 5;
-            body = `<div class="fb-rate" role="radiogroup" aria-label="${esc(q.text)}">` + Array.from({ length: n }, (_, k) => {
-                const v = k + 1, face = n === 5 ? FACES[k] : '';
+            const k = q.scale || 5;
+            body = `<div class="fb-rate" role="radiogroup" aria-label="${esc(q.text)}">` + Array.from({ length: k }, (_, j) => {
+                const v = j + 1, face = k === 5 ? FACES[j] : '';
                 return `<label class="fb-rate-opt"><input type="radio" name="${name}" value="${v}"><span><i aria-hidden="true">${face}</i><b>${v}</b></span></label>`;
             }).join('') + `</div><div class="fb-rate-ends"><span>${esc(q.low || 'น้อยที่สุด')}</span><span>${esc(q.high || 'มากที่สุด')}</span></div>`;
         } else if (q.type === 'choice') {
             body = '<div class="fb-choices">' + (q.options || []).map(o => `<label class="fb-choice"><input type="radio" name="${name}" value="${esc(o)}"><span>${esc(o)}</span></label>`).join('') + '</div>';
         } else {
-            body = `<textarea class="input fb-textarea" name="${name}" rows="3" maxlength="1500" placeholder="พิมพ์ความคิดเห็น (ไม่บังคับ)"></textarea>`;
+            body = `<textarea class="input fb-textarea" name="${name}" rows="4" maxlength="1500" placeholder="พิมพ์ความคิดเห็น${q.required ? '' : ' (ไม่บังคับ)'}"></textarea>`;
         }
-        return `<fieldset class="fb-q" data-q="${esc(q.id)}" data-required="${q.required ? 1 : 0}"><legend><span class="fb-qn mono">${i + 1}</span><span>${esc(q.text)}${req}</span></legend>${body}</fieldset>`;
+        return `<fieldset class="fb-q" data-q="${esc(q.id)}" data-i="${i}" data-required="${q.required ? 1 : 0}" ${i ? 'hidden' : ''}>
+            <legend><span class="fb-qn">ข้อ ${i + 1}/${n}${q.required ? '' : ' · ไม่บังคับ'}</span><span class="fb-qt">${esc(q.text)}${q.required ? ' <b class="fb-req" aria-hidden="true">*</b>' : ''}</span></legend>${body}</fieldset>`;
     }
 
     function answers() {
@@ -224,41 +239,73 @@ const Feedback = (() => {
     }
     function progress() {
         if (!S) return;
-        const qs = S.survey.questions || [], a = answers();
-        const n = qs.filter(q => a[q.id] !== undefined).length;
-        el('surveyBar').style.width = (qs.length ? n / qs.length * 100 : 0) + '%';
+        const qs = S.survey.questions || [], a = answers(), n = qs.length, q = qs[S.step];
+        el('surveyBar').style.width = (n ? (S.step + (q && a[q.id] !== undefined ? 1 : 0.35)) / n * 100 : 0) + '%';
+        el('surveyStepN').textContent = n ? `ข้อ ${S.step + 1} จาก ${n}` : '';
         el('surveyForm').querySelectorAll('.fb-q.is-missing').forEach(f => { if (a[f.dataset.q] !== undefined) f.classList.remove('is-missing'); });
+        if (q && a[q.id] !== undefined) el('surveyHint').textContent = '';
+        const last = S.step >= n - 1;
+        el('surveySend').textContent = last ? (S.opts.preview ? 'ส่งคำตอบ (ตัวอย่าง)' : 'ส่งคำตอบ') : (q && !q.required && a[q.id] === undefined ? 'ข้าม' : 'ถัดไป');
+        el('surveyBack').disabled = S.step === 0;
+    }
+    function go(i, back) {
+        const qs = S.survey.questions || [];
+        i = Math.max(0, Math.min(qs.length - 1, i));
+        const dir = i < S.step || back ? 'is-back' : 'is-fwd';
+        S.step = i;
+        el('surveyForm').querySelectorAll('.fb-q').forEach(f => {
+            const on = Number(f.dataset.i) === i;
+            f.hidden = !on;
+            f.classList.remove('is-fwd', 'is-back');
+            if (on) { void f.offsetWidth; f.classList.add(dir); }
+        });
+        el('surveyHint').textContent = '';
+        el('surveyForm').scrollTop = 0;
+        progress();
+        const cur = el('surveyForm').querySelector(`.fb-q[data-i="${i}"]`);
+        const t = cur && cur.querySelector('textarea');
+        if (t && matchMedia('(pointer: fine)').matches) setTimeout(() => t.focus(), 50);
+    }
+    function missingAt(i) {
+        const q = S.survey.questions[i];
+        return q && q.required && answers()[q.id] === undefined;
+    }
+    function next() {
+        clearTimeout(S.auto);
+        if (missingAt(S.step)) {
+            const f = el('surveyForm').querySelector(`.fb-q[data-i="${S.step}"]`);
+            f.classList.remove('is-missing'); void f.offsetWidth; f.classList.add('is-missing');
+            el('surveyHint').textContent = 'กรุณาเลือกคำตอบข้อนี้ก่อน';
+            return;
+        }
+        if (S.step < S.survey.questions.length - 1) return go(S.step + 1);
+        sendSurvey();
     }
 
     function openSurvey(survey, opts) {
         const d = surveyDialog();
         if (S && S.resolve) { const r = S.resolve; S.resolve = null; r('later'); }
-        S = { survey: survey, opts: opts || {}, done: false, resolve: null };
+        S = { survey: survey, opts: opts || {}, done: false, resolve: null, step: 0 };
+        const n = (survey.questions || []).length;
         el('surveyTitle').textContent = survey.title || 'แบบสอบถาม';
-        el('surveyIntro').textContent = survey.intro || 'ความเห็นของคุณช่วยให้เราปรับปรุงแอปให้ใช้ง่ายขึ้น';
-        el('surveyIntro').hidden = false;
-        el('surveyTag').textContent = S.opts.preview ? 'ตัวอย่างที่ผู้ใช้สิทธิ์จะเห็น' : 'แบบสอบถาม · ใช้เวลาไม่ถึง 1 นาที';
-        el('surveyForm').innerHTML = (survey.questions || []).map(questionHtml).join('') +
-            (survey.endAt ? `<p class="fb-note">${ic('calendar', 'ic-16')}<span>ตอบได้ถึง ${new Date(survey.endAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })} น.</span></p>` : '');
+        el('surveyTag').textContent = S.opts.preview ? 'ตัวอย่างที่ผู้ใช้สิทธิ์จะเห็น' : `แบบสอบถาม · ${n} ข้อ · ไม่ถึง 1 นาที`;
+        el('surveyForm').innerHTML = (survey.intro ? `<p class="fb-intro">${esc(survey.intro)}</p>` : '') +
+            (survey.questions || []).map((q, i) => questionHtml(q, i, n)).join('') +
+            (survey.endAt ? `<p class="fb-note fb-end">${ic('calendar', 'ic-16')}<span>ตอบได้ถึง ${new Date(survey.endAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })} น.</span></p>` : '');
         el('surveyLater').textContent = S.opts.preview ? 'ปิดตัวอย่าง' : 'ทำภายหลัง';
-        el('surveySend').textContent = S.opts.preview ? 'ส่งคำตอบ (ตัวอย่าง — ไม่บันทึก)' : 'ส่งคำตอบ';
         el('surveySend').disabled = false;
-        progress();
+        el('surveyHint').textContent = '';
         if (!d.open) d.showModal();
-        el('surveyForm').scrollTop = 0;
+        go(0);
         return new Promise(resolve => { S.resolve = resolve; });
     }
 
     async function sendSurvey() {
         const a = answers();
-        const missing = [...el('surveyForm').querySelectorAll('.fb-q[data-required="1"]')].filter(f => a[f.dataset.q] === undefined);
-        el('surveyForm').querySelectorAll('.fb-q').forEach(f => f.classList.toggle('is-missing', missing.indexOf(f) !== -1));
-        if (missing.length) {
-            missing[0].scrollIntoView({ block: 'center', behavior: 'smooth' });
-            return showMessage({ title: 'ยังตอบไม่ครบ', text: `กรุณาตอบข้อที่มีเครื่องหมาย * (เหลืออีก ${missing.length} ข้อ)`, tone: 'warn' });
-        }
+        const miss = (S.survey.questions || []).findIndex((q, i) => missingAt(i));
+        if (miss !== -1) { go(miss, true); return next(); }
         if (S.opts.preview) { S.done = true; el('surveyModal').close(); return; }
-        if (navigator.onLine === false) return showMessage({ title: 'ไม่มีสัญญาณอินเทอร์เน็ต', text: 'คำตอบยังอยู่ครบ ต่ออินเทอร์เน็ตแล้วกด "ส่งคำตอบ" อีกครั้ง', tone: 'warn' });
+        if (navigator.onLine === false) { el('surveyHint').textContent = 'ไม่มีสัญญาณอินเทอร์เน็ต — คำตอบยังอยู่ครบ ต่อเน็ตแล้วกดส่งอีกครั้ง'; return; }
         el('surveySend').disabled = true;
         if (typeof showLoading === 'function') showLoading(true, 'กำลังส่งคำตอบ…');
         let res;

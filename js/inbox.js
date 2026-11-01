@@ -6,6 +6,8 @@
 const Inbox = (() => {
     // ประวัติการอัปเดตแอป (ใหม่สุดก่อน) — who: all | user | staff
     const CHANGELOG = [
+        { v: '3.37.0', date: '2026-11-01', who: 'user', title: 'แบบสอบถามแบบใหม่ ทำทีละข้อ', body: 'คำถามตัวใหญ่ขึ้น ปุ่มคะแนนกดง่าย เลือกแล้วไปข้อถัดไปเอง ย้อนกลับแก้คำตอบได้', vkey: 'user' },
+        { v: '3.37.0', date: '2026-11-01', who: 'staff', title: 'ดูภาพรวมย้อนหลังได้', body: 'หน้าภาพรวมเลือก วันนี้ / เมื่อวาน / เลือกวันเองได้ ช่องวันที่แสดงแบบไทยและพอดีจอทุกเครื่อง', vkey: 'staff' },
         { v: '3.36.0', date: '2026-11-01', who: 'all', title: 'ใหม่: กล่องการแจ้งเตือน', body: 'แตะกระดิ่งด้านบนเพื่อดูการแจ้งเตือนทั้งหมดในที่เดียว ทั้งการใช้งาน การอัปเดตแอป และข่าวสารจากผู้ดูแลระบบ' },
         { v: '3.36.0', date: '2026-11-01', who: 'staff', title: 'ผู้ดูแลระบบประกาศข่าวสารได้แล้ว', body: 'ผู้ดูแลระบบ › ประกาศ — เขียนประกาศถึงผู้ใช้สิทธิ์หรือเจ้าหน้าที่ และเลือกส่งแจ้งเตือนบนมือถือได้', vkey: 'staff' },
         { v: '3.35.0', date: '2026-11-01', who: 'all', title: 'แจ้งปัญหาการใช้งานได้ในแอป', body: 'เจอปัญหา แจ้งได้ที่ บัญชี › แจ้งปัญหาการใช้งาน แนบภาพหน้าจอได้ เรื่องจะส่งถึงผู้ดูแลระบบทันที' },
@@ -105,13 +107,14 @@ const Inbox = (() => {
                     <button type="button" class="icon-btn" data-close aria-label="ปิด">${svg('x')}</button>
                 </div>
             </div>
-            <div class="inbox-tabs" role="tablist" aria-label="ประเภทการแจ้งเตือน" id="inboxTabs"></div>
+            <div class="inbox-tabs" role="tablist" aria-label="ประเภทการแจ้งเตือน" id="inboxTabs" data-scrollfade></div>
             <div class="sheet-body inbox-body" id="inboxBody" aria-live="polite"></div>
             <div class="sheet-foot inbox-foot">
                 <button type="button" class="btn-text" id="inboxSettings">${svg('settings', 'ic-16')} ตั้งค่าการแจ้งเตือนบนเครื่อง</button>
                 <button type="button" class="btn-chip" id="inboxManage" hidden>${svg('plus', 'ic-16')} <span></span></button>
             </div>`;
         document.body.appendChild(d);
+        if (typeof ScrollFade !== 'undefined') ScrollFade.watch(el('inboxTabs'));
         el('inboxTabs').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (!b) return; filter = b.dataset.cat; render(); });
         el('inboxReadAll').addEventListener('click', () => { const s = state(); items().forEach(it => { if (s.read.indexOf(it.id) === -1) s.read.push(it.id); }); save(s); render(); badge(); });
         el('inboxBody').addEventListener('click', onClick);
@@ -125,6 +128,7 @@ const Inbox = (() => {
         const unread = c => list.filter(it => (c === 'all' || it.cat === c) && isUnread(it, s)).length;
         el('inboxTabs').innerHTML = CATS.map(([c, t]) => { const n = unread(c); return `<button type="button" role="tab" data-cat="${c}" aria-selected="${c === filter}">${t}${n ? `<span class="inbox-count">${n > 9 ? '9+' : n}</span>` : ''}</button>`; }).join('');
         el('inboxReadAll').disabled = !unread('all');
+        if (typeof ScrollFade !== 'undefined') requestAnimationFrame(() => ScrollFade.update(el('inboxTabs')));
         const shown = list.filter(it => filter === 'all' || it.cat === filter);
         if (!shown.length) {
             el('inboxBody').innerHTML = `<div class="inbox-empty">${svg('bell')}<b>ยังไม่มีการแจ้งเตือน</b><span>${filter === 'news' ? 'ประกาศจากผู้ดูแลระบบจะแสดงที่นี่' : filter === 'update' ? 'เมื่อแอปมีฟีเจอร์ใหม่จะแจ้งที่นี่' : 'การแจ้งเตือนเกี่ยวกับรายงานและบัญชีของคุณจะแสดงที่นี่'}</span></div>`;

@@ -36,7 +36,7 @@ function handleStaffRequest_(req) {
       return handleNotifyRequest_(req, { type: 'staff', id: staff.id, email: staff.email || '' });
     case 'staff.overview':
       requirePerm_(staff, 'records.view');
-      return staffOverview_();
+      return staffOverview_(req.date);
     case 'staff.records.list':
       requirePerm_(staff, 'records.view');
       return staffRecordsList_(req, staff);
@@ -312,8 +312,14 @@ function staffRecordsLatest_(since) {
 }
 
 // ---------- ภาพรวม ----------
-function staffOverview_() {
-  const now = new Date();
+// dateArg = 'yyyy-MM-dd' ดูภาพรวมย้อนหลัง (ไม่ระบุ = วันนี้) · ใช้กับหน้า Staff และสรุปประจำวัน
+function staffOverview_(dateArg) {
+  const realNow = new Date(), realToday = fmtDate_(realNow);
+  let now = realNow;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(dateArg || '')) && dateArg < realToday && dateArg >= fmtDate_(new Date(realNow.getTime() - 800 * 86400000))) {
+    now = new Date(new Date(dateArg + 'T23:59:00+07:00').getTime()); // ปลายวันนั้น (เวลาไทย)
+  }
+  const isToday = now === realNow;
   const today = fmtDate_(now);
   const month = today.slice(0, 7);
   const allParticipants = readParticipants_();
@@ -323,7 +329,7 @@ function staffOverview_() {
   const todayRecs = records.filter(r => r.date === today);
   const reported = {};
   todayRecs.forEach(r => { reported[r.userId] = r; });
-  const contacted = contactedToday_();
+  const contacted = isToday ? contactedToday_() : {};
   const missing = participants.filter(p => !reported[p.id]).map(p => ({ id: p.id, name: p.name, pic: p.pic, site: p.site, phone: p.phone, contact: contacted[p.id] || null }));
 
   const agentMonth = {};
@@ -346,18 +352,18 @@ function staffOverview_() {
     trend.push({ date: d, count: byDate[d] ? byDate[d].count : 0, agent: byDate[d] ? byDate[d].agent : 0 });
   }
 
-  const monthRecs = records.filter(r => r.date.slice(0, 7) === month);
+  const monthRecs = records.filter(r => r.date.slice(0, 7) === month && r.date <= today);
   const daysSoFar = Number(today.slice(8, 10));
   const expected = participants.length * daysSoFar;
 
   return {
-    success: true, today: today, generatedAt: now.getTime(),
+    success: true, today: today, isToday: isToday, realToday: realToday, generatedAt: realNow.getTime(),
     kpi: {
       participants: participants.length, reportedToday: Object.keys(reported).filter(id => pMap[id]).length, missingToday: missing.length,
       agentToday: todayRecs.filter(r => r.type === SALES_TYPES[1]).length, anomaliesToday: todayRecs.filter(r => r.anomaly).length,
       nogpsToday: todayRecs.filter(r => !r.hasGps).length,
       duplicatesToday: todayRecs.filter(r => r.dup).length, lowAccToday: todayRecs.filter(r => r.lowAccuracy).length,
-      monthRecords: monthRecs.length, monthRate: expected ? Math.round(monthRecs.length / expected * 100) : 0,
+      monthRecords: monthRecs.length, monthExpected: expected, monthRate: expected ? Math.round(monthRecs.length / expected * 100) : 0,
       agentOverLimit: agentWatch.filter(a => a.used > AGENT_LIMIT_PER_MONTH).length
     },
     missing: missing,
@@ -367,7 +373,7 @@ function staffOverview_() {
     compare: overviewCompare_(records, participants.length, today),
     hours: overviewHours_(monthRecs),
     sites: overviewSites_(participants, monthRecs, reported),
-    latest: records.slice().sort((a, b) => b.ts - a.ts).slice(0, 8).map(recordDto_)
+    latest: (isToday ? records : records.filter(r => r.date <= today)).slice().sort((a, b) => b.ts - a.ts).slice(0, 8).map(recordDto_)
   };
 }
 
@@ -382,7 +388,7 @@ function overviewCompare_(records, participantCount, today) {
   const agentCur = { n: 0 }, agentPrev = { n: 0 };
   records.forEach(r => {
     const mk = r.date.slice(0, 7), d = Number(r.date.slice(8, 10)) - 1;
-    if (mk === thisKey) { cur[d]++; if (r.type === SALES_TYPES[1]) agentCur.n++; }
+    if (mk === thisKey) { cur[d]++; if (r.type === SALES_TYPES[1] && d < dayNow) agentCur.n++; }
     else if (mk === prevKey) { prev[d]++; if (r.type === SALES_TYPES[1] && d < dayNow) agentPrev.n++; }
   });
   const sum = (arr, n) => arr.slice(0, n).reduce((a, b) => a + b, 0);

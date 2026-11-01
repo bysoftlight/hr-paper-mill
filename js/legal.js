@@ -9,9 +9,11 @@
         if (same && history.length > 1) { e.preventDefault(); history.back(); }
     });
 
-    // เมนูบนจอแคบเลื่อนแนวนอนได้: ให้หน้าปัจจุบันอยู่ในจอ
+    // เมนูบนจอแคบเลื่อนแนวนอนได้: ให้หน้าปัจจุบันอยู่ในจอ · ขอบที่ยังมีเมนูซ่อนอยู่จางลง
     const cur = $('.doc-bar nav a[aria-current="page"]'), nav = cur && cur.parentElement;
     if (nav && nav.scrollWidth > nav.clientWidth) nav.scrollLeft = cur.offsetLeft - nav.offsetLeft - (nav.clientWidth - cur.offsetWidth) / 2;
+    const fade = () => { if (!nav) return; const max = nav.scrollWidth - nav.clientWidth; nav.style.setProperty('--fade-l', nav.scrollLeft > 2 ? '24px' : '0px'); nav.style.setProperty('--fade-r', max - nav.scrollLeft > 2 ? '24px' : '0px'); };
+    if (nav) { nav.addEventListener('scroll', fade, { passive: true }); window.addEventListener('resize', fade); fade(); }
 
     // สารบัญ: ไฮไลต์หัวข้อที่กำลังอ่าน · มือถือ: แตะหัวข้อแล้วพับสารบัญ
     const links = [...document.querySelectorAll('.toc a[href^="#"]')];
@@ -59,4 +61,13 @@
         openHash();
         window.addEventListener('hashchange', openHash);
     }
+
+    // ท้ายหน้า: ลิงก์ที่ขึ้นบรรทัดใหม่ไม่ต้องมีจุดคั่นนำหน้า
+    const tidy = () => document.querySelectorAll('.foot-links').forEach(nav => { // ดู tidyFootLinks ใน utils.js
+        nav.querySelectorAll('.foot-br').forEach(br => br.remove());
+        let prev = null;
+        [...nav.children].filter(el => { const t = el.offsetTop, st = prev !== null && t > prev + 4; prev = t; return st; })
+            .forEach(el => { const br = document.createElement('span'); br.className = 'foot-br'; br.setAttribute('aria-hidden', 'true'); nav.insertBefore(br, el); });
+    });
+    tidy(); window.addEventListener('resize', tidy); window.addEventListener('load', tidy);
 })();

@@ -295,3 +295,103 @@ const Counting = (() => {
 function cnum(n, key, decimals = 0) {
     return `<span class="count" data-count="${Number(n) || 0}"${key ? ` data-count-key="${key}"` : ''}${decimals ? ` data-decimals="${decimals}"` : ''}>${Counting.fmt(Number(n) || 0, decimals)}</span>`;
 }
+
+// ---------- ช่องวันที่ที่หน้าตาเหมือนกันทุกเครื่อง (DateField) ----------
+// iPhone/Safari วาดช่อง date/datetime-local เอง (ตัวหนังสือชิดบน รูปแบบ "1 Nov 2026" สูงไม่เท่าช่องอื่น)
+// → ห่อด้วยกล่องที่แสดงวันที่ภาษาไทย (1 พ.ย. 2569) ช่องจริงโปร่งใสวางทับ แตะแล้วเปิดตัวเลือกวันที่ของเครื่องตามปกติ
+// ย้าย class (input/input-sm) และ data-for ไปที่กล่องห่อ · ตั้งค่า .value ด้วยโค้ดแล้วข้อความอัปเดตเอง
+const DateField = (() => {
+    const TH_MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+    const TH_MONTHS_FULL = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+    const desc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+    function format(type, v) {
+        if (!v) return '';
+        if (type === 'month') { const [y, m] = v.split('-').map(Number); return y && m ? `${TH_MONTHS_FULL[m - 1]} ${y + 543}` : v; }
+        const [d, t] = v.split('T');
+        const [y, m, day] = d.split('-').map(Number);
+        if (!y || !m || !day) return v;
+        const s = `${day} ${TH_MONTHS[m - 1]} ${y + 543}`;
+        return type === 'datetime-local' && t ? `${s} · ${t.slice(0, 5)} น.` : s;
+    }
+    function enhance(input) {
+        if (!input || input.dataset.df || !input.parentNode) return;
+        input.dataset.df = '1';
+        const box = document.createElement('span');
+        box.className = 'datefield ' + input.className;
+        if (input.dataset.for) { box.dataset.for = input.dataset.for; delete input.dataset.for; }
+        if (input.hidden) { box.hidden = true; input.hidden = false; }
+        const text = document.createElement('span');
+        text.className = 'df-text';
+        text.setAttribute('aria-hidden', 'true');
+        const ic = document.createElement('span');
+        ic.className = 'df-ic';
+        ic.setAttribute('aria-hidden', 'true');
+        ic.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';
+        input.parentNode.insertBefore(box, input);
+        box.append(text, ic, input);
+        input.className = 'df-native';
+        let clear = null;
+        if (!input.required && input.type !== 'date') { // ช่องไม่บังคับ (เช่น วันปิดรับ): ปุ่มล้างค่า
+            clear = document.createElement('button');
+            clear.type = 'button'; clear.className = 'df-clear'; clear.setAttribute('aria-label', 'ล้างค่า');
+            clear.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+            clear.addEventListener('click', e => { e.preventDefault(); input.value = ''; input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true })); });
+            box.appendChild(clear);
+        }
+        const placeholder = input.getAttribute('placeholder') || (input.type === 'month' ? 'เลือกเดือน' : input.type === 'datetime-local' ? 'เลือกวันและเวลา' : 'เลือกวันที่');
+        const sync = () => {
+            const v = desc.get.call(input);
+            text.textContent = format(input.type, v) || placeholder;
+            box.classList.toggle('is-empty', !v);
+            if (clear) clear.hidden = !v;
+        };
+        // ตั้งค่าด้วยโค้ด (input.value = …) ไม่มีเหตุการณ์ input → ดักที่ตัวช่องเอง
+        Object.defineProperty(input, 'value', { configurable: true, get() { return desc.get.call(this); }, set(v) { desc.set.call(this, v); sync(); } });
+        input.addEventListener('input', sync);
+        input.addEventListener('change', sync);
+        // คอมพิวเตอร์: คลิกตรงไหนของช่องก็เปิดปฏิทิน (ปกติต้องคลิกไอคอนเล็กๆ)
+        input.addEventListener('click', () => { try { if (input.showPicker) input.showPicker(); } catch (e) { /* บางเบราว์เซอร์ไม่อนุญาต: ใช้ตัวเลือกปกติ */ } });
+        sync();
+    }
+    function enhanceAll(root) {
+        (root || document).querySelectorAll('input[type="date"].input, input[type="datetime-local"].input, input[type="month"].input').forEach(enhance);
+    }
+    return { enhance, enhanceAll, format };
+})();
+document.addEventListener('DOMContentLoaded', () => DateField.enhanceAll());
+
+// ---------- ขอบจางของแถบที่เลื่อนแนวนอนได้ ([data-scrollfade]) ----------
+// ซ้าย/ขวาที่ยังมีเนื้อหาซ่อนอยู่ = จางลง (บอกว่าเลื่อนได้) · เลื่อนสุดแล้วขอบนั้นคมตามปกติ
+const ScrollFade = (() => {
+    const upd = el => {
+        const max = el.scrollWidth - el.clientWidth;
+        el.style.setProperty('--fade-l', el.scrollLeft > 2 ? '28px' : '0px');
+        el.style.setProperty('--fade-r', max - el.scrollLeft > 2 ? '28px' : '0px');
+    };
+    function watch(el) {
+        if (!el || el.dataset.sfOn) return;
+        el.dataset.sfOn = '1';
+        el.addEventListener('scroll', () => upd(el), { passive: true });
+        if (window.ResizeObserver) new ResizeObserver(() => upd(el)).observe(el); else window.addEventListener('resize', () => upd(el));
+        upd(el);
+    }
+    const all = () => document.querySelectorAll('[data-scrollfade]').forEach(watch);
+    document.addEventListener('DOMContentLoaded', all);
+    return { watch, update: upd, all };
+})();
+
+// ท้ายหน้า: ลิงก์ที่ขึ้นบรรทัดใหม่ไม่ต้องมีจุดคั่นนำหน้า
+function tidyFootLinks() {
+    // วัดตอนมีจุดครบทุกลิงก์ → ลิงก์ที่ขึ้นบรรทัดใหม่: ใส่ตัวขึ้นบรรทัด (.foot-br) ไว้หน้าแล้วซ่อนจุด
+    // ล็อกการตัดบรรทัดไว้ ลิงก์จึงไม่กระโดดกลับไปบรรทัดก่อนเมื่อจุดหายไป (ไม่วนสลับไปมา)
+    document.querySelectorAll('.foot-links').forEach(nav => {
+        nav.querySelectorAll('.foot-br').forEach(br => br.remove());
+        if (!nav.offsetParent) return; // ซ่อนอยู่: วัดไม่ได้ รอแสดงผลก่อน
+        const items = [...nav.children];
+        let prev = null;
+        const starts = items.filter(el => { const t = el.offsetTop, st = prev !== null && t > prev + 4; prev = t; return st; });
+        starts.forEach(el => { const br = document.createElement('span'); br.className = 'foot-br'; br.setAttribute('aria-hidden', 'true'); nav.insertBefore(br, el); });
+    });
+}
+document.addEventListener('DOMContentLoaded', () => { tidyFootLinks(); if (window.ResizeObserver) document.querySelectorAll('.foot-links').forEach(n => new ResizeObserver(tidyFootLinks).observe(n)); else window.addEventListener('resize', tidyFootLinks); });
+window.addEventListener('load', tidyFootLinks);

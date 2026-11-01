@@ -38,8 +38,8 @@
     /* กันไอคอนขยายเต็มจอ ถ้า stylesheet ยังโหลดไม่เสร็จหรือเป็นเวอร์ชันเก่า (:where = ไม่ทับขนาดใน style.css) */
     :where(svg.ic) { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; }
   </style>
-  <script src="js/settings.js?v=3.36.0"></script>
-  <link rel="stylesheet" href="css/style.css?v=3.36.0">
+  <script src="js/settings.js?v=3.37.0"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.37.0">
 </head>
 <body>
 
@@ -177,6 +177,7 @@
     </div>
     <div class="sheet-body">
       <p>ระบบ HR Paper Mill พัฒนาขึ้นเพื่ออำนวยความสะดวกในการส่งหลักฐานการขายและติดตามผลการดำเนินงานของผู้ใช้สิทธิ์ตามมาตรา 35</p>
+      <p class="muted-text">พัฒนา ดูแล และให้บริการระบบโดย <a class="credit" href="https://www.instagram.com/softlight.works/" target="_blank" rel="noopener">softlight</a></p>
     </div>
     <div class="sheet-foot"><button type="button" class="btn btn-outline" data-close>ปิด</button></div>
   </dialog>
@@ -325,7 +326,7 @@
   <!-- ===== Login ===== -->
   <div id="loginView" class="login">
     <section class="login-intro" aria-labelledby="loginTitle">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.36.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.37.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <p class="eyebrow">โครงการใช้สิทธิ์สัมปทานผู้พิการตามมาตรา 35 · ปี 2569</p>
       <h1 id="loginTitle">รายงานการขายประจำวัน<br>ส่งได้ในไม่กี่ขั้นตอน</h1>
       <ol class="intro-steps">
@@ -357,16 +358,16 @@
         </div>
       </form>
 
-      <footer class="login-footer">
-        <nav aria-label="ข้อมูลระบบ">
-          <button type="button" class="btn-text" data-open="aboutModal">เกี่ยวกับระบบ</button>
-          <a class="btn-text" href="faq.html">คำถามที่พบบ่อย</a>
-          <a class="btn-text" href="terms.html">ข้อกำหนดการใช้งาน</a>
-          <a class="btn-text" href="privacy.html">นโยบายความเป็นส่วนตัว</a>
-          <button type="button" class="btn-text" data-settings>ตั้งค่าการแสดงผล</button>
-          <a class="btn-text" href="staff.html">สำหรับเจ้าหน้าที่</a>
+      <footer class="login-footer site-foot">
+        <nav class="foot-links" aria-label="ข้อมูลระบบ">
+          <button type="button" data-open="aboutModal">เกี่ยวกับระบบ</button>
+          <a href="faq.html">คำถามที่พบบ่อย</a>
+          <a href="terms.html">ข้อกำหนดการใช้งาน</a>
+          <a href="privacy.html">นโยบายความเป็นส่วนตัว</a>
+          <button type="button" data-settings>ตั้งค่าการแสดงผล</button>
+          <a href="staff.html">สำหรับเจ้าหน้าที่</a>
         </nav>
-        <p>Copyright © 2026 <a class="credit" href="https://www.instagram.com/softlight.works/" target="_blank" rel="noopener">softlight</a>. All rights reserved.</p>
+        <p class="foot-copy">Copyright © 2026 <a class="credit" href="https://www.instagram.com/softlight.works/" target="_blank" rel="noopener">softlight</a>. All rights reserved.</p>
       </footer>
     </main>
   </div>
@@ -374,12 +375,12 @@
   <!-- ===== App ===== -->
   <div id="appContainer" class="app is-syncing" hidden>
     <header class="topbar">
-      <a class="brand" href="#form" data-home aria-label="HR Paper Mill — หน้าแรก"><img class="logo" src="img/logo.png?v=3.36.0" alt="" width="36" height="36"><span>HR Paper Mill</span></a>
+      <a class="brand" href="#form" data-home aria-label="HR Paper Mill — หน้าแรก"><img class="logo" src="img/logo.png?v=3.37.0" alt="" width="36" height="36"><span>HR Paper Mill</span></a>
       <div class="topbar-actions"><span class="chip" data-today>&nbsp;</span><button type="button" class="icon-btn bell-btn" data-inbox aria-label="การแจ้งเตือน"><svg class="ic" aria-hidden="true"><use href="#i-bell"/></svg><span class="bell-badge" data-inbox-badge hidden></span></button></div>
     </header>
 
     <nav class="sidenav" aria-label="เมนูหลัก">
-      <a class="brand" href="#form" data-home aria-label="HR Paper Mill — หน้าแรก"><img class="logo" src="img/logo.png?v=3.36.0" alt="" width="36" height="36"><span class="brand-text">HR Paper Mill</span></a>
+      <a class="brand" href="#form" data-home aria-label="HR Paper Mill — หน้าแรก"><img class="logo" src="img/logo.png?v=3.37.0" alt="" width="36" height="36"><span class="brand-text">HR Paper Mill</span></a>
       <div class="nav-items">
         <button type="button" class="nav-item" data-tab="form" aria-current="page"><svg class="ic ic-22" aria-hidden="true"><use href="#i-send"/></svg><span>ส่งรายงาน</span></button>
         <button type="button" class="nav-item" data-tab="history"><svg class="ic ic-22" aria-hidden="true"><use href="#i-history"/></svg><span>ประวัติ</span></button>
@@ -648,19 +649,19 @@
     </nav>
   </div>
 
-  <script src="js/consent.js?v=3.36.0"></script>
-  <script src="js/config.js?v=3.36.0"></script>
-  <script src="js/utils.js?v=3.36.0"></script>
-  <script src="js/glass.js?v=3.36.0"></script>
-  <script src="js/analytics.js?v=3.36.0"></script>
-  <script src="js/api.js?v=3.36.0"></script>
-  <script src="js/notify.js?v=3.36.0"></script>
-  <script src="js/outbox.js?v=3.36.0"></script>
-  <script src="js/camera.js?v=3.36.0"></script>
-  <script src="js/charts.js?v=3.36.0"></script>
-  <script src="js/feedback.js?v=3.36.0"></script>
-  <script src="js/inbox.js?v=3.36.0"></script>
-  <script src="js/app.js?v=3.36.0"></script>
-  <script src="js/report.js?v=3.36.0"></script>
+  <script src="js/consent.js?v=3.37.0"></script>
+  <script src="js/config.js?v=3.37.0"></script>
+  <script src="js/utils.js?v=3.37.0"></script>
+  <script src="js/glass.js?v=3.37.0"></script>
+  <script src="js/analytics.js?v=3.37.0"></script>
+  <script src="js/api.js?v=3.37.0"></script>
+  <script src="js/notify.js?v=3.37.0"></script>
+  <script src="js/outbox.js?v=3.37.0"></script>
+  <script src="js/camera.js?v=3.37.0"></script>
+  <script src="js/charts.js?v=3.37.0"></script>
+  <script src="js/feedback.js?v=3.37.0"></script>
+  <script src="js/inbox.js?v=3.37.0"></script>
+  <script src="js/app.js?v=3.37.0"></script>
+  <script src="js/report.js?v=3.37.0"></script>
 </body>
 </html>
