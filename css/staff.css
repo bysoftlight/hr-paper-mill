@@ -2,7 +2,7 @@
    Breakpoints เดียวกับหน้าผู้ใช้สิทธิ์: 768 (rail) · 1024 (สองคอลัมน์) · 1100 (แถบข้างเต็ม) · 1280 (กว้าง) */
 
 .staff { --content: 480px; }
-.staff .bottomnav { grid-template-columns: repeat(var(--nav-n, 5), minmax(0, 1fr)); }
+.staff .bottomnav { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); } /* แถวเดียวเสมอ ไม่ว่าจะแสดงกี่เมนู (ดู style.css) */
 .staff .bottomnav .nav-item > span:not(.nav-badge):not(.nav-bell-ic):not(.nav-ava-wrap) { font-size: 11px; white-space: nowrap; }
 .staff [data-perm][hidden] { display: none !important; }
 
