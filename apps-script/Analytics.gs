@@ -31,7 +31,18 @@ function analyticsSheet_() {
     sh.getRange(1, 1, 1, A_HEADERS.length).setValues([A_HEADERS]);
     sh.getRange('A:A').setNumberFormat('dd/MM/yyyy HH:mm:ss');
   }
+  // คอลัมน์ "วันที่" ต้องเป็นข้อความ (yyyy-MM-dd) — ถ้าปล่อยให้ Sheets แปลงเป็นวันที่ การกรองช่วงวันจะไม่เจอข้อมูลเลย (สถิติเป็น 0 ทั้งที่มีข้อมูล)
+  const props = PropertiesService.getScriptProperties();
+  if (props.getProperty('AN_DATE_TEXT') !== '1') {
+    sh.getRange('B:B').setNumberFormat('@');
+    props.setProperty('AN_DATE_TEXT', '1');
+  }
   return sh;
+}
+// วันที่ของแถว (ข้อความหรือ Date ที่ Sheets แปลงให้) → 'yyyy-MM-dd' ตามเวลาไทย
+function anDay_(v) {
+  if (v && typeof v.getTime === 'function') return isNaN(v.getTime()) ? '' : fmtDate_(v);
+  return String(v == null ? '' : v).slice(0, 10);
 }
 
 // ชื่อผู้ใช้สิทธิ์จากรหัส (จำไว้ 6 ชม.) — รหัสที่ไม่มีในระบบได้ชื่อว่าง
@@ -143,9 +154,33 @@ function analyticsRows_(fromDate) {
   if (last < 2) return [];
   const dates = sh.getRange(2, AC.DATE + 1, last - 1, 1).getValues();
   let lo = 0, hi = dates.length;
-  while (lo < hi) { const mid = (lo + hi) >> 1; if (String(dates[mid][0]) < fromDate) lo = mid + 1; else hi = mid; }
+  while (lo < hi) { const mid = (lo + hi) >> 1; if (anDay_(dates[mid][0]) < fromDate) lo = mid + 1; else hi = mid; }
   if (lo >= dates.length) return [];
-  return sh.getRange(lo + 2, 1, dates.length - lo, A_HEADERS.length).getValues();
+  const rows = sh.getRange(lo + 2, 1, dates.length - lo, A_HEADERS.length).getValues();
+  rows.forEach(r => { r[AC.DATE] = anDay_(r[AC.DATE]) || (tsOf_(r[AC.TS]) ? fmtDate_(new Date(tsOf_(r[AC.TS]))) : ''); });
+  return rows;
+}
+
+// เรียลไทม์อย่างเดียว: อ่านเฉพาะแถวท้ายชีต (30 นาทีล่าสุด) — เร็ว ใช้รีเฟรชถี่ๆ ขณะเปิดหน้าสถิติ
+function analyticsLive_(req) {
+  const app = ANALYTICS_APPS.indexOf(req.app) === -1 ? 'all' : req.app;
+  const cache = CacheService.getScriptCache(), key = 'an:live:' + app;
+  const hit = cache.get(key);
+  if (hit) return JSON.parse(hit);
+  const sh = analyticsSheet_(), last = sh.getLastRow();
+  let rows = [];
+  if (last >= 2) {
+    const cut = Date.now() - 31 * 60000;
+    let n = Math.min(last - 1, 400);
+    for (;;) {
+      rows = sh.getRange(last - n + 1, 1, n, A_HEADERS.length).getValues();
+      if (n >= last - 1 || n >= 6000 || tsOf_(rows[0][AC.TS]) < cut) break;
+      n = Math.min(last - 1, n * 3);
+    }
+  }
+  const out = { success: true, generatedAt: Date.now(), realtime: realtime_(rows.filter(r => app === 'all' || r[AC.APP] === app)) };
+  try { cache.put(key, JSON.stringify(out), 10); } catch (e) {}
+  return out;
 }
 
 function addDays_(iso, n) {
@@ -307,7 +342,7 @@ function pruneAnalytics() {
   const cut = addDays_(fmtDate_(new Date()), -ANALYTICS_KEEP_DAYS);
   const dates = sh.getRange(2, AC.DATE + 1, sh.getLastRow() - 1, 1).getValues();
   let n = 0;
-  while (n < dates.length && String(dates[n][0]) < cut) n++;
+  while (n < dates.length && anDay_(dates[n][0]) < cut) n++;
   if (n) sh.deleteRows(2, n);
   return n;
 }

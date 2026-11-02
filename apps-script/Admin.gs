@@ -1,15 +1,15 @@
 // Admin.gs — จัดการบัญชี/สิทธิ์ของเจ้าหน้าที่ และดู Log (เฉพาะ Admin)
 
-function adminStaffList_() {
-  const list = readStaff_().map(staffDto_).sort((a, b) => {
+function adminStaffList_(actor) {
+  const list = readStaff_().filter(s => !SCOPE_ORG_ || s.org === SCOPE_ORG_).map(staffDto_).sort((a, b) => {
     const order = { pending: 0, active: 1, suspended: 2, rejected: 3 };
     return (order[a.status] - order[b.status]) || ((b.lastLoginAt || 0) - (a.lastLoginAt || 0));
   });
-  return { success: true, staff: list, perms: PERMS, roles: ROLES, presets: ROLE_PRESETS };
+  return { success: true, staff: list, perms: PERMS, roles: ROLES.filter(r => r !== 'dev' || isDev_(actor)), presets: ROLE_PRESETS };
 }
 
 function activeAdmins_(all) {
-  return all.filter(s => s.role === 'admin' && s.status === 'active');
+  return all.filter(s => (s.role === 'admin' || s.role === 'dev') && s.status === 'active');
 }
 
 function adminStaffUpdate_(req, actor, ua) {
@@ -18,7 +18,8 @@ function adminStaffUpdate_(req, actor, ua) {
   try {
     const all = readStaff_();
     const target = all.filter(s => s.id === req.id)[0];
-    if (!target) fail_('INVALID', 'ไม่พบบัญชีนี้');
+    if (!target || (SCOPE_ORG_ && target.org !== SCOPE_ORG_)) fail_('INVALID', 'ไม่พบบัญชีนี้');
+    if (!isDev_(actor) && (target.role === 'dev' || req.role === 'dev')) fail_('FORBIDDEN', 'เฉพาะ Dev เท่านั้นที่จัดการบัญชี Dev ได้');
     const role = req.role !== undefined ? String(req.role) : target.role;
     const status = req.status !== undefined ? String(req.status) : target.status;
     if (ROLES.indexOf(role) === -1) fail_('INVALID', 'บทบาทไม่ถูกต้อง');
@@ -26,13 +27,16 @@ function adminStaffUpdate_(req, actor, ua) {
     if (status === 'active' && role === 'pending') fail_('INVALID', 'กรุณาเลือกบทบาทก่อนอนุมัติ');
 
     // กันระบบไม่มี Admin เหลืออยู่ และกัน Admin ลดสิทธิ์ตัวเองโดยไม่ตั้งใจ
-    const losesAdmin = target.role === 'admin' && target.status === 'active' && (role !== 'admin' || status !== 'active');
+    const isAdm = r => r === 'admin' || r === 'dev';
+    const losesAdmin = isAdm(target.role) && target.status === 'active' && (!isAdm(role) || status !== 'active');
     if (losesAdmin && target.id === actor.id) fail_('INVALID', 'ไม่สามารถลดสิทธิ์หรือระงับบัญชีของตัวเองได้');
     if (losesAdmin && activeAdmins_(all).length <= 1) fail_('INVALID', 'ต้องมีผู้ดูแลระบบที่ใช้งานอยู่อย่างน้อย 1 คน');
 
     let perms = Array.isArray(req.permissions) ? req.permissions.filter(p => PERMS.indexOf(p) !== -1 && p !== 'admin') : target.permissions.filter(p => p !== 'admin');
     if (req.role !== undefined && req.role !== target.role && !Array.isArray(req.permissions)) perms = (ROLE_PRESETS[role] || []).filter(p => p !== 'admin');
-    if (role === 'admin') perms = PERMS.slice();
+    if (role === 'admin' || role === 'dev') perms = PERMS.slice();
+    // อนุมัติเจ้าหน้าที่เพิ่ม: ตรวจจำนวนเจ้าหน้าที่ตามแพลนขององค์กร
+    if (target.status !== 'active' && status === 'active' && target.org && typeof orgSeatCheck_ === 'function') orgSeatCheck_(target.org, 'staff', all);
 
     const sh = sheet_(SHEET.STAFF);
     sh.getRange(target.row, SCOL.ROLE + 1, 1, 3).setValues([[role, perms.join(','), status]]);
@@ -59,7 +63,8 @@ function adminStaffUpdate_(req, actor, ua) {
 // บังคับออกจากระบบทุกอุปกรณ์ (token เดิมใช้ไม่ได้ทันที)
 function adminStaffRevoke_(req, actor, ua) {
   const target = findStaffById_(req.id);
-  if (!target) fail_('INVALID', 'ไม่พบบัญชีนี้');
+  if (!target || (SCOPE_ORG_ && target.org !== SCOPE_ORG_)) fail_('INVALID', 'ไม่พบบัญชีนี้');
+  if (target.role === 'dev' && !isDev_(actor)) fail_('FORBIDDEN', 'เฉพาะ Dev เท่านั้นที่จัดการบัญชี Dev ได้');
   sheet_(SHEET.STAFF).getRange(target.row, SCOL.TOKEN_VER + 1).setValue(target.tokenVersion + 1);
   clearStaffCache_();
   log_(actor, 'admin.staff.revoke', target.email || target.name, '', ua);
@@ -72,9 +77,10 @@ function adminStaffDelete_(req, actor, ua) {
   try {
     const all = readStaff_();
     const target = all.filter(s => s.id === req.id)[0];
-    if (!target) fail_('INVALID', 'ไม่พบบัญชีนี้');
+    if (!target || (SCOPE_ORG_ && target.org !== SCOPE_ORG_)) fail_('INVALID', 'ไม่พบบัญชีนี้');
+    if (target.role === 'dev' && !isDev_(actor)) fail_('FORBIDDEN', 'เฉพาะ Dev เท่านั้นที่จัดการบัญชี Dev ได้');
     if (target.id === actor.id) fail_('INVALID', 'ไม่สามารถลบบัญชีของตัวเองได้');
-    if (target.role === 'admin' && target.status === 'active' && activeAdmins_(all).length <= 1) fail_('INVALID', 'ต้องมีผู้ดูแลระบบอย่างน้อย 1 คน');
+    if ((target.role === 'admin' || target.role === 'dev') && target.status === 'active' && activeAdmins_(all).length <= 1) fail_('INVALID', 'ต้องมีผู้ดูแลระบบอย่างน้อย 1 คน');
     sheet_(SHEET.STAFF).deleteRow(target.row);
     clearStaffCache_();
     log_(actor, 'admin.staff.delete', target.email || target.name, { provider: target.provider, role: target.role }, ua);

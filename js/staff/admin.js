@@ -40,7 +40,7 @@ VIEWS.admin = {
     reset() { Object.assign(this, { tab: 'staff', staff: [], meta: null, logPage: 1 }); this.logReq++; },
 
     setTab(t) {
-        if (t === 'analytics') return switchTab('analytics'); // สถิติ = หน้าแยก แต่อยู่ในเมนูผู้ดูแล (แถบล่างไม่เกิน 5 เมนู)
+        if (t === 'analytics' || t === 'dev') return switchTab(t); // สถิติ / Dev Console = หน้าแยก แต่อยู่ในเมนูผู้ดูแล (แถบล่างไม่เกิน 5 เมนู)
         this.tab = t;
         $('admTabs').querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.t === t)));
         centerSelectedTab($('admTabs'));

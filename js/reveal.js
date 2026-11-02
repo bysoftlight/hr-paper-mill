@@ -8,7 +8,7 @@
     const SEL = [
         '.view .card', '.view .kpi', '.view .banner', '.view .stat', '.view .feed-item', '.view .person', '.view .threat',
         '.view .inbox-item', '.view .sv-card', '.view .news-card', '.view .prob', '.view .hist-item', '.view .cal-card',
-        '.faq-item', '.faq-help', '.prose > section', '.contact-card', '.brand-foot', '.doc-head'
+        '.faq-item', '.faq-help', '.prose > section', '.contact-card', '.brand-foot', '.doc-head', '.pkg-card:not(.pkg-skel)', '.pkg-sec'
     ].join(',');
     const reduce = () => document.documentElement.dataset.motion === 'reduce' || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
     let lastShow = performance.now(); // เปิดหน้า/เปลี่ยนแท็บล่าสุด

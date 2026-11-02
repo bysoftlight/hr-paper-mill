@@ -10,11 +10,12 @@ const SELF_TYPE = 'ทำการขายด้วยตัวเอง';
 const AGENT_TYPE = 'ทำการขายโดยตัวแทน';
 const MONTHS = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
 const MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-const ROLE_LABELS = { pending: 'รออนุมัติ', viewer: 'ผู้ดูข้อมูล', editor: 'ผู้แก้ไข', admin: 'ผู้ดูแลระบบ' };
+const ROLE_LABELS = { pending: 'รออนุมัติ', viewer: 'ผู้ดูข้อมูล', editor: 'ผู้แก้ไข', admin: 'ผู้ดูแลระบบ', dev: 'Dev (ผู้พัฒนาระบบ)' };
 const STATUS_LABELS = { pending: 'รออนุมัติ', active: 'ใช้งาน', suspended: 'ระงับ', rejected: 'ปฏิเสธ' };
 const PERM_LABELS = {
     'records.view': 'ดูรายงานการส่ง', 'records.edit': 'เพิ่ม / แก้ไข / ลบรายงาน', 'participants.view': 'ดูข้อมูลผู้ใช้สิทธิ์',
-    'participants.edit': 'เพิ่ม / แก้ไขผู้ใช้สิทธิ์', 'export': 'ส่งออกข้อมูล (Excel, PDF, Google Sheets)', 'admin': 'จัดการบัญชีเจ้าหน้าที่และดู Log'
+    'participants.edit': 'เพิ่ม / แก้ไขผู้ใช้สิทธิ์', 'export': 'ส่งออกข้อมูล (Excel, PDF, Google Sheets)', 'admin': 'จัดการบัญชีเจ้าหน้าที่และดู Log',
+    'dev': 'Dev Console: องค์กร แพลน การชำระเงิน ทุกองค์กร'
 };
 const VIEWS = {};      // โมดูลแต่ละหน้า: { show(), onLive?(count) }
 const $ = (id) => document.getElementById(id);
@@ -166,7 +167,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ลืม session เฉพาะเมื่อเซิร์ฟเวอร์ยืนยันว่าใช้ไม่ได้ (AUTH) — เน็ตหลุด/ระบบขัดข้องชั่วคราว ให้ลองใหม่โดยไม่ต้องเข้าสู่ระบบใหม่
 async function resumeSession() {
     const r = await callApi('staff.me', { token: ST.token });
-    if (r.success) { keepToken(r.token); return enter(r.staff); }
+    if (r.success) { keepToken(r.token); return enter(r.staff, r.subscription); }
     if (r.code === 'AUTH') {
         store.remove(TOKEN_KEY); ST.token = null; ST.prefetch = null;
         $('appContainer').hidden = true;
@@ -290,7 +291,7 @@ function onLoginResult(res) {
     }
     ST.token = res.token;
     store.set(TOKEN_KEY, res.token);
-    enter(res.staff);
+    enter(res.staff, res.subscription);
 }
 
 async function logout() {
@@ -325,15 +326,32 @@ function endSession(message) {
 }
 
 // ---------- After sign in ----------
-function enter(me) {
+// องค์กรหมดช่วงทดลอง/ค้างชำระเกินกำหนด/ถูกระงับ (Dev ใช้งานได้เสมอ)
+function subLocked(sub, me) { return !!(sub && sub.ok === false && !(me && me.role === 'dev')); }
+const SUB_STATE_TH = { trial: 'ทดลองใช้ฟรี', active: 'ใช้งาน', past_due: 'ค้างชำระ', trial_expired: 'หมดช่วงทดลองใช้', expired: 'หมดอายุ', suspended: 'ถูกระงับ', cancelled: 'ยกเลิกแล้ว' };
+// แถบแจ้งสถานะการสมัครสมาชิกขององค์กร: ทดลองใช้ (เหลือกี่วัน) · ใกล้หมดรอบ · ค้างชำระ
+function renderSubBanner() {
+    const el = $('subBanner'), s = ST.sub;
+    if (!el) return;
+    const show = s && s.ok && (s.state === 'trial' || s.warn);
+    el.hidden = !show;
+    if (!show) return;
+    const tone = s.state === 'past_due' ? 'is-bad' : s.warn ? 'is-warn' : 'is-accent';
+    const left = s.daysLeft === null || s.daysLeft === undefined ? '' : s.daysLeft <= 0 ? 'วันนี้วันสุดท้าย' : `เหลือ ${fmtNum(s.daysLeft)} วัน`;
+    el.innerHTML = `<div class="sub-card ${tone}">${icon(s.state === 'past_due' ? 'alert' : 'calendar')}<span class="sub-text"><b>${esc(SUB_STATE_TH[s.state] || s.state)}${s.plan ? ' · แพลน ' + esc(s.plan.name) : ''}${left ? ' — ' + left : ''}</b><small>${esc(s.org ? s.org.name : '')}${s.endsAt ? ' · ถึง ' + thDate(s.endsAt, { day: 'numeric', month: 'short', year: 'numeric' }) : ''} · ${esc(s.message || '')}</small></span><a class="btn btn-sm ${s.state === 'past_due' ? 'btn-primary' : 'btn-tonal'}" href="packages.html" target="_blank" rel="noopener">ดูแพ็กเกจ</a></div>`;
+}
+
+function enter(me, sub) {
     ST.me = me;
+    ST.sub = sub || null;
     ST.perms = new Set(me.permissions || []);
     Analytics.setRole(me.role || 'staff');
     Analytics.setUser(me.email || '');
     $('authView').hidden = true;
-    if (me.status !== 'active' || !ST.perms.size) return showPending(me);
+    if (me.status !== 'active' || !ST.perms.size || subLocked(ST.sub, me)) return showPending(me);
     $('pendingView').hidden = true;
     showApp();
+    renderSubBanner();
 }
 
 let pendingTimer = null;
@@ -347,12 +365,13 @@ function showPending(me) {
         rejected: ['คำขอใช้งานไม่ได้รับอนุมัติ', 'กรุณาติดต่อผู้ดูแลระบบหากต้องการใช้งาน'],
         active: ['ยังไม่ได้รับสิทธิ์ใดๆ', 'บัญชีของคุณใช้งานได้ แต่ยังไม่ได้รับสิทธิ์ดูข้อมูล กรุณาติดต่อผู้ดูแลระบบ']
     };
-    const [title, text] = msgs[me.status] || msgs.pending;
+    let [title, text] = msgs[me.status] || msgs.pending;
+    if (me.status === 'active' && subLocked(ST.sub, me)) [title, text] = [`${ST.sub.org ? ST.sub.org.name + ' · ' : ''}${SUB_STATE_TH[ST.sub.state] || 'ใช้งานไม่ได้'}`, ST.sub.message + ' — ดูแพ็กเกจและช่องทางชำระเงินได้ที่หน้า "แพ็กเกจ" หน้านี้จะตรวจสอบสถานะให้อัตโนมัติเมื่อชำระแล้ว'];
     $('pendTitle').textContent = title;
     $('pendText').textContent = text;
     $('pendKv').innerHTML = `<div><dt>ชื่อ</dt><dd>${esc(me.name)}</dd></div><div><dt>บัญชี</dt><dd>${esc(me.provider === 'line' ? 'LINE' : 'Google')}${me.email ? ' · ' + esc(me.email) : ''}</dd></div><div><dt>สถานะ</dt><dd>${esc(STATUS_LABELS[me.status] || me.status)}</dd></div>`;
     clearInterval(pendingTimer);
-    if (me.status === 'pending') pendingTimer = setInterval(refreshMe, 30000);
+    if (me.status === 'pending' || subLocked(ST.sub, me)) pendingTimer = setInterval(refreshMe, 30000);
 }
 
 async function refreshMe() {
@@ -361,8 +380,10 @@ async function refreshMe() {
     keepToken(r.token);
     const wasActive = ST.me && ST.me.status === 'active' && ST.perms.size;
     const permsChanged = (r.staff.permissions || []).join() !== Array.from(ST.perms).join();
-    if (r.staff.status === 'active' && r.staff.permissions.length) clearInterval(pendingTimer);
-    if (!wasActive || permsChanged || r.staff.status !== 'active') enter(r.staff);
+    const lockChanged = subLocked(r.subscription, r.staff) !== subLocked(ST.sub, ST.me);
+    if (r.staff.status === 'active' && r.staff.permissions.length && !subLocked(r.subscription, r.staff)) clearInterval(pendingTimer);
+    if (!wasActive || permsChanged || lockChanged || r.staff.status !== 'active') enter(r.staff, r.subscription);
+    else { ST.sub = r.subscription || null; renderSubBanner(); }
 }
 
 function showApp() {
@@ -389,8 +410,8 @@ function applyPerms() {
 }
 
 // ---------- Navigation ----------
-const TAB_ORDER = ['overview', 'records', 'participants', 'analytics', 'admin', 'inbox', 'account'];
-const TAB_PERM = { overview: 'records.view', records: 'records.view', participants: 'participants.view', analytics: 'admin', admin: 'admin' };
+const TAB_ORDER = ['overview', 'records', 'participants', 'analytics', 'dev', 'admin', 'inbox', 'account'];
+const TAB_PERM = { overview: 'records.view', records: 'records.view', participants: 'participants.view', analytics: 'admin', dev: 'dev', admin: 'admin' };
 function tabAllowed(t) { return !TAB_PERM[t] || can(TAB_PERM[t]); }
 function tabFromHash() {
     const t = location.hash.replace('#', '').split('?')[0];
@@ -404,7 +425,7 @@ function switchTab(tab, push = true) {
     if (!tabAllowed(tab)) tab = TAB_ORDER.find(tabAllowed);
     ST.view = tab;
     TAB_ORDER.forEach(t => { $(t + 'View').hidden = t !== tab; });
-    const navTab = tab === 'analytics' ? 'admin' : tab; // สถิติอยู่ใต้เมนูผู้ดูแล
+    const navTab = tab === 'analytics' || tab === 'dev' ? 'admin' : tab; // สถิติ / Dev Console อยู่ใต้เมนูผู้ดูแล
     document.querySelectorAll('[data-tab]').forEach(b => {
         if (b.dataset.tab === navTab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     });
@@ -413,12 +434,13 @@ function switchTab(tab, push = true) {
     Analytics.page(tab);
     if (VIEWS[tab] && VIEWS[tab].show) VIEWS[tab].show();
     if (tab === 'analytics') centerSelectedTab($('anAdmTabs'), true);
+    if (tab === 'dev') centerSelectedTab($('devAdmTabs'), true);
     if (tab === 'inbox' && typeof Inbox !== 'undefined') Inbox.onShow();
 }
 
 // แถบแท็บผู้ดูแล (6 แท็บ) เลื่อนแนวนอนได้บนมือถือ: เลื่อนแท็บที่เลือกมาไว้กลางแถบ (ไม่เลื่อนหน้าแนวตั้ง)
 function centerSelectedTab(bar, instant) {
-    const sel = bar && bar.querySelector('[aria-selected="true"]');
+    const sel = bar && bar.querySelector('[aria-selected="true"], [aria-checked="true"]');
     if (!sel || bar.scrollWidth <= bar.clientWidth) return;
     bar.scrollTo({ left: Math.max(0, sel.offsetLeft - bar.offsetLeft - (bar.clientWidth - sel.offsetWidth) / 2), behavior: instant ? 'auto' : 'smooth' });
 }
@@ -427,12 +449,14 @@ function initShell() {
     document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => { haptic(); switchTab(b.dataset.tab); }));
     // โลโก้ = กลับหน้าแรก (แท็บแรกที่มีสิทธิ์ เช่น ภาพรวม)
     document.querySelectorAll('[data-home]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); haptic(); switchTab(TAB_ORDER.find(tabAllowed)); }));
-    $('anAdmTabs').addEventListener('click', e => {
+    // แถบแท็บผู้ดูแลในหน้าสถิติ / Dev Console: สถิติ และ Dev เป็นหน้าแยก แท็บอื่นอยู่ในหน้าผู้ดูแล
+    ['anAdmTabs', 'devAdmTabs'].forEach(id => $(id).addEventListener('click', e => {
         const b = e.target.closest('[data-t]');
-        if (!b || b.dataset.t === 'analytics') return;
+        if (!b) return;
+        if (b.dataset.t === 'analytics' || b.dataset.t === 'dev') return ST.view !== b.dataset.t && switchTab(b.dataset.t);
         VIEWS.admin.tab = b.dataset.t;
         switchTab('admin');
-    });
+    }));
     document.addEventListener('click', e => {
         const go = e.target.closest('[data-goto]');
         if (go) switchTab(go.dataset.goto);

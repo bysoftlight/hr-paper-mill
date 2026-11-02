@@ -39,12 +39,31 @@ VIEWS.analytics = {
     show() { this.load(); this.startRealtime(); },
     reset() { this.data = null; this.counts = {}; this.stopRealtime(); },
 
-    // เรียลไทม์: รีเฟรชทุก 60 วินาทีขณะเปิดแท็บนี้อยู่
+    // เรียลไทม์: การ์ด "เรียลไทม์" รีเฟรชทุก 15 วินาที (อ่านเฉพาะท้ายชีต) · ตัวเลขทั้งหน้ารีเฟรชทุก 60 วินาที ขณะเปิดแท็บนี้อยู่
     startRealtime() {
         this.stopRealtime();
-        this.rt = setInterval(() => { if (ST.view !== 'analytics') return this.stopRealtime(); if (!document.hidden) this.load(false, true); }, 60000); // ระบบเก็บผลไว้ 60 วินาที
+        let tick = 0;
+        this.rt = setInterval(() => {
+            if (ST.view !== 'analytics') return this.stopRealtime();
+            if (document.hidden) return;
+            if (++tick % 4 === 0) this.load(true, true); else this.live();
+        }, 15000);
+        this.onVis = () => { if (!document.hidden && ST.view === 'analytics') this.live(); };
+        document.addEventListener('visibilitychange', this.onVis);
     },
-    stopRealtime() { clearInterval(this.rt); this.rt = 0; },
+    stopRealtime() { clearInterval(this.rt); this.rt = 0; if (this.onVis) document.removeEventListener('visibilitychange', this.onVis); this.onVis = null; },
+    async live() {
+        if (!this.data || this.liveBusy) return;
+        this.liveBusy = true;
+        try {
+            await Promise.race([Analytics.flush(), new Promise(r => setTimeout(r, 1200))]).catch(() => {});
+            const app = this.app, r = await api('staff.analytics.live', { app });
+            if (!r.success || app !== this.app || !this.data) return;
+            this.data.realtime = r.realtime;
+            this.renderRealtime();
+            $('anRtTime').textContent = '30 นาทีล่าสุด · ' + thTime(r.generatedAt) + ' น.';
+        } finally { this.liveBusy = false; }
+    },
 
     async load(fresh, quiet) {
         const key = this.app + ':' + this.days;

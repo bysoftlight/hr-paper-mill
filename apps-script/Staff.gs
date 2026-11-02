@@ -21,9 +21,19 @@ function handleStaffRequest_(req) {
   }
 
   const staff = staffFromToken_(req.token);
+  // องค์กร: เจ้าหน้าที่ที่ผูกกับองค์กรเห็นเฉพาะข้อมูลขององค์กรตัวเอง · Dev เห็นทุกองค์กร
+  SCOPE_ORG_ = isDev_(staff) ? null : (staff.org || null);
+  const sub = staff.org && typeof orgAccess_ === 'function' ? orgAccess_(staff.org) : null;
+  // หมดช่วงทดลอง / ค้างชำระเกินกำหนด / ถูกระงับ: ใช้งานไม่ได้ (ยกเว้นดูบัญชีตัวเอง ออกจากระบบ และ Dev)
+  if (sub && !sub.ok && !isDev_(staff) && !/^staff\.(me|logout|inbox\.)/.test(req.action)) fail_('SUBSCRIPTION', sub.message);
+  if (/^dev\./.test(req.action)) {
+    if (!isDev_(staff)) fail_('FORBIDDEN', 'เฉพาะบัญชี Dev เท่านั้น');
+    if (typeof handleDev_ !== 'function') return { success: false, message: 'ต้องเพิ่มไฟล์ Billing.gs ใน Apps Script ก่อน' };
+    return handleDev_(req, staff, ua);
+  }
   switch (req.action) {
     case 'staff.me':
-      return { success: true, staff: staffDto_(staff), token: renewedToken_(staff) };
+      return { success: true, staff: staffDto_(staff), token: renewedToken_(staff), subscription: sub && typeof orgAccessDto_ === 'function' ? orgAccessDto_(sub) : null };
     case 'staff.logout':
       if (req.everywhere) return staffLogoutEverywhere_(staff, ua);
       log_(staff, 'staff.logout', staff.email || staff.name, '', ua);
@@ -82,6 +92,10 @@ function handleStaffRequest_(req) {
       requirePerm_(staff, 'admin');
       if (typeof analyticsReport_ !== 'function') return { success: false, message: 'ต้องเพิ่มไฟล์ Analytics.gs ใน Apps Script ก่อน' };
       return analyticsReport_(req);
+    case 'staff.analytics.live':
+      requirePerm_(staff, 'admin');
+      if (typeof analyticsLive_ !== 'function') return { success: false, message: 'ต้องอัปเดตไฟล์ Analytics.gs' };
+      return analyticsLive_(req);
     case 'staff.image':
       requirePerm_(staff, 'records.view');
       return staffImage_(req.fileId, req.thumb);
@@ -109,7 +123,7 @@ function handleStaffRequest_(req) {
       return threatSetStatus_(req.row, req.status, staff, ua);
     case 'admin.staff.list':
       requirePerm_(staff, 'admin');
-      return adminStaffList_();
+      return adminStaffList_(staff);
     case 'admin.staff.update':
       requirePerm_(staff, 'admin');
       return adminStaffUpdate_(req, staff, ua);
@@ -138,8 +152,9 @@ function handleStaffRequest_(req) {
 }
 
 // ---------- อ่านข้อมูล ----------
-function readParticipants_() {
-  return readRows_(SHEET.USERS, U_HEADERS.length).map((r, i) => {
+// ผู้ใช้สิทธิ์ (เฉพาะองค์กรของผู้เรียก ถ้ามี SCOPE_ORG_) · unscoped = ทุกองค์กร (ใช้ตรวจรหัสซ้ำ ซึ่งต้องไม่ซ้ำทั้งระบบ)
+function readParticipants_(unscoped) {
+  const list = readRows_(SHEET.USERS, U_HEADERS.length).map((r, i) => {
     const id = String(r[UCOL.ID] || '').trim().toUpperCase();
     if (!id) return null;
     const active = r[UCOL.ACTIVE];
@@ -148,9 +163,18 @@ function readParticipants_() {
       pic: toImageUrl_(r[UCOL.PIC]), picRaw: String(r[UCOL.PIC] || ''), site: String(r[UCOL.SITE] || '').trim(),
       siteLat: num_(r[UCOL.SITE_LAT]), siteLng: num_(r[UCOL.SITE_LNG]), phone: String(r[UCOL.PHONE] || ''),
       active: !(active === false || String(active).toUpperCase() === 'FALSE' || active === 0 || String(active) === '0'),
-      note: String(r[UCOL.NOTE] || ''), updatedAt: toDate_(r[UCOL.UPDATED_AT]), updatedBy: String(r[UCOL.UPDATED_BY] || '')
+      note: String(r[UCOL.NOTE] || ''), updatedAt: toDate_(r[UCOL.UPDATED_AT]), updatedBy: String(r[UCOL.UPDATED_BY] || ''),
+      org: String(r[UCOL.ORG] || '').trim()
     };
   }).filter(Boolean);
+  return unscoped || !SCOPE_ORG_ ? list : list.filter(p => p.org === SCOPE_ORG_);
+}
+// รหัสผู้ใช้สิทธิ์ที่อยู่ในขอบเขตของผู้เรียก (null = ทุกคน)
+function scopeIds_() {
+  if (!SCOPE_ORG_) return null;
+  const ids = {};
+  readParticipants_().forEach(p => { ids[p.id] = true; });
+  return ids;
 }
 
 function readRecords_(participants) {
@@ -162,6 +186,7 @@ function readRecords_(participants) {
     if (!ts) return null;
     const userId = String(r[RCOL.USER_ID] || '').trim().toUpperCase();
     const u = users[userId];
+    if (SCOPE_ORG_ && !u) return null; // รายงานของผู้ใช้สิทธิ์องค์กรอื่น
     const lat = num_(r[RCOL.LAT]), lng = num_(r[RCOL.LNG]);
     const hasGps = lat !== null && lng !== null;
     const distance = hasGps && u && u.siteLat !== null && u.siteLng !== null ? distanceM_(lat, lng, u.siteLat, u.siteLng) : null;
@@ -303,7 +328,9 @@ function staffRecordsLatest_(since) {
   const start = Math.max(2, last - 299);
   const data = sh.getRange(start, 1, last - start + 1, R_HEADERS.length).getValues();
   let count = 0, newest = since;
+  const scope = scopeIds_();
   data.forEach(r => {
+    if (scope && !scope[String(r[RCOL.USER_ID] || '').trim().toUpperCase()]) return;
     const ts = toDate_(r[RCOL.TS], r[RCOL.DATE]);
     const changed = toDate_(r[RCOL.UPDATED_AT]);
     const t = Math.max(ts ? ts.getTime() : 0, changed ? changed.getTime() : 0);
@@ -447,6 +474,8 @@ function getRecordAt_(row, ts) {
   row = Number(row);
   if (!row || row < 2 || row > sh.getLastRow()) fail_('INVALID', 'ไม่พบรายการนี้');
   const values = sh.getRange(row, 1, 1, R_HEADERS.length).getValues()[0];
+  const scope = scopeIds_();
+  if (scope && !scope[String(values[RCOL.USER_ID] || '').trim().toUpperCase()]) fail_('INVALID', 'ไม่พบรายการนี้');
   const current = toDate_(values[RCOL.TS], values[RCOL.DATE]);
   // กันแก้ผิดแถว (เช่น ข้อมูลในชีตถูกเรียงใหม่ระหว่างใช้งาน)
   if (!current || current.getTime() !== Number(ts)) fail_('CONFLICT', 'รายการนี้ถูกเปลี่ยนแปลงแล้ว กรุณารีเฟรชข้อมูล');
@@ -581,10 +610,11 @@ function staffParticipantSave_(req, staff, ua) {
   lock.waitLock(15000);
   try {
     const sh = sheet_(SHEET.USERS);
-    const all = readParticipants_();
+    const all = readParticipants_(true);
     const isNew = !req.originalId;
     const oldId = isNew ? id : String(req.originalId).trim().toUpperCase();
-    const existing = isNew ? null : all.filter(x => x.id === oldId)[0];
+    const existing = isNew ? null : all.filter(x => x.id === oldId && (!SCOPE_ORG_ || x.org === SCOPE_ORG_))[0];
+    if (isNew && SCOPE_ORG_ && typeof orgSeatCheck_ === 'function') orgSeatCheck_(SCOPE_ORG_, 'participants', all);
     if (!isNew && !existing) fail_('INVALID', 'ไม่พบผู้ใช้สิทธิ์นี้ (อาจถูกลบหรือเปลี่ยนรหัสไปแล้ว) กรุณารีเฟรชข้อมูล');
     // รหัสห้ามซ้ำกับผู้ใช้สิทธิ์คนอื่น
     if (all.some(x => x.id === id && x !== existing)) fail_('INVALID', 'รหัส ' + id + ' มีผู้ใช้สิทธิ์คนอื่นใช้อยู่แล้ว');
@@ -599,7 +629,7 @@ function staffParticipantSave_(req, staff, ua) {
     const values = [id, clean_(p.name, 120), clean_(p.status, 120), picRaw, clean_(p.site, 120),
       siteLat === null ? '' : siteLat, siteLng === null ? '' : siteLng, clean_(p.phone, 40), p.active === false ? false : true,
       clean_(p.note, 500), new Date(), staff.email || staff.name];
-    if (isNew) sh.appendRow(values);
+    if (isNew) sh.appendRow(values.concat([SCOPE_ORG_ || '']));
     else sh.getRange(existing.row, 1, 1, values.length).setValues([values]);
     // เปลี่ยนรหัส: ย้ายประวัติรายงานทั้งหมดไปรหัสใหม่
     const moved = renaming ? renameRecordsUser_(oldId, id) : 0;

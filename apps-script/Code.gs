@@ -28,6 +28,7 @@ function doGet(e) {
 // API สำหรับเว็บภายนอก (GitHub Pages)
 function doPost(e) {
   USERS_DATA_ = null; // อ่านชีต Users ใหม่ทุกคำขอ
+  SCOPE_ORG_ = null;
   let req;
   try {
     req = JSON.parse(e.postData.contents);
@@ -94,8 +95,16 @@ function doPost(e) {
     } catch (err) { return json_({ success: false, message: 'Error: ' + err }); }
   }
 
-  // คำสั่งของเจ้าหน้าที่ / ผู้ดูแลระบบ
-  if (/^(staff|admin)\./.test(String(req.action))) {
+  // หน้าแพ็กเกจ (packages.html): แพลนที่เปิดให้ดู + บัญชีรับเงิน — ไม่ต้องเข้าสู่ระบบ (ดู Billing.gs)
+  if (req.action === 'plans.public') {
+    try {
+      if (typeof billingPublic_ !== 'function') return json_({ success: false, message: 'ยังไม่ได้เพิ่มไฟล์ Billing.gs' });
+      return json_(billingPublic_(req));
+    } catch (err) { return json_({ success: false, message: 'Error: ' + err }); }
+  }
+
+  // คำสั่งของเจ้าหน้าที่ / ผู้ดูแลระบบ / Dev
+  if (/^(staff|admin|dev)\./.test(String(req.action))) {
     try {
       return json_(handleStaffRequest_(req));
     } catch (err) {
@@ -111,6 +120,8 @@ function doPost(e) {
         if (user && !user.active) log_({ id: user.id, name: user.name, role: 'participant' }, 'participant.login_failed', user.id, { reason: 'บัญชีถูกปิดใช้งาน' }, '');
         if (user && !user.active) return json_({ success: false, code: 'INACTIVE', message: 'บัญชีนี้ถูกปิดใช้งาน กรุณาติดต่อเจ้าหน้าที่' });
         if (!user) return json_({ success: false, code: 'NOT_FOUND', message: 'ไม่พบรหัสผู้ใช้สิทธิ์นี้ กรุณาตรวจสอบอีกครั้ง' });
+        const locked = orgLocked_(user);
+        if (locked) return json_(locked);
         // ส่งประวัติมาพร้อมกัน ลดการเรียก API จาก 2 ครั้งเหลือ 1 ครั้งตอนเปิดแอป
         const trust = guardTrust_(req, user.id);
         if (HAS_THREATS_()) threatOnLogin_(guardDevice_(req), user.id, Number(guardCache_().get('g:f:' + guardDevice_(req)) || 0), guardClient_(req));
@@ -122,6 +133,8 @@ function doPost(e) {
       case 'history':
         return json_({ success: true, history: getUserHistory(req.userId) });
       case 'submit': {
+        const lockedS = orgLocked_(findUser_(req.userId, true));
+        if (lockedS) return json_(lockedS);
         const res = submitSalesData(Object.assign({}, req.formData, { userId: req.userId }));
         if (res && res.success && HAS_FEEDBACK_()) res.surveys = surveyPendingFor_(req.userId); // ให้ทำแบบสอบถามหลังส่งรายงาน
         return json_(res);
@@ -354,10 +367,11 @@ function healthCheck_() {
     'Admin.gs': typeof adminStaffDelete_ === 'function',
     'Export.gs': typeof staffExportGsheet_ === 'function',
     'Notify.gs': typeof handleNotifyRequest_ === 'function',
-    'Analytics.gs': typeof analyticsTrack_ === 'function',
+    'Analytics.gs': typeof analyticsLive_ === 'function',
     'Threats.gs': typeof threat_ === 'function',
     'Feedback.gs': typeof handleFeedbackPublic_ === 'function',
-    'Inbox.gs': typeof handleInboxPublic_ === 'function'
+    'Inbox.gs': typeof handleInboxPublic_ === 'function',
+    'Billing.gs': typeof handleDev_ === 'function'
   };
   const sheets = {};
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -378,6 +392,13 @@ function json_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
+// ผู้ใช้สิทธิ์ขององค์กรที่หมดช่วงทดลอง/ค้างชำระเกินกำหนด/ถูกระงับ → ใช้งานไม่ได้ (ดู Billing.gs) · null = ใช้งานได้
+function orgLocked_(user) {
+  if (!user || !user.org || typeof orgAccess_ !== 'function') return null;
+  const acc = orgAccess_(user.org);
+  return acc.ok ? null : { success: false, code: 'ORG_LOCKED', message: acc.userMessage || acc.message };
+}
+
 // หาข้อมูลผู้ใช้จากแผ่น Users (A: รหัส, B: ชื่อ, C: การใช้สิทธิ์, D: รูป, ... I: ใช้งาน)
 // ผู้ใช้ที่ถูกปิดใช้งาน (I = FALSE) จะไม่พบ ยกเว้น includeInactive
 let USERS_DATA_ = null; // อ่านชีต Users ครั้งเดียวต่อคำขอ (ตรวจรหัสก่อน แล้วใช้ซ้ำใน login/submit)
@@ -390,7 +411,7 @@ function findUser_(userId, includeInactive) {
       const flag = data[i][8];
       const active = !(flag === false || String(flag).toUpperCase() === 'FALSE' || String(flag) === '0');
       if (!active && !includeInactive) return null;
-      return { id: String(data[i][0]).trim(), name: String(data[i][1]), status: String(data[i][2]), pic: toImageUrl_(data[i][3]), active: active };
+      return { id: String(data[i][0]).trim(), name: String(data[i][1]), status: String(data[i][2]), pic: toImageUrl_(data[i][3]), active: active, org: String(data[i][UCOL.ORG] || '').trim() };
     }
   }
   return null;

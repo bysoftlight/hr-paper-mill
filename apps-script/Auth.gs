@@ -16,7 +16,11 @@ const ROLE_PRESETS = {
   editor: ['records.view', 'records.edit', 'participants.view', 'participants.edit', 'export'],
   admin: PERMS.slice()
 };
-const ROLES = ['pending', 'viewer', 'editor', 'admin'];
+const ROLES = ['pending', 'viewer', 'editor', 'admin', 'dev'];
+// dev = ผู้พัฒนา/ผู้ให้บริการระบบ: ทุกสิทธิ์ของผู้ดูแล + Dev console (องค์กร แพลน การสมัครสมาชิก การชำระเงิน) และเห็นข้อมูลทุกองค์กร
+//   ตั้งต้นด้วย Script Property DEV_EMAILS (คั่นด้วย ,) — เข้าสู่ระบบครั้งถัดไปจะเป็น dev อัตโนมัติ · dev เท่านั้นที่ตั้งบทบาท dev ให้คนอื่นได้
+const isDev_ = s => !!s && s.role === 'dev' && s.status === 'active';
+function devEmails_() { return prop_('DEV_EMAILS').toLowerCase().split(',').map(s => s.trim()).filter(Boolean); }
 const STAFF_STATUSES = ['pending', 'active', 'suspended', 'rejected'];
 
 // --- ตรวจตัวตนกับผู้ให้บริการ ---
@@ -86,7 +90,8 @@ function rowToStaff_(r, row) {
     status: STAFF_STATUSES.indexOf(r[SCOL.STATUS]) === -1 ? 'pending' : r[SCOL.STATUS],
     tokenVersion: Number(r[SCOL.TOKEN_VER]) || 1,
     createdAt: toDate_(r[SCOL.CREATED_AT]), lastLoginAt: toDate_(r[SCOL.LAST_LOGIN]),
-    approvedBy: r[SCOL.APPROVED_BY], approvedAt: toDate_(r[SCOL.APPROVED_AT]), note: r[SCOL.NOTE]
+    approvedBy: r[SCOL.APPROVED_BY], approvedAt: toDate_(r[SCOL.APPROVED_AT]), note: r[SCOL.NOTE],
+    org: String(r[SCOL.ORG] || '').trim()
   };
 }
 
@@ -133,6 +138,7 @@ function findStaffByIdCached_(id) {
 // สิทธิ์ที่ใช้งานได้จริง: ต้องเป็นบัญชี active เท่านั้น, Admin ได้ทุกสิทธิ์
 function effectivePerms_(staff) {
   if (!staff || staff.status !== 'active' || staff.role === 'pending') return [];
+  if (staff.role === 'dev') return PERMS.concat('dev');
   if (staff.role === 'admin') return PERMS.slice();
   return staff.permissions.filter(p => p !== 'admin');
 }
@@ -153,7 +159,8 @@ function staffDto_(s) {
     id: s.id, provider: s.provider, email: s.email, name: s.name, picture: s.picture, role: s.role,
     permissions: effectivePerms_(s), storedPermissions: s.permissions, status: s.status,
     createdAt: s.createdAt ? s.createdAt.getTime() : null, lastLoginAt: s.lastLoginAt ? s.lastLoginAt.getTime() : null,
-    approvedBy: s.approvedBy || '', approvedAt: s.approvedAt ? s.approvedAt.getTime() : null, note: s.note || ''
+    approvedBy: s.approvedBy || '', approvedAt: s.approvedAt ? s.approvedAt.getTime() : null, note: s.note || '',
+    org: s.org || ''
   };
 }
 
@@ -167,12 +174,13 @@ function loginStaff_(identity, userAgent) {
     let staff = readStaff_().filter(s => s.provider === identity.provider && s.sub === identity.sub)[0];
     if (!staff) {
       const admins = prop_('ADMIN_EMAILS').toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
-      const isBootstrapAdmin = identity.email && admins.indexOf(identity.email) !== -1;
+      const isBootstrapDev = identity.email && devEmails_().indexOf(identity.email) !== -1;
+      const isBootstrapAdmin = isBootstrapDev || (identity.email && admins.indexOf(identity.email) !== -1);
       const id = 'S' + Utilities.getUuid().replace(/-/g, '').slice(0, 10).toUpperCase();
       const row = new Array(S_HEADERS.length).fill('');
       row[SCOL.ID] = id; row[SCOL.PROVIDER] = identity.provider; row[SCOL.SUB] = identity.sub;
       row[SCOL.EMAIL] = clean_(identity.email, 200); row[SCOL.NAME] = clean_(identity.name, 120); row[SCOL.PICTURE] = clean_(identity.picture, 500);
-      row[SCOL.ROLE] = isBootstrapAdmin ? 'admin' : 'pending';
+      row[SCOL.ROLE] = isBootstrapDev ? 'dev' : isBootstrapAdmin ? 'admin' : 'pending';
       row[SCOL.STATUS] = isBootstrapAdmin ? 'active' : 'pending';
       row[SCOL.TOKEN_VER] = 1; row[SCOL.CREATED_AT] = now; row[SCOL.LAST_LOGIN] = now;
       if (isBootstrapAdmin) { row[SCOL.APPROVED_BY] = 'ADMIN_EMAILS'; row[SCOL.APPROVED_AT] = now; }
@@ -184,10 +192,17 @@ function loginStaff_(identity, userAgent) {
       sh.getRange(staff.row, SCOL.EMAIL + 1, 1, 3).setValues([[clean_(identity.email || staff.email, 200), clean_(identity.name, 120), clean_(identity.picture, 500)]]);
       sh.getRange(staff.row, SCOL.LAST_LOGIN + 1).setValue(now);
       staff.email = identity.email || staff.email; staff.name = identity.name; staff.picture = identity.picture; staff.lastLoginAt = now;
+      // อีเมลอยู่ใน DEV_EMAILS → เลื่อนเป็น dev (ตั้งต้นระบบ)
+      if (staff.role !== 'dev' && staff.email && devEmails_().indexOf(String(staff.email).toLowerCase()) !== -1) {
+        sh.getRange(staff.row, SCOL.ROLE + 1, 1, 3).setValues([['dev', PERMS.join(','), 'active']]);
+        log_(staff, 'dev.bootstrap', staff.email, { from: staff.role }, userAgent);
+        staff.role = 'dev'; staff.status = 'active'; staff.permissions = PERMS.slice();
+      }
       clearStaffCache_();
       log_(staff, 'staff.login', staff.email || staff.name, { provider: identity.provider, status: staff.status }, userAgent);
     }
-    return { success: true, token: signToken_(staff), staff: staffDto_(staff) };
+    const sub = staff.org && typeof orgAccess_ === 'function' ? orgAccessDto_(orgAccess_(staff.org)) : null;
+    return { success: true, token: signToken_(staff), staff: staffDto_(staff), subscription: sub };
   } finally {
     lock.releaseLock();
   }
