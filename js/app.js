@@ -279,6 +279,8 @@ function endSession() {
     userStore.remove(USER_KEY);
     userStore.remove(CACHE_KEY);
     CURRENT_USER = {};
+    AVA_SRC = null; try { localStorage.removeItem(AVA_KEY); } catch (e) {}
+    document.querySelectorAll('[data-user="avatar"]').forEach(el => { el.textContent = ''; delete el.dataset.pic; });
     if (typeof OrgMark !== 'undefined') OrgMark.set(null);
     Analytics.setUser('');
     ALL_HISTORY = [];
@@ -359,21 +361,37 @@ function stampProfile() {
     return { name: CURRENT_USER.name || '', id: CURRENT_USER.id || '', img: STAMP_AVATAR };
 }
 
+// รูปโปรไฟล์: จำที่อยู่รูปที่โหลดได้แล้ว (รวมรูปที่ขอผ่าน API) ไว้ในเครื่อง
+// สลับแท็บ/รีเฟรชข้อมูลเบื้องหลังจะไม่กระพริบกลับเป็นตัวอักษรย่อ และไม่ขอรูปซ้ำ
+const AVA_KEY = 'hrpm_ava';
+let AVA_SRC = (() => { try { return JSON.parse(localStorage.getItem(AVA_KEY) || 'null'); } catch (e) { return null; } })();
+function rememberAvatar(pic, src) {
+    AVA_SRC = { pic, src };
+    try { localStorage.setItem(AVA_KEY, JSON.stringify(AVA_SRC)); } catch (e) {}
+}
 function renderAvatar(el) {
+    const pic = CURRENT_USER.pic ? String(CURRENT_USER.pic) : '';
     const initial = (CURRENT_USER.name || '?').trim().charAt(0);
-    el.textContent = initial;
-    if (CURRENT_USER.pic) {
-        const img = document.createElement('img');
-        img.alt = '';
-        img.onload = () => { el.textContent = ''; el.appendChild(img); };
-        // รูปใน Drive ที่ไม่ได้แชร์สาธารณะ: ขอรูปย่อผ่าน API แทน
-        img.onerror = () => {
-            img.onerror = null;
-            const m = String(CURRENT_USER.pic).match(/[?&]id=([\w-]{20,})/);
-            if (m) callApi('image', { userId: CURRENT_USER.id, fileId: m[1], thumb: true }).then(r => { if (r.success && r.dataUrl) img.src = r.dataUrl; });
-        };
-        img.src = String(CURRENT_USER.pic).replace(/([?&]sz=)w\d+/, '$1w240');
-    }
+    const shown = el.querySelector('img');
+    if (!pic) { el.textContent = initial; delete el.dataset.pic; return; }
+    if (shown && el.dataset.pic === pic) return; // รูปเดิมแสดงอยู่แล้ว
+    if (!shown) el.textContent = initial;
+    const img = document.createElement('img');
+    img.alt = '';
+    img.onload = () => {
+        el.textContent = ''; el.appendChild(img); el.dataset.pic = pic;
+        if (CURRENT_USER.pic === pic && !(AVA_SRC && AVA_SRC.pic === pic && AVA_SRC.src === img.src)) rememberAvatar(pic, img.src);
+    };
+    // รูปใน Drive ที่ไม่ได้แชร์สาธารณะ: ขอรูปย่อผ่าน API แทน
+    const direct = pic.replace(/([?&]sz=)w\d+/, '$1w240');
+    let triedDirect = !(AVA_SRC && AVA_SRC.pic === pic);
+    img.onerror = () => {
+        if (!triedDirect) { triedDirect = true; img.src = direct; return; } // ที่จำไว้ใช้ไม่ได้แล้ว
+        img.onerror = null;
+        const m = pic.match(/[?&]id=([\w-]{20,})/);
+        if (m) callApi('image', { userId: CURRENT_USER.id, fileId: m[1], thumb: true }).then(r => { if (r.success && r.dataUrl) img.src = r.dataUrl; }).catch(() => {});
+    };
+    img.src = AVA_SRC && AVA_SRC.pic === pic ? AVA_SRC.src : direct;
 }
 
 const TABS = ['form', 'history', 'inbox', 'account'];
