@@ -41,6 +41,7 @@ VIEWS.admin = {
 
     setTab(t) {
         if (t === 'analytics' || t === 'dev') return switchTab(t); // สถิติ / Dev Console = หน้าแยก แต่อยู่ในเมนูผู้ดูแล (แถบล่างไม่เกิน 5 เมนู)
+        if (t === 'security' && ST.me && ST.me.org && ST.me.role !== 'dev') t = 'staff'; // ความปลอดภัยของระบบ: เฉพาะ Dev
         this.tab = t;
         $('admTabs').querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.t === t)));
         centerSelectedTab($('admTabs'));
