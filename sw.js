@@ -5,7 +5,7 @@
 //   2) ส่งรายงานที่ค้างในเครื่อง (js/outbox.js) เมื่อเน็ตกลับมา แม้ปิดแอปอยู่ (Background Sync — Android/Chrome)
 //   3) การแจ้งเตือน (Web Push): ระบบส่ง push แบบไม่มีเนื้อหา → ดึงข้อความล่าสุดของเครื่องนี้ (notify.inbox) แล้วแสดง
 const APP_ALERT = 'HR Paper Mill Alerts'; // บรรทัดแรกของการแจ้งเตือนทุกอัน
-const VERSION = '3.43.0';
+const VERSION = '3.44.0';
 importScripts('js/config.js?v=' + VERSION, 'js/outbox.js?v=' + VERSION);
 
 const SHELL = 'hrpm-shell-' + VERSION;
@@ -16,7 +16,7 @@ const PRECACHE = [
     'css/style.css' + V, 'css/staff.css' + V, 'css/legal.css' + V,
     'js/config.js' + V, 'js/utils.js' + V, 'js/glass.js' + V, 'js/analytics.js' + V, 'js/api.js' + V, 'js/settings.js' + V, 'js/charts.js' + V, 'js/notify.js' + V,
     'js/outbox.js' + V, 'js/camera.js' + V, 'js/app.js' + V, 'js/report.js' + V, 'js/consent.js' + V, 'js/feedback.js' + V, 'js/legal.js' + V, 'js/staff/feedback.js' + V, 'js/inbox.js' + V, 'js/reveal.js' + V, 'js/staff/inbox.js' + V, 'js/staff/dev.js' + V,
-    'js/staff/core.js' + V, 'js/staff/mapkit.js' + V, 'js/staff/overview.js' + V, 'js/staff/records.js' + V, 'js/staff/participants.js' + V,
+    'js/staff/core.js' + V, 'js/i18n.js' + V, 'js/staff/mapkit.js' + V, 'js/staff/overview.js' + V, 'js/staff/records.js' + V, 'js/staff/participants.js' + V,
     'js/staff/admin.js' + V, 'js/staff/export.js' + V, 'js/staff/reports.js' + V, 'js/staff/analytics.js' + V,
     'img/logo.png' + V, 'img/apple-touch-icon.png', 'img/favicon.svg', 'img/favicon-50x50.png'
 ];

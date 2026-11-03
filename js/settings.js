@@ -34,7 +34,7 @@ const PREF_APP_DEFAULTS = {
 //   HRPM_PREFS@<แอป>:<บัญชี> = ของบัญชีนั้นบนเครื่องนี้ · HRPM_PREFS = ของเครื่อง (ก่อนเข้าสู่ระบบ / รุ่นเก่า)
 //   HRPM_PREFS_ACTIVE:<แอป> = บัญชีล่าสุด — ใช้ตอนเปิดหน้า (ก่อนเข้าสู่ระบบเสร็จ) ไม่ให้ธีมกะพริบ
 const PREFS_ACTIVE_KEY = 'HRPM_PREFS_ACTIVE:' + PREF_APP;
-const PREF_CARRY = ['theme', 'text', 'motion']; // บัญชีใหม่บนเครื่องนี้: ใช้ธีม/ขนาดตัวอักษรของเครื่องต่อ (การเข้าถึง)
+const PREF_CARRY = ['theme', 'text', 'motion', 'lang']; // บัญชีใหม่บนเครื่องนี้: ใช้ธีม ขนาดตัวอักษร และภาษาที่เลือกไว้ก่อนเข้าสู่ระบบต่อ
 const prefsLs = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }, del(k) { try { localStorage.removeItem(k); } catch (e) {} } };
 const Prefs = {
     account: prefsLs.get(PREFS_ACTIVE_KEY) || '',
@@ -88,6 +88,20 @@ function applyPrefs() {
     if (meta) meta.content = dark ? '#131314' : '#FFFFFF';
 }
 applyPrefs();
+// ภาษาอังกฤษ: โหลดตัวแปล (js/i18n.js) เฉพาะเมื่อเลือก English — ผู้ใช้ภาษาไทยไม่ต้องโหลดเพิ่ม · เปลี่ยนภาษา = โหลดหน้าใหม่
+const PREF_VER = (document.currentScript && (document.currentScript.src.match(/\?v=[^&]+/) || [''])[0]) || '';
+let LANG_NOW = Prefs.get('lang') === 'en' ? 'en' : 'th';
+function loadI18n() {
+    if (LANG_NOW !== 'en' || window.I18N || document.getElementById('i18nJs')) return;
+    const sc = document.createElement('script');
+    sc.id = 'i18nJs'; sc.src = 'js/i18n.js' + PREF_VER;
+    (document.head || document.documentElement).appendChild(sc);
+}
+loadI18n();
+document.addEventListener('prefchange', () => {
+    const l = Prefs.get('lang') === 'en' ? 'en' : 'th';
+    if (l !== LANG_NOW) { LANG_NOW = l; setTimeout(() => location.reload(), 150); }
+});
 if (window.matchMedia) {
     const mq = matchMedia('(prefers-color-scheme: dark)');
     (mq.addEventListener ? mq.addEventListener.bind(mq, 'change') : mq.addListener.bind(mq))(applyPrefs);
@@ -168,6 +182,7 @@ function displaySettings() {
     return {
         title: 'การแสดงผล',
         rows: [
+            { icon: 'type', tone: 'indigo', label: 'ภาษา / Language', desc: 'สลับภาษาของเมนูและข้อความในแอป (ข้อมูลที่กรอกไม่เปลี่ยน)', control: { type: 'seg', key: 'lang', options: [['th', 'ไทย'], ['en', 'English']] } },
             { icon: 'contrast', tone: 'gray', label: 'ธีม', desc: 'โหมดมืดช่วยถนอมสายตาเวลากลางคืน', control: { type: 'seg', key: 'theme', options: [['system', 'ตามเครื่อง'], ['light', 'สว่าง'], ['dark', 'มืด']] } },
             { icon: 'type', tone: 'purple', label: 'ขนาดตัวอักษร', desc: 'ขยายตัวอักษรและปุ่มให้อ่านและกดง่ายขึ้น', control: { type: 'seg', key: 'text', options: [['m', 'ปกติ'], ['l', 'ใหญ่'], ['xl', 'ใหญ่มาก']] } },
             { icon: 'home', tone: 'blue', label: 'หัวแอป', desc: 'แบบเดิม = โลโก้และชื่อแอป · แบบกระจก = ปุ่มโลโก้กลมลอยและชื่อหน้าอยู่ตรงกลาง (มือถือ)', control: { type: 'seg', key: 'header', options: [['classic', 'แบบเดิม'], ['glass', 'แบบกระจก']] } },
