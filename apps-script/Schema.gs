@@ -18,10 +18,23 @@ const S_HEADERS = ['ID', 'ผู้ให้บริการ', 'Subject', 'อ
 // องค์กร (บริษัทลูกค้า) ของเจ้าหน้าที่ที่ส่งคำขออยู่ — ตั้งใน handleStaffRequest_: เจ้าหน้าที่ขององค์กรเห็นเฉพาะผู้ใช้สิทธิ์/รายงานขององค์กรตัวเอง
 // null = ไม่จำกัด (Dev, บัญชีที่ไม่ได้ผูกองค์กร, งานเบื้องหลัง) · ล้างทุกคำขอใน doPost
 let SCOPE_ORG_ = null;
+// ข้อมูลส่วนผู้ดูแล (ประกาศ แบบสอบถาม แจ้งปัญหา Log สถิติ) ที่บันทึกรหัสองค์กรไว้ — อยู่ในขอบเขตของผู้เรียกไหม
+// ว่าง = ข้อมูลส่วนกลาง/ของผู้ให้บริการ: เห็นเฉพาะ Dev และบัญชีที่ไม่ได้ผูกองค์กร
+const inScope_ = org => !SCOPE_ORG_ || String(org || '').trim() === SCOPE_ORG_;
+// เติมหัวคอลัมน์ใหม่ (ต่อท้าย) ในแผ่นงานเดิมที่ยังไม่มี — ไม่ต้องรัน setup ใหม่
+function ensureHeader_(sh, col, title) {
+  try { if (!String(sh.getRange(1, col + 1).getValue() || '')) sh.getRange(1, col + 1).setValue(title); } catch (e) { console.warn('เติมหัวคอลัมน์ไม่สำเร็จ: ' + e); }
+}
+// รหัสผู้ใช้สิทธิ์ → รหัสองค์กร (ทุกองค์กร)
+function participantOrgMap_() {
+  const m = {};
+  try { readRows_(SHEET.USERS, U_HEADERS.length).forEach(r => { const id = String(r[UCOL.ID] || '').trim().toUpperCase(); if (id) m[id] = String(r[UCOL.ORG] || '').trim(); }); } catch (e) { console.warn(e); }
+  return m;
+}
 
 // Logs: บันทึกการใช้งาน
-const LCOL = { TS: 0, ACTOR_ID: 1, ACTOR_NAME: 2, ACTOR_ROLE: 3, ACTION: 4, TARGET: 5, DETAILS: 6, USER_AGENT: 7 };
-const L_HEADERS = ['เวลา', 'ผู้กระทำ (ID)', 'ผู้กระทำ', 'บทบาท', 'การกระทำ', 'เป้าหมาย', 'รายละเอียด', 'อุปกรณ์'];
+const LCOL = { TS: 0, ACTOR_ID: 1, ACTOR_NAME: 2, ACTOR_ROLE: 3, ACTION: 4, TARGET: 5, DETAILS: 6, USER_AGENT: 7, ORG: 8 };
+const L_HEADERS = ['เวลา', 'ผู้กระทำ (ID)', 'ผู้กระทำ', 'บทบาท', 'การกระทำ', 'เป้าหมาย', 'รายละเอียด', 'อุปกรณ์', 'องค์กร'];
 
 const AGENT_LIMIT_PER_MONTH = 10;   // ข้อ 1.3
 const DEFAULT_ANOMALY_RADIUS_M = 300; // ห่างจากจุดขายเกินนี้ถือว่าตำแหน่งผิดปกติ
@@ -129,7 +142,13 @@ function fail_(code, message) {
 // --- Log ---
 function log_(actor, action, target, details, userAgent) {
   try {
-    sheet_(SHEET.LOGS).appendRow([
+    // องค์กรของรายการ: ของผู้กระทำ → ผู้ใช้สิทธิ์ (จากชีต Users) → องค์กรของคำขอนี้
+    let org = actor && actor.org != null ? String(actor.org) : '';
+    if (!org && actor && actor.role === 'participant' && actor.id && typeof findUser_ === 'function') { try { const u = findUser_(actor.id, true); org = u ? u.org : ''; } catch (e) {} }
+    if (!org) org = SCOPE_ORG_ || '';
+    const sh = sheet_(SHEET.LOGS);
+    if (sh.getLastColumn() < L_HEADERS.length) ensureHeader_(sh, LCOL.ORG, L_HEADERS[LCOL.ORG]);
+    sh.appendRow([
       new Date(),
       actor ? actor.id : '',
       clean_(actor ? actor.name : '', 120),
@@ -137,7 +156,8 @@ function log_(actor, action, target, details, userAgent) {
       action,
       clean_(target || '', 200),
       clean_(details ? (typeof details === 'string' ? details : JSON.stringify(details)) : '', 2000),
-      clean_(userAgent || '', 200)
+      clean_(userAgent || '', 200),
+      org
     ]);
   } catch (e) {
     console.warn('เขียน Log ไม่สำเร็จ: ' + e);

@@ -13,15 +13,15 @@
 //      ต้องรัน installAllTriggers() ใหม่หนึ่งครั้ง (เพิ่มตัวตั้งเวลา surveyTick ทุก 15 นาที)
 
 const PROBLEM_SHEET = 'Problems';
-const PCOL = { ID: 0, TS: 1, ROLE: 2, REPORTER_ID: 3, REPORTER_NAME: 4, CONTACT: 5, CATEGORY: 6, TITLE: 7, DETAIL: 8, PAGE: 9, CLIENT: 10, VERSION: 11, STATUS: 12, HANDLED_BY: 13, HANDLED_AT: 14, ADMIN_NOTE: 15, IMAGE: 16, VERIFIED: 17 };
-const P_HEADERS = ['ID', 'เวลา', 'บทบาท', 'รหัส/อีเมลผู้แจ้ง', 'ชื่อผู้แจ้ง', 'ติดต่อกลับ', 'หมวด', 'หัวข้อ', 'รายละเอียด', 'หน้า', 'อุปกรณ์', 'เวอร์ชัน', 'สถานะ', 'จัดการโดย', 'จัดการเมื่อ', 'หมายเหตุผู้ดูแล', 'ภาพหน้าจอ', 'ยืนยันตัวตน'];
+const PCOL = { ID: 0, TS: 1, ROLE: 2, REPORTER_ID: 3, REPORTER_NAME: 4, CONTACT: 5, CATEGORY: 6, TITLE: 7, DETAIL: 8, PAGE: 9, CLIENT: 10, VERSION: 11, STATUS: 12, HANDLED_BY: 13, HANDLED_AT: 14, ADMIN_NOTE: 15, IMAGE: 16, VERIFIED: 17, ORG: 18 };
+const P_HEADERS = ['ID', 'เวลา', 'บทบาท', 'รหัส/อีเมลผู้แจ้ง', 'ชื่อผู้แจ้ง', 'ติดต่อกลับ', 'หมวด', 'หัวข้อ', 'รายละเอียด', 'หน้า', 'อุปกรณ์', 'เวอร์ชัน', 'สถานะ', 'จัดการโดย', 'จัดการเมื่อ', 'หมายเหตุผู้ดูแล', 'ภาพหน้าจอ', 'ยืนยันตัวตน', 'องค์กร'];
 const PROBLEM_CATEGORIES = { login: 'เข้าสู่ระบบไม่ได้', gps: 'GPS / ตำแหน่ง', camera: 'กล้อง / รูปภาพ', submit: 'ส่งรายงานไม่ได้', data: 'ข้อมูลไม่ถูกต้อง', slow: 'ช้า / ค้าง', display: 'หน้าจอแสดงผลผิดปกติ', notify: 'การแจ้งเตือน', other: 'อื่นๆ' };
 const PROBLEM_STATUS = { new: 'ใหม่', doing: 'กำลังแก้ไข', done: 'แก้ไขแล้ว', wont: 'ไม่ดำเนินการ' };
 const PROBLEM_MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 
 const SURVEY_SHEET = 'Surveys', RESPONSE_SHEET = 'SurveyResponses';
-const VCOL = { ID: 0, TITLE: 1, INTRO: 2, QUESTIONS: 3, START_AT: 4, END_AT: 5, TARGET: 6, STATUS: 7, CREATED_BY: 8, CREATED_AT: 9, NOTIFIED_AT: 10, REMINDED_AT: 11, UPDATED_AT: 12 };
-const V_HEADERS = ['ID', 'หัวข้อ', 'คำอธิบาย', 'คำถาม (JSON)', 'เริ่มส่ง', 'ปิดรับ', 'ผู้รับ', 'สถานะ', 'สร้างโดย', 'สร้างเมื่อ', 'แจ้งเตือนแล้ว', 'เตือนซ้ำแล้ว', 'แก้ไขล่าสุด'];
+const VCOL = { ID: 0, TITLE: 1, INTRO: 2, QUESTIONS: 3, START_AT: 4, END_AT: 5, TARGET: 6, STATUS: 7, CREATED_BY: 8, CREATED_AT: 9, NOTIFIED_AT: 10, REMINDED_AT: 11, UPDATED_AT: 12, ORG: 13 };
+const V_HEADERS = ['ID', 'หัวข้อ', 'คำอธิบาย', 'คำถาม (JSON)', 'เริ่มส่ง', 'ปิดรับ', 'ผู้รับ', 'สถานะ', 'สร้างโดย', 'สร้างเมื่อ', 'แจ้งเตือนแล้ว', 'เตือนซ้ำแล้ว', 'แก้ไขล่าสุด', 'องค์กร'];
 const SRCOL = { TS: 0, SURVEY: 1, USER_ID: 2, USER_NAME: 3, ANSWERS: 4, WHEN: 5, CLIENT: 6, READABLE: 7 };
 const SR_HEADERS = ['เวลา', 'แบบสอบถาม', 'รหัส', 'ชื่อ', 'คำตอบ (JSON)', 'ทำเมื่อ', 'อุปกรณ์', 'คำตอบ (อ่านง่าย)'];
 const SURVEY_WHEN = { after_submit: 'หลังส่งรายงาน', later: 'ทำภายหลัง', banner: 'จากแถบเตือน', push: 'จากการแจ้งเตือน' };
@@ -34,7 +34,7 @@ function feedbackSheet_(name, headers) {
     sh = ss.insertSheet(name);
     sh.getRange(1, 1, 1, headers.length).setValues([headers]);
     sh.setFrozenRows(1);
-  }
+  } else if (sh.getLastColumn() < headers.length) ensureHeader_(sh, headers.length - 1, headers[headers.length - 1]); // คอลัมน์ "องค์กร" ที่เพิ่มภายหลัง
   return sh;
 }
 function feedbackRows_(name, headers) {
@@ -59,7 +59,7 @@ function problemReportPublic_(req) {
   const user = req.userId ? findUser_(req.userId, true) : null;
   const typedId = clean_(String(req.userId || '').toUpperCase(), 12);
   return problemSave_(req, {
-    role: user ? 'participant' : 'guest', id: user ? user.id : typedId, name: user ? user.name : clean_(req.name, 80), verified: !!user
+    role: user ? 'participant' : 'guest', id: user ? user.id : typedId, name: user ? user.name : clean_(req.name, 80), verified: !!user, org: user ? user.org : ''
   });
 }
 
@@ -67,7 +67,7 @@ function problemReportPublic_(req) {
 function problemReportStaff_(req, staff) {
   const limited = problemRateLimit_('s' + staff.id);
   if (limited) return limited;
-  return problemSave_(req, { role: 'staff', id: staff.email || staff.id, name: staff.name, verified: true, contact: staff.email || '' });
+  return problemSave_(req, { role: 'staff', id: staff.email || staff.id, name: staff.name, verified: true, contact: staff.email || '', org: staff.org || '' });
 }
 
 function problemRateLimit_(key) {
@@ -106,7 +106,7 @@ function problemSave_(req, who) {
   row[PCOL.ID] = id; row[PCOL.TS] = now; row[PCOL.ROLE] = who.role; row[PCOL.REPORTER_ID] = clean_(who.id, 120); row[PCOL.REPORTER_NAME] = clean_(who.name, 120);
   row[PCOL.CONTACT] = clean_(req.contact || who.contact, 120); row[PCOL.CATEGORY] = PROBLEM_CATEGORIES[category]; row[PCOL.TITLE] = clean_(req.title, 150);
   row[PCOL.DETAIL] = detail; row[PCOL.PAGE] = clean_(req.page, 80); row[PCOL.CLIENT] = client; row[PCOL.VERSION] = clean_(req.version, 20);
-  row[PCOL.STATUS] = PROBLEM_STATUS.new; row[PCOL.HANDLED_BY] = ''; row[PCOL.HANDLED_AT] = ''; row[PCOL.ADMIN_NOTE] = ''; row[PCOL.IMAGE] = imageUrl; row[PCOL.VERIFIED] = who.verified ? 'ใช่' : 'ไม่';
+  row[PCOL.STATUS] = PROBLEM_STATUS.new; row[PCOL.HANDLED_BY] = ''; row[PCOL.HANDLED_AT] = ''; row[PCOL.ADMIN_NOTE] = ''; row[PCOL.IMAGE] = imageUrl; row[PCOL.VERIFIED] = who.verified ? 'ใช่' : 'ไม่'; row[PCOL.ORG] = clean_(who.org || '', 40);
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
@@ -114,7 +114,7 @@ function problemSave_(req, who) {
     sh.getRange(sh.getLastRow() + 1, 1, 1, P_HEADERS.length).setValues([row]);
   } finally { lock.releaseLock(); }
 
-  log_({ id: who.id || 'guest', name: who.name || 'ไม่ระบุ', role: who.role }, 'feedback.problem', id, { category: category, page: row[PCOL.PAGE] }, client);
+  log_({ id: who.id || 'guest', name: who.name || 'ไม่ระบุ', role: who.role, org: who.org || '' }, 'feedback.problem', id, { category: category, page: row[PCOL.PAGE] }, client);
   const mailed = problemEmail_(row, blob, extraInfo_(req));
   return { success: true, id: id, mailed: mailed };
 }
@@ -167,8 +167,9 @@ function adminProblemsList_(req) {
     row: i + 2, id: String(r[PCOL.ID]), ts: fbTime_(r[PCOL.TS]), role: String(r[PCOL.ROLE]), reporterId: String(r[PCOL.REPORTER_ID]), reporterName: String(r[PCOL.REPORTER_NAME]),
     contact: plain_(r[PCOL.CONTACT]), category: String(r[PCOL.CATEGORY]), title: plain_(r[PCOL.TITLE]), detail: plain_(r[PCOL.DETAIL]), page: String(r[PCOL.PAGE]),
     client: String(r[PCOL.CLIENT]), version: String(r[PCOL.VERSION]), status: String(r[PCOL.STATUS] || PROBLEM_STATUS.new), handledBy: String(r[PCOL.HANDLED_BY]),
-    handledAt: fbTime_(r[PCOL.HANDLED_AT]), note: String(r[PCOL.ADMIN_NOTE]), image: String(r[PCOL.IMAGE]), verified: String(r[PCOL.VERIFIED]) !== 'ไม่'
-  })).filter(p => p.id).reverse();
+    handledAt: fbTime_(r[PCOL.HANDLED_AT]), note: String(r[PCOL.ADMIN_NOTE]), image: String(r[PCOL.IMAGE]), verified: String(r[PCOL.VERIFIED]) !== 'ไม่',
+    org: String(r[PCOL.ORG] || '').trim()
+  })).filter(p => p.id && inScope_(p.org)).reverse(); // ผู้ดูแลองค์กรเห็นเฉพาะเรื่องที่คนในองค์กรแจ้ง
   const counts = {};
   Object.keys(PROBLEM_STATUS).forEach(k => { counts[k] = 0; });
   const keyOf = th => Object.keys(PROBLEM_STATUS).filter(k => PROBLEM_STATUS[k] === th)[0] || 'new';
@@ -183,6 +184,7 @@ function adminProblemUpdate_(req, staff, ua) {
   const sh = feedbackSheet_(PROBLEM_SHEET, P_HEADERS);
   const row = Number(req.row);
   if (!(row >= 2 && row <= sh.getLastRow()) || String(sh.getRange(row, PCOL.ID + 1).getValue()) !== String(req.id)) fail_('CONFLICT', 'ไม่พบรายการนี้ (อาจถูกแก้ไขในแผ่นงาน) กรุณาโหลดใหม่');
+  if (!inScope_(sh.getRange(row, PCOL.ORG + 1).getValue())) fail_('CONFLICT', 'ไม่พบรายการนี้ (อาจถูกแก้ไขในแผ่นงาน) กรุณาโหลดใหม่');
   sh.getRange(row, PCOL.STATUS + 1, 1, 4).setValues([[st, staff.name || staff.email, new Date(), clean_(req.note, 500)]]);
   log_(staff, 'admin.problem_status', req.id, { status: st }, ua);
   return { success: true };
@@ -201,7 +203,8 @@ function readSurveys_() {
       row: i + 2, id: String(r[VCOL.ID]), title: String(r[VCOL.TITLE]), intro: String(r[VCOL.INTRO]), questions: questions,
       startAt: fbTime_(toDate_(r[VCOL.START_AT])), endAt: fbTime_(toDate_(r[VCOL.END_AT])), target: target,
       status: String(r[VCOL.STATUS] || 'active'), createdBy: String(r[VCOL.CREATED_BY]), createdAt: fbTime_(r[VCOL.CREATED_AT]),
-      notifiedAt: fbTime_(toDate_(r[VCOL.NOTIFIED_AT])), remindedAt: fbTime_(toDate_(r[VCOL.REMINDED_AT])), updatedAt: fbTime_(r[VCOL.UPDATED_AT])
+      notifiedAt: fbTime_(toDate_(r[VCOL.NOTIFIED_AT])), remindedAt: fbTime_(toDate_(r[VCOL.REMINDED_AT])), updatedAt: fbTime_(r[VCOL.UPDATED_AT]),
+      org: String(r[VCOL.ORG] || '').trim()
     };
   }).filter(s => s.id);
 }
@@ -213,7 +216,10 @@ function surveyState_(s, now) {
   if (s.status === 'closed' || (s.endAt && s.endAt <= now)) return 'closed';
   return s.startAt && s.startAt > now ? 'scheduled' : 'open';
 }
-const surveyTargets_ = (s, uid) => s.target === 'all' || s.target.indexOf(String(uid).toUpperCase()) !== -1;
+// ผู้รับ: องค์กรตรงกัน (แบบสอบถามส่วนกลาง = ทุกองค์กร) และอยู่ในรายชื่อ (หรือทุกคน)
+// org = องค์กรของผู้ใช้สิทธิ์ · undefined = ไม่ตรวจองค์กร (ผู้เรียกกรองมาแล้ว)
+const surveyTargets_ = (s, uid, org) => (org === undefined || !s.org || s.org === String(org || '').trim()) && (s.target === 'all' || s.target.indexOf(String(uid).toUpperCase()) !== -1);
+const surveyScoped_ = () => readSurveys_().filter(s => inScope_(s.org));
 
 function surveyAnsweredSet_(surveyId) {
   const set = {};
@@ -225,7 +231,8 @@ function surveyAnsweredSet_(surveyId) {
 function surveyPendingFor_(userId) {
   try {
     const now = Date.now(), uid = String(userId || '').toUpperCase();
-    const open = readSurveys_().filter(s => surveyState_(s, now) === 'open' && surveyTargets_(s, uid));
+    const u = typeof findUser_ === 'function' ? findUser_(uid, true) : null, org = u ? u.org : '';
+    const open = readSurveys_().filter(s => surveyState_(s, now) === 'open' && surveyTargets_(s, uid, org));
     if (!open.length) return [];
     const done = surveyAnsweredSet_();
     return open.filter(s => !done[s.id + '|' + uid]).map(s => ({ id: s.id, title: s.title, intro: s.intro, questions: s.questions, startAt: s.startAt, endAt: s.endAt }));
@@ -234,7 +241,7 @@ function surveyPendingFor_(userId) {
 
 function surveyAnswer_(req, user) {
   const s = readSurveys_().filter(x => x.id === String(req.surveyId))[0];
-  if (!s || !surveyTargets_(s, user.id)) return { success: false, code: 'NOT_FOUND', message: 'ไม่พบแบบสอบถามนี้' };
+  if (!s || !surveyTargets_(s, user.id, user.org || '')) return { success: false, code: 'NOT_FOUND', message: 'ไม่พบแบบสอบถามนี้' };
   if (surveyState_(s) !== 'open') return { success: false, code: 'CLOSED', message: 'แบบสอบถามนี้ปิดรับคำตอบแล้ว ขอบคุณที่สนใจ' };
   const ans = req.answers && typeof req.answers === 'object' ? req.answers : {};
   const clean = {}, readable = [];
@@ -255,20 +262,20 @@ function surveyAnswer_(req, user) {
     const row = [new Date(), s.id, user.id, clean_(user.name, 120), JSON.stringify(clean), SURVEY_WHEN[req.when] || SURVEY_WHEN.later, fbClient_(req), clean_(readable.join('\n'), 5000)];
     sh.getRange(sh.getLastRow() + 1, 1, 1, SR_HEADERS.length).setValues([row]);
   } finally { lock.releaseLock(); }
-  log_({ id: user.id, name: user.name, role: 'participant' }, 'survey.answer', s.id, { when: req.when || 'later' }, fbClient_(req));
+  log_({ id: user.id, name: user.name, role: 'participant', org: user.org || '' }, 'survey.answer', s.id, { when: req.when || 'later' }, fbClient_(req));
   return { success: true };
 }
 
 // ---------- ผู้ดูแลระบบ ----------
 function adminSurveysList_() {
-  const now = Date.now(), surveys = readSurveys_();
+  const now = Date.now(), surveys = surveyScoped_();
   const participants = readParticipants_().filter(p => p.active);
   const responses = feedbackRows_(RESPONSE_SHEET, SR_HEADERS);
   const by = {};
   responses.forEach(r => { const k = String(r[SRCOL.SURVEY]); (by[k] = by[k] || []).push(r); });
   const list = surveys.map(s => {
     const rs = by[s.id] || [];
-    const targetCount = s.target === 'all' ? participants.length : s.target.length;
+    const targetCount = s.target === 'all' ? participants.filter(p => !s.org || p.org === s.org).length : s.target.length;
     // สรุปผล: rating = ค่าเฉลี่ย + การกระจาย · choice = จำนวนต่อตัวเลือก · text = จำนวนคนตอบ
     const summary = s.questions.map(q => {
       const vals = rs.map(r => { try { return JSON.parse(r[SRCOL.ANSWERS] || '{}')[q.id]; } catch (e) { return undefined; } }).filter(v => v !== undefined && v !== null && v !== '');
@@ -287,7 +294,7 @@ function adminSurveysList_() {
 }
 
 function adminSurveyResponses_(req) {
-  const s = readSurveys_().filter(x => x.id === String(req.id))[0];
+  const s = surveyScoped_().filter(x => x.id === String(req.id))[0];
   if (!s) fail_('NOT_FOUND', 'ไม่พบแบบสอบถามนี้');
   const rows = feedbackRows_(RESPONSE_SHEET, SR_HEADERS).filter(r => String(r[SRCOL.SURVEY]) === s.id);
   const responses = rows.map(r => {
@@ -297,7 +304,7 @@ function adminSurveyResponses_(req) {
   }).reverse();
   const answered = {};
   responses.forEach(x => { answered[x.userId.toUpperCase()] = true; });
-  const pending = readParticipants_().filter(p => p.active && surveyTargets_(s, p.id) && !answered[p.id]).map(p => ({ id: p.id, name: p.name, site: p.site }));
+  const pending = readParticipants_().filter(p => p.active && surveyTargets_(s, p.id, p.org) && !answered[p.id]).map(p => ({ id: p.id, name: p.name, site: p.site }));
   return { success: true, survey: s, responses: responses, pending: pending };
 }
 
@@ -336,12 +343,13 @@ function adminSurveySave_(req, staff, ua) {
   }
   const status = req.draft ? 'draft' : 'active';
   const sh = feedbackSheet_(SURVEY_SHEET, V_HEADERS);
+  const org = SCOPE_ORG_ || ''; // ผู้ดูแลองค์กร = เฉพาะองค์กรตัวเอง · Dev = ส่วนกลาง (ทุกองค์กร)
   const now = new Date();
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   let id;
   try {
-    const existing = req.id ? readSurveys_().filter(s => s.id === String(req.id))[0] : null;
+    const existing = req.id ? surveyScoped_().filter(s => s.id === String(req.id))[0] : null;
     if (req.id && !existing) fail_('NOT_FOUND', 'ไม่พบแบบสอบถามนี้ (อาจถูกลบ)');
     if (existing) {
       const answered = Object.keys(surveyAnsweredSet_(existing.id)).length;
@@ -351,10 +359,10 @@ function adminSurveySave_(req, staff, ua) {
       id = existing.id;
       const keepNotified = existing.notifiedAt && existing.startAt === startAt.getTime();
       sh.getRange(existing.row, VCOL.TITLE + 1, 1, V_HEADERS.length - 1).setValues([[title, clean_(req.intro, 500), JSON.stringify(questions), startAt, endAt, target, status,
-        existing.createdBy, existing.createdAt ? new Date(existing.createdAt) : now, keepNotified ? new Date(existing.notifiedAt) : '', keepNotified && existing.remindedAt ? new Date(existing.remindedAt) : '', now]]);
+        existing.createdBy, existing.createdAt ? new Date(existing.createdAt) : now, keepNotified ? new Date(existing.notifiedAt) : '', keepNotified && existing.remindedAt ? new Date(existing.remindedAt) : '', now, existing.org]]);
     } else {
       id = 'S' + Utilities.formatDate(now, TZ, 'yyMMdd') + '-' + Utilities.getUuid().slice(0, 4).toUpperCase();
-      sh.getRange(sh.getLastRow() + 1, 1, 1, V_HEADERS.length).setValues([[id, title, clean_(req.intro, 500), JSON.stringify(questions), startAt, endAt, target, status, staff.name || staff.email, now, '', '', now]]);
+      sh.getRange(sh.getLastRow() + 1, 1, 1, V_HEADERS.length).setValues([[id, title, clean_(req.intro, 500), JSON.stringify(questions), startAt, endAt, target, status, staff.name || staff.email, now, '', '', now, org]]);
     }
   } finally { lock.releaseLock(); }
   log_(staff, req.id ? 'admin.survey_update' : 'admin.survey_create', id, { title: title, startAt: startAt.toISOString(), target: target === 'all' ? 'all' : target.split(',').length + ' คน', draft: !!req.draft }, ua);
@@ -365,7 +373,7 @@ function adminSurveySave_(req, staff, ua) {
 }
 
 function adminSurveyClose_(req, staff, ua) {
-  const s = readSurveys_().filter(x => x.id === String(req.id))[0];
+  const s = surveyScoped_().filter(x => x.id === String(req.id))[0];
   if (!s) fail_('NOT_FOUND', 'ไม่พบแบบสอบถามนี้');
   const sh = feedbackSheet_(SURVEY_SHEET, V_HEADERS);
   sh.getRange(s.row, VCOL.STATUS + 1).setValue(req.reopen ? 'active' : 'closed');
@@ -376,7 +384,7 @@ function adminSurveyClose_(req, staff, ua) {
 }
 
 function adminSurveyDelete_(req, staff, ua) {
-  const s = readSurveys_().filter(x => x.id === String(req.id))[0];
+  const s = surveyScoped_().filter(x => x.id === String(req.id))[0];
   if (!s) fail_('NOT_FOUND', 'ไม่พบแบบสอบถามนี้');
   const n = Object.keys(surveyAnsweredSet_(s.id)).length;
   if (n) fail_('INVALID', 'มีผู้ตอบแล้ว ' + n + ' คน — ลบไม่ได้ (เก็บผลไว้) ใช้ "ปิดรับคำตอบ" แทน');
@@ -397,11 +405,12 @@ function surveyTick() {
   const due = surveys.filter(s => !s.notifiedAt || (!s.remindedAt && now - Math.max(s.startAt || 0, s.notifiedAt) >= surveyRemindHours_() * 3600000));
   if (!due.length) return out;
   const subs = readNotify_().filter(n => n.ownerType === 'user' && n.channel === 'push');
+  const pOrg = participantOrgMap_();
   const sh = feedbackSheet_(SURVEY_SHEET, V_HEADERS);
   due.forEach(s => {
     const first = !s.notifiedAt;
     const done = surveyAnsweredSet_(s.id);
-    const targets = subs.filter(n => surveyTargets_(s, n.ownerId) && !done[s.id + '|' + String(n.ownerId).toUpperCase()]);
+    const targets = subs.filter(n => surveyTargets_(s, n.ownerId, pOrg[String(n.ownerId).toUpperCase()] || '') && !done[s.id + '|' + String(n.ownerId).toUpperCase()]);
     const res = targets.length ? sendPush_(targets, {
       title: first ? 'แบบสอบถามใหม่: ' + s.title : 'อย่าลืมทำแบบสอบถาม',
       body: first ? 'ช่วยบอกความเห็นการใช้งานแอป ใช้เวลาไม่ถึง 1 นาที' : '"' + s.title + '" ยังรอคำตอบจากคุณ ใช้เวลาไม่ถึง 1 นาที',

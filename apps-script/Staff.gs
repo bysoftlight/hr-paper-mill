@@ -1,6 +1,12 @@
 // Staff.gs — API สำหรับหน้า Dashboard ของเจ้าหน้าที่ (staff.html)
 // ทุกคำสั่ง (ยกเว้น config / auth) ต้องมี token และสิทธิ์ตามที่กำหนด
 
+// ระบบป้องกัน (โหมดป้องกัน การบล็อกเครื่อง เหตุการณ์เสี่ยง) ใช้ร่วมกันทั้งระบบทุกองค์กร
+// → เฉพาะ Dev และบัญชีที่ไม่ได้ผูกองค์กร (ระบบที่ยังไม่แบ่งองค์กร) · ผู้ดูแลขององค์กรลูกค้าจัดการไม่ได้
+function requireSystemAdmin_(staff) {
+  if (SCOPE_ORG_) fail_('FORBIDDEN', 'ระบบความปลอดภัยดูแลโดยผู้ให้บริการ หากพบความผิดปกติกรุณาแจ้งปัญหาการใช้งาน');
+}
+
 function handleStaffRequest_(req) {
   const ua = String(req.userAgent || '').slice(0, 200);
   switch (req.action) {
@@ -111,16 +117,20 @@ function handleStaffRequest_(req) {
       return { success: true };
     case 'admin.security.status':
       requirePerm_(staff, 'admin');
+      requireSystemAdmin_(staff);
       return guardStatus_();
     case 'admin.security.shield':
       requirePerm_(staff, 'admin');
+      requireSystemAdmin_(staff);
       return guardSetShield_(!!req.on, staff, ua);
     case 'admin.security.block':
       requirePerm_(staff, 'admin');
+      requireSystemAdmin_(staff);
       if (typeof threatBlock_ !== 'function') return { success: false, message: 'ต้องเพิ่มไฟล์ Threats.gs ใน Apps Script ก่อน' };
       return threatBlock_(req.device, !!req.on, req.reason, staff, ua, Number(req.days) || 30);
     case 'admin.security.threat':
       requirePerm_(staff, 'admin');
+      requireSystemAdmin_(staff);
       if (typeof threatSetStatus_ !== 'function') return { success: false, message: 'ต้องเพิ่มไฟล์ Threats.gs ใน Apps Script ก่อน' };
       return threatSetStatus_(req.row, req.status, staff, ua);
     case 'admin.staff.list':

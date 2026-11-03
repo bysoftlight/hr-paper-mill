@@ -98,9 +98,10 @@ function adminLogsList_(req) {
     return ts ? {
       ts: ts.getTime(), date: fmtDate_(ts), actorId: String(r[LCOL.ACTOR_ID] || ''), actorName: String(r[LCOL.ACTOR_NAME] || ''),
       actorRole: String(r[LCOL.ACTOR_ROLE] || ''), action: String(r[LCOL.ACTION] || ''), target: String(r[LCOL.TARGET] || ''),
-      details: String(r[LCOL.DETAILS] || ''), userAgent: String(r[LCOL.USER_AGENT] || '')
+      details: String(r[LCOL.DETAILS] || ''), userAgent: String(r[LCOL.USER_AGENT] || ''), org: String(r[LCOL.ORG] || '').trim()
     } : null;
   }).filter(Boolean).filter(l => {
+    if (!inScope_(l.org)) return false; // ผู้ดูแลองค์กรเห็นเฉพาะ Log ขององค์กรตัวเอง
     if (f.from && l.date < f.from) return false;
     if (f.to && l.date > f.to) return false;
     if (f.category && l.action.indexOf(f.category) !== 0) return false;

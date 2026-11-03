@@ -24,9 +24,9 @@
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <!-- เปลี่ยนเลข ?v= ทุกครั้งที่แก้ CSS/JS -->
-  <script src="js/settings.js?v=3.41.7"></script>
-  <link rel="stylesheet" href="css/style.css?v=3.41.7">
-  <link rel="stylesheet" href="css/staff.css?v=3.41.7">
+  <script src="js/settings.js?v=3.42.0"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.42.0">
+  <link rel="stylesheet" href="css/staff.css?v=3.42.0">
 </head>
 <body class="staff">
 
@@ -471,6 +471,8 @@
             <button type="button" role="radio" data-v="staff" aria-checked="false">เจ้าหน้าที่</button>
           </div>
         </fieldset>
+        <label class="field" id="newsOrgWrap" hidden><span class="label">องค์กร</span><select class="select" id="newsOrg"><option value="">ทุกองค์กร (ประกาศจากผู้ให้บริการ)</option></select><small class="hint">Dev เท่านั้น · เลือกองค์กรเพื่อส่งถึงเฉพาะคนในองค์กรนั้น</small></label>
+        <p class="hint news-scope-hint" id="newsScopeHint" hidden>ประกาศนี้ส่งถึงเฉพาะผู้ใช้สิทธิ์และเจ้าหน้าที่ในองค์กรของคุณ</p>
         <div class="news-img-pick">
           <span class="news-img-prev" id="newsImgPrev" hidden></span>
           <span class="row-wrap"><label class="btn btn-tonal btn-sm"><svg class="ic ic-16" aria-hidden="true"><use href="#i-image"/></svg>แนบรูป (ไม่บังคับ)<input type="file" accept="image/*" id="newsImgFile" hidden></label><button type="button" class="btn btn-ghost btn-sm" id="newsImgDel" hidden>เอารูปออก</button></span>
@@ -557,7 +559,7 @@
   <!-- ===== Sign in ===== -->
   <div id="authView" class="login" hidden>
     <section class="login-intro" aria-labelledby="authTitle">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.41.7" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.42.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <p class="eyebrow">สำหรับเจ้าหน้าที่ HR และผู้ดูแลระบบ</p>
       <h1 id="authTitle">ติดตามรายงานการขาย<br>ของผู้ใช้สิทธิ์ทุกคนในที่เดียว</h1>
       <ol class="intro-steps">
@@ -617,12 +619,12 @@
   <!-- ===== App ===== -->
   <div id="appContainer" class="app" hidden>
     <header class="topbar">
-      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.41.7" alt="" width="36" height="36"><span>HR Staff</span></a>
+      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.42.0" alt="" width="36" height="36"><span>HR Staff</span></a>
       <div class="topbar-actions"><span class="live" data-live><span class="live-dot"></span><span data-live-text>อัปเดตสด</span></span></div>
     </header>
 
     <nav class="sidenav" aria-label="เมนูหลัก">
-      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.41.7" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></a>
+      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.42.0" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></a>
       <div class="nav-items">
         <button type="button" class="nav-item" data-tab="overview" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-grid"/></svg><span>ภาพรวม</span></button>
         <button type="button" class="nav-item" data-tab="records" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-list"/></svg><span>รายงาน</span></button>
@@ -811,7 +813,7 @@
       <div class="segmented adm-tabs" role="tablist" aria-label="ส่วนผู้ดูแลระบบ" id="anAdmTabs" data-scrollfade>
         <button type="button" role="tab" data-t="staff" aria-selected="false">เจ้าหน้าที่ <span class="count-pill is-bad" data-pending-badge hidden></span></button>
         <button type="button" role="tab" data-t="logs" aria-selected="false">Logs</button>
-        <button type="button" role="tab" data-t="security" aria-selected="false">ความปลอดภัย</button>
+        <button type="button" role="tab" data-t="security" data-sys aria-selected="false">ความปลอดภัย</button>
         <button type="button" role="tab" data-t="problems" aria-selected="false">แจ้งปัญหา <span class="count-pill is-bad" data-problem-badge hidden></span></button>
         <button type="button" role="tab" data-t="surveys" aria-selected="false">แบบสอบถาม</button>
         <button type="button" role="tab" data-t="news" aria-selected="false">ประกาศ</button>
@@ -891,7 +893,7 @@
       <div class="segmented adm-tabs" role="tablist" aria-label="ส่วนผู้ดูแลระบบ" id="admTabs" data-scrollfade>
         <button type="button" role="tab" data-t="staff" aria-selected="true">เจ้าหน้าที่ <span class="count-pill is-bad" data-pending-badge hidden></span></button>
         <button type="button" role="tab" data-t="logs" aria-selected="false">Logs</button>
-        <button type="button" role="tab" data-t="security" aria-selected="false">ความปลอดภัย <span class="count-pill is-bad" id="secBadge" hidden>!</span></button>
+        <button type="button" role="tab" data-t="security" data-sys aria-selected="false">ความปลอดภัย <span class="count-pill is-bad" id="secBadge" hidden>!</span></button>
         <button type="button" role="tab" data-t="problems" aria-selected="false">แจ้งปัญหา <span class="count-pill is-bad" data-problem-badge hidden></span></button>
         <button type="button" role="tab" data-t="surveys" aria-selected="false">แบบสอบถาม</button>
         <button type="button" role="tab" data-t="news" aria-selected="false">ประกาศ</button>
@@ -1031,7 +1033,7 @@
       <div class="segmented adm-tabs" role="tablist" aria-label="ส่วนผู้ดูแลระบบ" id="devAdmTabs" data-scrollfade>
         <button type="button" role="tab" data-t="staff" aria-selected="false">เจ้าหน้าที่</button>
         <button type="button" role="tab" data-t="logs" aria-selected="false">Logs</button>
-        <button type="button" role="tab" data-t="security" aria-selected="false">ความปลอดภัย</button>
+        <button type="button" role="tab" data-t="security" data-sys aria-selected="false">ความปลอดภัย</button>
         <button type="button" role="tab" data-t="problems" aria-selected="false">แจ้งปัญหา</button>
         <button type="button" role="tab" data-t="surveys" aria-selected="false">แบบสอบถาม</button>
         <button type="button" role="tab" data-t="news" aria-selected="false">ประกาศ</button>
@@ -1097,28 +1099,28 @@
 
   <div id="pdfStage" class="pdf-stage" aria-hidden="true"></div>
 
-  <script src="js/consent.js?v=3.41.7"></script>
-  <script src="js/config.js?v=3.41.7"></script>
-  <script src="js/utils.js?v=3.41.7"></script>
-  <script src="js/glass.js?v=3.41.7"></script>
-  <script src="js/analytics.js?v=3.41.7"></script>
-  <script src="js/api.js?v=3.41.7"></script>
-  <script src="js/charts.js?v=3.41.7"></script>
-  <script src="js/notify.js?v=3.41.7"></script>
-  <script src="js/staff/core.js?v=3.41.7"></script>
-  <script src="js/staff/mapkit.js?v=3.41.7"></script>
-  <script src="js/staff/overview.js?v=3.41.7"></script>
-  <script src="js/staff/records.js?v=3.41.7"></script>
-  <script src="js/staff/participants.js?v=3.41.7"></script>
-  <script src="js/staff/admin.js?v=3.41.7"></script>
-  <script src="js/staff/export.js?v=3.41.7"></script>
-  <script src="js/staff/reports.js?v=3.41.7"></script>
-  <script src="js/staff/analytics.js?v=3.41.7"></script>
-  <script src="js/staff/dev.js?v=3.41.7"></script>
-  <script src="js/feedback.js?v=3.41.7"></script>
-  <script src="js/staff/feedback.js?v=3.41.7"></script>
-  <script src="js/inbox.js?v=3.41.7"></script>
-  <script src="js/staff/inbox.js?v=3.41.7"></script>
-  <script src="js/reveal.js?v=3.41.7"></script>
+  <script src="js/consent.js?v=3.42.0"></script>
+  <script src="js/config.js?v=3.42.0"></script>
+  <script src="js/utils.js?v=3.42.0"></script>
+  <script src="js/glass.js?v=3.42.0"></script>
+  <script src="js/analytics.js?v=3.42.0"></script>
+  <script src="js/api.js?v=3.42.0"></script>
+  <script src="js/charts.js?v=3.42.0"></script>
+  <script src="js/notify.js?v=3.42.0"></script>
+  <script src="js/staff/core.js?v=3.42.0"></script>
+  <script src="js/staff/mapkit.js?v=3.42.0"></script>
+  <script src="js/staff/overview.js?v=3.42.0"></script>
+  <script src="js/staff/records.js?v=3.42.0"></script>
+  <script src="js/staff/participants.js?v=3.42.0"></script>
+  <script src="js/staff/admin.js?v=3.42.0"></script>
+  <script src="js/staff/export.js?v=3.42.0"></script>
+  <script src="js/staff/reports.js?v=3.42.0"></script>
+  <script src="js/staff/analytics.js?v=3.42.0"></script>
+  <script src="js/staff/dev.js?v=3.42.0"></script>
+  <script src="js/feedback.js?v=3.42.0"></script>
+  <script src="js/staff/feedback.js?v=3.42.0"></script>
+  <script src="js/inbox.js?v=3.42.0"></script>
+  <script src="js/staff/inbox.js?v=3.42.0"></script>
+  <script src="js/reveal.js?v=3.42.0"></script>
 </body>
 </html>

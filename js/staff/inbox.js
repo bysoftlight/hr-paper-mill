@@ -79,6 +79,7 @@ const NewsAdmin = {
         if (req !== this.req) return;
         if (!r.success) { $('newsList').innerHTML = emptyState(r.message || 'โหลดไม่สำเร็จ', 'wifi-off'); return; }
         this.list = r.news;
+        this.orgs = r.orgs || []; this.isDev = can('dev');
         this.render();
     },
     render() {
@@ -90,7 +91,7 @@ const NewsAdmin = {
         $('newsList').innerHTML = this.list.map(n => {
             const a = NEWS_AUD[n.audience] || NEWS_AUD.all, expired = n.expiresAt && n.expiresAt <= now;
             return `<article class="card news-card ${expired ? 'is-expired' : ''}" data-id="${esc(n.id)}">
-              <div class="news-meta"><span class="badge ${a[1]}">${a[0]}</span>${n.kind === 'system' ? '<span class="badge is-bad">ระบบ</span>' : ''}${expired ? '<span class="badge">หมดอายุแล้ว</span>' : n.expiresAt ? `<span class="muted-text">ถึง ${thDateTime(n.expiresAt)}</span>` : ''}${n.pushed ? `<span class="muted-text">แจ้งเตือนมือถือ ${fmtNum(n.pushed)} เครื่อง</span>` : ''}</div>
+              <div class="news-meta"><span class="badge ${a[1]}">${a[0]}</span>${this.isDev ? `<span class="badge ${n.org ? 'is-info' : ''}">${esc(n.org ? (n.orgName || n.org) : 'ทุกองค์กร')}</span>` : ''}${n.kind === 'system' ? '<span class="badge is-bad">ระบบ</span>' : ''}${expired ? '<span class="badge">หมดอายุแล้ว</span>' : n.expiresAt ? `<span class="muted-text">ถึง ${thDateTime(n.expiresAt)}</span>` : ''}${n.pushed ? `<span class="muted-text">แจ้งเตือนมือถือ ${fmtNum(n.pushed)} เครื่อง</span>` : ''}</div>
               <b class="news-title">${esc(n.title)}</b>
               <p class="news-body">${esc(n.body)}</p>
               ${n.image ? `<img class="news-img" src="${esc(n.image)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : ''}
@@ -106,7 +107,7 @@ const NewsAdmin = {
         const n = this.list.find(x => x.id === b.closest('[data-id]').dataset.id); if (!n) return;
         if (b.dataset.na === 'edit') return this.openEditor(n);
         if (b.dataset.na === 'delete') {
-            if (!await showMessage({ title: 'ลบประกาศ?', text: `"${n.title}" จะหายจากกล่องการแจ้งเตือนของทุกคน`, tone: 'bad', okText: 'ลบ', cancelText: 'ยกเลิก' })) return;
+            if (!await showMessage({ title: 'ลบประกาศ?', text: `"${n.title}" จะหายจากกล่องการแจ้งเตือนของผู้รับทุกคน`, tone: 'bad', okText: 'ลบ', cancelText: 'ยกเลิก' })) return;
             const r = await api('admin.news.delete', { id: n.id });
             if (!r.success) return showMessage({ title: 'ลบไม่สำเร็จ', text: r.message || '', tone: 'bad' });
             toast('ลบประกาศแล้ว'); this.load(true); Inbox.refresh(true);
@@ -124,6 +125,10 @@ const NewsAdmin = {
         this.setKind(n ? n.kind || 'news' : 'news');
         this.img = null; this.imgRemove = false; this.showImg(n && n.image ? n.image : '');
         $('newsTplWrap').hidden = !!n;
+        // องค์กรที่ส่งถึง: Dev เลือกได้ · ผู้ดูแลองค์กร = องค์กรตัวเองเสมอ
+        const dev = can('dev'), scoped = !dev && !!(ST.me && ST.me.org);
+        $('newsOrgWrap').hidden = !dev; $('newsScopeHint').hidden = !scoped;
+        if (dev) { $('newsOrg').innerHTML = '<option value="">ทุกองค์กร (ประกาศจากผู้ให้บริการ)</option>' + (this.orgs || []).map(o => `<option value="${esc(o.id)}">${esc(o.name)}</option>`).join(''); $('newsOrg').value = n ? n.org || '' : ''; }
         $('newsTpls').querySelectorAll('[data-tpl]').forEach(b => b.classList.remove('is-on'));
         $('newsSave').textContent = n ? 'บันทึก' : 'ประกาศ';
         showModal('newsModal');
@@ -138,8 +143,8 @@ const NewsAdmin = {
         if (expiresAt && expiresAt <= Date.now()) return showMessage({ title: 'วันที่ผ่านไปแล้ว', text: '"แสดงถึง" ต้องเป็นเวลาในอนาคต', tone: 'warn' });
         $('newsSave').disabled = true;
         if (this.img) showLoading(true, 'กำลังอัปโหลดรูป…');
-        const r = await api('admin.news.save', { id: this.edit ? this.edit.id : null, title, body, link, audience: this.aud(), kind: this.kind(), expiresAt, push: $('newsPush').checked,
-            image: this.img ? { data: this.img.data, mimeType: this.img.mimeType } : null, removeImage: this.imgRemove });
+        const r = await api('admin.news.save', Object.assign(can('dev') ? { org: $('newsOrg').value } : {}, { id: this.edit ? this.edit.id : null, title, body, link, audience: this.aud(), kind: this.kind(), expiresAt, push: $('newsPush').checked,
+            image: this.img ? { data: this.img.data, mimeType: this.img.mimeType } : null, removeImage: this.imgRemove }));
         showLoading(false);
         $('newsSave').disabled = false;
         if (!r.success) return showMessage({ title: 'บันทึกไม่สำเร็จ', text: r.message || 'กรุณาลองใหม่', tone: 'bad' });

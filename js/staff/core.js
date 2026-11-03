@@ -423,6 +423,9 @@ function renderMeAvatars() {
 
 function applyPerms() {
     document.querySelectorAll('[data-perm]').forEach(el => { el.hidden = !can(el.dataset.perm); });
+    // ความปลอดภัยของระบบใช้ร่วมกันทุกองค์กร: เฉพาะ Dev และบัญชีที่ไม่ได้ผูกองค์กร
+    const sys = !(ST.me && ST.me.org && ST.me.role !== 'dev');
+    document.querySelectorAll('[data-sys]').forEach(el => { el.hidden = !sys; });
     const n = document.querySelectorAll('.bottomnav .nav-item:not([hidden])').length;
     document.querySelector('.bottomnav').style.setProperty('--nav-n', n);
 }
