@@ -395,3 +395,43 @@ function tidyFootLinks() {
 }
 document.addEventListener('DOMContentLoaded', () => { tidyFootLinks(); if (window.ResizeObserver) document.querySelectorAll('.foot-links').forEach(n => new ResizeObserver(tidyFootLinks).observe(n)); else window.addEventListener('resize', tidyFootLinks); });
 window.addEventListener('load', tidyFootLinks);
+
+// ---------- โลโก้องค์กร (Dev Console › องค์กร) แสดงคู่กับชื่อแอป: แถบบนมือถือ + เมนูด้านข้าง ----------
+const OrgMark = {
+    set(org) {
+        const e = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        document.querySelectorAll('.topbar > .brand, .sidenav > .brand').forEach(b => {
+            let m = b.nextElementSibling && b.nextElementSibling.classList.contains('org-mark') ? b.nextElementSibling : null;
+            if (!org || !(org.logo || org.name)) { if (m) m.remove(); return; }
+            if (!m) { m = document.createElement('span'); m.className = 'org-mark'; b.after(m); }
+            m.classList.toggle('has-logo', !!org.logo);
+            m.title = org.name || '';
+            m.innerHTML = (org.logo ? `<img src="${e(org.logo)}" alt="${e(org.name)}" referrerpolicy="no-referrer" loading="lazy">` : '') + `<span>${e(org.name)}</span>`;
+            const img = m.querySelector('img');
+            if (img) img.addEventListener('error', () => { img.remove(); m.classList.remove('has-logo'); }, { once: true });
+        });
+    }
+};
+
+// ย่อรูปสำหรับอัปโหลด (โลโก้องค์กร / รูปประกาศ): ด้านยาวไม่เกิน max px
+// keepPng = true → เก็บพื้นโปร่งใส (PNG) เหมาะกับโลโก้ · ไม่งั้นเป็น JPEG พื้นขาว · คืน { data (base64), mimeType, url (ตัวอย่าง) }
+function shrinkImage(file, max = 1600, keepPng = false) {
+    return new Promise((resolve, reject) => {
+        if (!file || !/^image\//.test(file.type)) return reject(new Error('กรุณาเลือกไฟล์รูปภาพ'));
+        const src = URL.createObjectURL(file), img = new Image();
+        img.onload = () => {
+            const k = Math.min(1, max / Math.max(img.width, img.height));
+            const c = document.createElement('canvas');
+            c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k));
+            const x = c.getContext('2d'), png = keepPng && /png|webp|svg|gif/.test(file.type);
+            if (!png) { x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); }
+            x.drawImage(img, 0, 0, c.width, c.height);
+            URL.revokeObjectURL(src);
+            const mime = png ? 'image/png' : 'image/jpeg', url = c.toDataURL(mime, 0.86);
+            if (url.length * 0.75 > 2 * 1024 * 1024) return reject(new Error('รูปมีขนาดใหญ่เกิน 2 MB'));
+            resolve({ data: url.split(',')[1], mimeType: mime, url });
+        };
+        img.onerror = () => { URL.revokeObjectURL(src); reject(new Error('เปิดไฟล์รูปไม่ได้')); };
+        img.src = src;
+    });
+}

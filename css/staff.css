@@ -521,8 +521,14 @@ button.kpi:active { transform: scale(.98); }
 .kpi-foot > span:not(.delta) { font-size: 12px; color: var(--muted); }
 
 .an-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
-@media (min-width: 1024px) { .an-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .an-wide { grid-column: 1 / -1; } }
-@media (min-width: 1280px) { .an-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); } .an-grid .an-wide:first-child { grid-column: 1; } }
+/* สองคอลัมน์ซ้อนกันอิสระ (ไม่มีช่องว่างเพราะการ์ดสูงไม่เท่ากัน) · มือถือ/แท็บเล็ตเรียงตามลำดับ order */
+.an-col { display: contents; }
+@media (min-width: 1024px) {
+    .an-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .an-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    .an-wide { grid-column: 1 / -1; }
+}
+@media (min-width: 1280px) { .an-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); } }
 .an-chart { min-height: 220px; }
 .an-chart-sm { min-height: 90px; margin: 4px 0 8px; }
 .an-single { display: grid; place-items: center; align-content: center; gap: 4px; min-height: 180px; text-align: center; }
@@ -1018,3 +1024,27 @@ dialog:focus-visible { outline: none; } /* กรอบโฟกัสของ�
 .sub-text small { font-size: 12.5px; color: var(--ink-2); }
 .sub-card .btn { flex: none; }
 @media (max-width: 479px) { .sub-card { flex-wrap: wrap; } .sub-card .btn { margin-left: 36px; } }
+
+/* โลโก้องค์กร (Dev Console) */
+.avatar.avatar-org img { width: 100%; height: 100%; object-fit: contain; border-radius: inherit; background: #fff; }
+.logo-pick { display: flex; align-items: center; gap: 16px; padding: 14px; border-radius: var(--r-md); background: var(--field); border: 1px solid var(--line-soft); }
+.logo-prev { flex: none; width: 72px; height: 72px; border-radius: 16px; display: grid; place-items: center; background: #fff; border: 1px solid var(--line); color: var(--muted); overflow: hidden; }
+.logo-prev img { width: 100%; height: 100%; object-fit: contain; }
+.logo-txt { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.logo-txt small { color: var(--muted); font-size: 12.5px; }
+.logo-txt .row-wrap { margin-top: 6px; }
+.logo-txt label.btn { cursor: pointer; }
+
+/* ประกาศ: แม่แบบ · รูป · ประเภทระบบ */
+.news-tpl { display: flex; flex-direction: column; gap: 8px; }
+.news-tpl .label { font-size: 14px; font-weight: 600; }
+.news-tpls { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.news-tpls::-webkit-scrollbar { display: none; }
+.news-tpls .qchip { flex: none; }
+.tpl-sys { margin-left: 4px; padding: 0 6px; border-radius: 999px; background: var(--bad-soft); color: var(--bad); font-size: 11px; font-weight: 600; }
+.qchip.is-on .tpl-sys { background: rgba(255, 255, 255, .25); color: inherit; }
+.news-img-pick { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.news-img-prev { display: block; width: 100%; max-width: 360px; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); }
+.news-img-prev img, .news-img { display: block; width: 100%; max-height: 320px; object-fit: cover; }
+.news-img { margin: 10px 0 4px; border-radius: 14px; border: 1px solid var(--line-soft); max-width: 520px; }
+.news-img-pick label.btn { cursor: pointer; }

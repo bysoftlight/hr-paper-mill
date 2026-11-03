@@ -691,13 +691,15 @@ function staffParticipantDelete_(req, staff, ua) {
 // รูปโปรไฟล์ผู้ใช้สิทธิ์: ไฟล์ชื่อ IMG_<รหัส> ในโฟลเดอร์รูปโปรไฟล์ (เปลี่ยนได้ด้วย Script Property PROFILE_FOLDER_ID)
 const PROFILE_FOLDER_ID = '1-GZAWmJ0daUrM6R9HuiayZzRBQwu_-HE';
 const MAX_PROFILE_BYTES = 2 * 1024 * 1024;
-function saveProfilePhoto_(id, photo) {
+function saveProfilePhoto_(id, photo) { return saveNamedImage_('IMG_' + id, photo); }
+// บันทึกรูปลงโฟลเดอร์รูป (PROFILE_FOLDER_ID) ชื่อ name — ใช้กับรูปโปรไฟล์ · โลโก้องค์กร (LOGO_<รหัส>) · รูปประกาศ (NEWS_<รหัส>)
+function saveNamedImage_(name, photo) {
+  photo = photo || {};
   const mime = /^image\/(jpeg|png|webp)$/.test(String(photo.mimeType)) ? photo.mimeType : 'image/jpeg';
   let bytes;
   try { bytes = Utilities.base64Decode(String(photo.data || '')); } catch (e) { fail_('INVALID', 'ไฟล์รูปไม่ถูกต้อง'); }
   if (!bytes.length) fail_('INVALID', 'ไฟล์รูปไม่ถูกต้อง');
   if (bytes.length > MAX_PROFILE_BYTES) fail_('INVALID', 'รูปมีขนาดใหญ่เกิน 2 MB');
-  const name = 'IMG_' + id;
   let folder;
   try { folder = DriveApp.getFolderById(prop_('PROFILE_FOLDER_ID') || PROFILE_FOLDER_ID); }
   catch (e) { fail_('ERROR', 'เปิดโฟลเดอร์รูปโปรไฟล์ไม่ได้ กรุณาตรวจสอบสิทธิ์ของบัญชีที่ Deploy'); }

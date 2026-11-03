@@ -279,6 +279,7 @@ function endSession() {
     userStore.remove(USER_KEY);
     userStore.remove(CACHE_KEY);
     CURRENT_USER = {};
+    if (typeof OrgMark !== 'undefined') OrgMark.set(null);
     Analytics.setUser('');
     ALL_HISTORY = [];
     HISTORY_LOADED = false;
@@ -324,6 +325,7 @@ function setupApp(history, cachedAt) {
 }
 
 function renderUser() {
+    if (typeof OrgMark !== 'undefined') OrgMark.set(CURRENT_USER.orgInfo || null); // โลโก้องค์กรคู่กับชื่อแอป
     document.querySelectorAll('[data-user="name"]').forEach(el => el.textContent = CURRENT_USER.name || '-');
     document.querySelectorAll('[data-user="id"]').forEach(el => el.textContent = CURRENT_USER.id || '-');
     document.querySelectorAll('[data-user="status"]').forEach(el => el.textContent = CURRENT_USER.status || '-');

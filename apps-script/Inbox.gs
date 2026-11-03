@@ -9,8 +9,9 @@
 // ประกาศ: ผู้ดูแลระบบ › ประกาศ → แผ่นงาน "Announcements" (สร้างให้อัตโนมัติ) · เลือกส่งแจ้งเตือนบนมือถือได้
 
 const NEWS_SHEET = 'Announcements';
-const NWCOL = { ID: 0, TS: 1, TITLE: 2, BODY: 3, AUDIENCE: 4, LINK: 5, EXPIRES: 6, BY: 7, STATUS: 8, PUSHED: 9, UPDATED_AT: 10 };
-const NW_HEADERS = ['ID', 'เวลา', 'หัวข้อ', 'ข้อความ', 'ผู้รับ', 'ลิงก์', 'หมดอายุ', 'สร้างโดย', 'สถานะ', 'แจ้งเตือนมือถือ', 'แก้ไขล่าสุด'];
+const NWCOL = { ID: 0, TS: 1, TITLE: 2, BODY: 3, AUDIENCE: 4, LINK: 5, EXPIRES: 6, BY: 7, STATUS: 8, PUSHED: 9, UPDATED_AT: 10, IMAGE: 11, KIND: 12 };
+const NW_HEADERS = ['ID', 'เวลา', 'หัวข้อ', 'ข้อความ', 'ผู้รับ', 'ลิงก์', 'หมดอายุ', 'สร้างโดย', 'สถานะ', 'แจ้งเตือนมือถือ', 'แก้ไขล่าสุด', 'รูป', 'ประเภท'];
+const NEWS_KINDS = { news: 'ข่าวสาร', system: 'ระบบ' }; // ระบบ = แจ้งเรื่องสำคัญของระบบ เช่น ปิดปรับปรุง ขัดข้อง (หมวด "ระบบ" ในกล่องแจ้งเตือน)
 const NEWS_AUDIENCES = { all: 'ทุกคน', participants: 'ผู้ใช้สิทธิ์', staff: 'เจ้าหน้าที่' };
 const INBOX_DAYS = 45; // แสดงย้อนหลังกี่วัน
 
@@ -29,13 +30,14 @@ function readNews_() {
   return sh.getRange(2, 1, last - 1, NW_HEADERS.length).getValues().map((r, i) => ({
     row: i + 2, id: String(r[NWCOL.ID]), ts: ibTime_(r[NWCOL.TS]), title: plain_(r[NWCOL.TITLE]), body: plain_(r[NWCOL.BODY]),
     audience: NEWS_AUDIENCES[r[NWCOL.AUDIENCE]] ? String(r[NWCOL.AUDIENCE]) : 'all', link: String(r[NWCOL.LINK] || ''), expiresAt: ibTime_(r[NWCOL.EXPIRES]),
-    by: String(r[NWCOL.BY] || ''), status: String(r[NWCOL.STATUS] || 'active'), pushed: Number(r[NWCOL.PUSHED]) || 0, updatedAt: ibTime_(r[NWCOL.UPDATED_AT])
+    by: String(r[NWCOL.BY] || ''), status: String(r[NWCOL.STATUS] || 'active'), pushed: Number(r[NWCOL.PUSHED]) || 0, updatedAt: ibTime_(r[NWCOL.UPDATED_AT]),
+    image: r[NWCOL.IMAGE] ? toImageUrl_(String(r[NWCOL.IMAGE])) : '', kind: NEWS_KINDS[r[NWCOL.KIND]] ? String(r[NWCOL.KIND]) : 'news'
   })).filter(n => n.id);
 }
 function newsFor_(audience) {
   const now = Date.now(), since = now - INBOX_DAYS * 86400000;
   return readNews_().filter(n => n.status === 'active' && (n.audience === 'all' || n.audience === audience) && n.ts && n.ts >= since && (!n.expiresAt || n.expiresAt > now))
-    .map(n => ({ id: 'news-' + n.id, ts: n.ts, cat: 'news', icon: 'megaphone', title: plain_(n.title), body: plain_(n.body), link: n.link }));
+    .map(n => ({ id: 'news-' + n.id, ts: n.ts, cat: n.kind === 'system' ? 'update' : 'news', icon: n.kind === 'system' ? 'alert' : 'megaphone', tone: n.kind === 'system' ? 'warn' : '', title: plain_(n.title), body: plain_(n.body), link: n.link, image: n.image }));
 }
 
 // ---------- ผู้ใช้สิทธิ์ ----------
@@ -128,6 +130,7 @@ function adminNewsSave_(req, staff, ua) {
   link = link.slice(0, 300);
   const expires = req.expiresAt ? new Date(Number(req.expiresAt)) : '';
   if (expires && (isNaN(expires) || expires.getTime() < Date.now())) fail_('INVALID', 'วันหมดอายุต้องเป็นอนาคต');
+  const kind = NEWS_KINDS[req.kind] ? req.kind : 'news';
   const sh = inboxSheet_(), now = new Date();
   let item;
   const lock = LockService.getScriptLock();
@@ -138,11 +141,18 @@ function adminNewsSave_(req, staff, ua) {
       if (!item) fail_('NOT_FOUND', 'ไม่พบประกาศนี้ (อาจถูกลบ)');
       sh.getRange(item.row, NWCOL.TITLE + 1, 1, 5).setValues([[title, body, audience, link, expires]]);
       sh.getRange(item.row, NWCOL.UPDATED_AT + 1).setValue(now);
+      sh.getRange(item.row, NWCOL.KIND + 1).setValue(kind);
+      if (req.removeImage) sh.getRange(item.row, NWCOL.IMAGE + 1).setValue('');
     } else {
       item = { id: 'N' + Utilities.formatDate(now, TZ, 'yyMMdd') + '-' + Utilities.getUuid().slice(0, 4).toUpperCase(), row: sh.getLastRow() + 1, pushed: 0 };
-      sh.getRange(item.row, 1, 1, NW_HEADERS.length).setValues([[item.id, now, title, body, audience, link, expires, staff.name || staff.email, 'active', 0, now]]);
+      sh.getRange(item.row, 1, 1, NW_HEADERS.length).setValues([[item.id, now, title, body, audience, link, expires, staff.name || staff.email, 'active', 0, now, '', kind]]);
     }
   } finally { lock.releaseLock(); }
+  // รูปประกาศ (ไม่บังคับ) — บันทึกนอก lock เพราะอัปโหลดนาน
+  if (req.image && req.image.data) {
+    const url = saveNamedImage_('NEWS_' + item.id, req.image);
+    sh.getRange(item.row, NWCOL.IMAGE + 1).setValue(url);
+  }
   let pushed = null;
   if (req.push && typeof readNotify_ === 'function' && typeof sendPush_ === 'function') {
     try {

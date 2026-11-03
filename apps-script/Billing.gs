@@ -10,9 +10,9 @@
 
 const BILL_SHEET = { ORGS: 'Orgs', PLANS: 'Plans', ACCOUNTS: 'PayAccounts', INVOICES: 'Invoices' };
 const BO = { ID: 0, NAME: 1, CONTACT: 2, EMAIL: 3, PHONE: 4, TAX_ID: 5, ADDRESS: 6, PLAN: 7, STATUS: 8, CYCLE: 9, TRIAL_START: 10, TRIAL_END: 11,
-  PERIOD_START: 12, PERIOD_END: 13, MAX_USERS: 14, MAX_STAFF: 15, NOTE: 16, CREATED_AT: 17, UPDATED_AT: 18, UPDATED_BY: 19 };
+  PERIOD_START: 12, PERIOD_END: 13, MAX_USERS: 14, MAX_STAFF: 15, NOTE: 16, CREATED_AT: 17, UPDATED_AT: 18, UPDATED_BY: 19, LOGO: 20 };
 const BO_HEADERS = ['รหัส', 'ชื่อบริษัท/องค์กร', 'ผู้ติดต่อ', 'อีเมล', 'โทร', 'เลขผู้เสียภาษี', 'ที่อยู่', 'แพลน', 'สถานะ', 'รอบบิล', 'เริ่มทดลอง', 'สิ้นสุดทดลอง',
-  'เริ่มรอบบิล', 'สิ้นสุดรอบบิล', 'ผู้ใช้สิทธิ์สูงสุด (กำหนดเอง)', 'เจ้าหน้าที่สูงสุด (กำหนดเอง)', 'หมายเหตุ', 'สร้างเมื่อ', 'แก้ไขล่าสุด', 'แก้ไขโดย'];
+  'เริ่มรอบบิล', 'สิ้นสุดรอบบิล', 'ผู้ใช้สิทธิ์สูงสุด (กำหนดเอง)', 'เจ้าหน้าที่สูงสุด (กำหนดเอง)', 'หมายเหตุ', 'สร้างเมื่อ', 'แก้ไขล่าสุด', 'แก้ไขโดย', 'โลโก้'];
 const BP = { ID: 0, NAME: 1, TAGLINE: 2, PRICE_M: 3, PRICE_Y: 4, MAX_USERS: 5, MAX_STAFF: 6, FEATURES: 7, HIGHLIGHT: 8, PUBLIC: 9, ORDER: 10, ACTIVE: 11, TRIAL_DAYS: 12, UPDATED_AT: 13, SETUP: 14, FROM: 15 };
 const BP_HEADERS = ['รหัส', 'ชื่อแพลน', 'คำโปรย', 'ราคา/เดือน (บาท)', 'ราคา/ปี (บาท)', 'ผู้ใช้สิทธิ์สูงสุด (0 = ไม่จำกัด)', 'เจ้าหน้าที่สูงสุด (0 = ไม่จำกัด)',
   'ฟีเจอร์ (บรรทัดละข้อ)', 'แนะนำ', 'แสดงในหน้าแพ็กเกจ', 'ลำดับ', 'ใช้งาน', 'วันทดลองใช้', 'แก้ไขล่าสุด', 'ค่าติดตั้ง ครั้งเดียว (บาท)', 'แสดงเป็นราคาเริ่มต้น'];
@@ -102,7 +102,8 @@ function orgFromRow_(x) {
     status: ORG_STATUSES.indexOf(r[BO.STATUS]) === -1 ? 'trial' : r[BO.STATUS], cycle: BILL_CYCLES.indexOf(r[BO.CYCLE]) === -1 ? 'monthly' : r[BO.CYCLE],
     trialStart: ts_(r[BO.TRIAL_START]), trialEnd: ts_(r[BO.TRIAL_END]), periodStart: ts_(r[BO.PERIOD_START]), periodEnd: ts_(r[BO.PERIOD_END]),
     maxUsers: int_(r[BO.MAX_USERS]), maxStaff: int_(r[BO.MAX_STAFF]), note: plain_(r[BO.NOTE]),
-    createdAt: ts_(r[BO.CREATED_AT]), updatedAt: ts_(r[BO.UPDATED_AT]), updatedBy: String(r[BO.UPDATED_BY] || '')
+    createdAt: ts_(r[BO.CREATED_AT]), updatedAt: ts_(r[BO.UPDATED_AT]), updatedBy: String(r[BO.UPDATED_BY] || ''),
+    logo: r[BO.LOGO] ? toImageUrl_(String(r[BO.LOGO])).replace('sz=w1000', 'sz=w256') : ''
   };
 }
 function planFromRow_(x) {
@@ -152,7 +153,7 @@ function orgAccess_(orgId) {
   return orgState_(o, plan, Date.now());
 }
 function orgState_(o, plan, now) {
-  const base = { org: { id: o.id, name: o.name }, plan: plan ? { id: plan.id, name: plan.name } : null, status: o.status };
+  const base = { org: { id: o.id, name: o.name, logo: o.logo || '' }, plan: plan ? { id: plan.id, name: plan.name } : null, status: o.status };
   const dayIdx = t => Math.floor((t + 7 * 3600000) / DAY_MS_); // วันตามเวลาไทย
   const daysTo = t => dayIdx(t) - dayIdx(now);
   const contact = 'กรุณาติดต่อผู้ให้บริการเพื่อชำระเงิน';
@@ -180,6 +181,12 @@ function orgAccessDto_(a) {
 }
 
 // จำนวนผู้ใช้สิทธิ์ / เจ้าหน้าที่ ตามแพลน (ค่ากำหนดเองขององค์กรมาก่อน) — เกินแล้วเพิ่มไม่ได้
+// ข้อมูลองค์กรสำหรับผู้ใช้ (ชื่อ + โลโก้) — ไม่มีข้อมูลการชำระเงิน
+function orgPublic_(orgId) {
+  if (!orgId) return null;
+  const a = orgAccess_(orgId);
+  return a && a.org ? { id: a.org.id, name: a.org.name, logo: a.org.logo || '' } : null;
+}
 function orgLimits_(o, plan) {
   return { users: o.maxUsers || (plan ? plan.maxUsers : 0), staff: o.maxStaff || (plan ? plan.maxStaff : 0) };
 }
@@ -319,6 +326,9 @@ function devOrgSave_(req, staff, ua) {
   v[BO.TAX_ID] = clean_(o.taxId, 30); v[BO.ADDRESS] = clean_(o.address, 400); v[BO.PLAN] = plan.id; v[BO.CYCLE] = cycle;
   v[BO.MAX_USERS] = int_(o.maxUsers) || ''; v[BO.MAX_STAFF] = int_(o.maxStaff) || ''; v[BO.NOTE] = clean_(o.note, 500);
   v[BO.UPDATED_AT] = now; v[BO.UPDATED_BY] = who_(staff);
+  // โลโก้องค์กร (แสดงคู่กับชื่อแอปของผู้ใช้ในองค์กร) — อัปโหลดใหม่ / ลบ
+  if (o.logo && o.logo.data) v[BO.LOGO] = saveNamedImage_('LOGO_' + id, o.logo);
+  else if (o.removeLogo) v[BO.LOGO] = '';
   if (!existing) {
     // องค์กรใหม่: เริ่มทดลองใช้ฟรีทันที (ตามวันทดลองของแพลน) หรือเริ่มใช้งานจริงถ้าเลือก
     const days = o.trialDays !== undefined && o.trialDays !== '' ? Math.max(0, Math.min(365, Math.floor(Number(o.trialDays) || 0))) : plan.trialDays;

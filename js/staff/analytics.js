@@ -161,7 +161,7 @@ VIEWS.analytics = {
 
     renderPages() {
         const list = this.data.pages, max = Math.max(1, ...list.map(x => x.views));
-        $('anPages').innerHTML = list.length ? `<div class="an-row an-head"><span>หน้า</span><span>ดู</span><span>ผู้ใช้</span><span>เวลาเฉลี่ย</span></div>` + list.slice(0, 12).map(x => `
+        $('anPages').innerHTML = list.length ? `<div class="an-row an-head"><span>หน้า</span><span>ดู</span><span>ผู้ใช้</span><span>เวลาเฉลี่ย</span></div>` + list.slice(0, 8).map(x => `
           <div class="an-row"><span class="an-name"><b>${esc(anPage(x.app, x.page))}</b><small>${esc(AN_APPS[x.app] || x.app)}</small><i class="an-bar" style="width:${Math.round(x.views / max * 100)}%"></i></span>
             <span class="mono">${fmtNum(x.views)}</span><span class="mono">${fmtNum(x.users)}</span><span class="mono">${x.avgTime ? anDur(x.avgTime) : '-'}</span></div>`).join('')
             : emptyState('ยังไม่มีข้อมูลในช่วงนี้', 'chart');

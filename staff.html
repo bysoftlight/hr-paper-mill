@@ -24,9 +24,9 @@
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <!-- เปลี่ยนเลข ?v= ทุกครั้งที่แก้ CSS/JS -->
-  <script src="js/settings.js?v=3.40.1"></script>
-  <link rel="stylesheet" href="css/style.css?v=3.40.1">
-  <link rel="stylesheet" href="css/staff.css?v=3.40.1">
+  <script src="js/settings.js?v=3.41.0"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.41.0">
+  <link rel="stylesheet" href="css/staff.css?v=3.41.0">
 </head>
 <body class="staff">
 
@@ -433,6 +433,18 @@
         <button type="button" class="icon-btn" data-close aria-label="ปิด"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
       </div>
       <div class="sheet-body stack">
+        <div class="news-tpl" id="newsTplWrap">
+          <span class="label">เริ่มจากแม่แบบ <small class="muted-text">— เลือกแล้วแก้ข้อความได้</small></span>
+          <div class="chips-row news-tpls" id="newsTpls" role="group" aria-label="แม่แบบประกาศ" data-scrollfade></div>
+        </div>
+        <fieldset class="fgroup">
+          <legend>ประเภท</legend>
+          <div class="set-seg" id="newsKind" role="radiogroup" aria-label="ประเภทประกาศ">
+            <button type="button" role="radio" data-v="news" aria-checked="true">ข่าวสาร</button>
+            <button type="button" role="radio" data-v="system" aria-checked="false">ระบบ (สำคัญ)</button>
+          </div>
+          <small class="hint">"ระบบ" ใช้กับเรื่องที่ทุกคนต้องรู้ เช่น ปิดปรับปรุง ระบบขัดข้อง — แสดงในหมวด "ระบบ" ของกล่องการแจ้งเตือน</small>
+        </fieldset>
         <label class="field"><span class="label">หัวข้อ</span><input class="input" id="newsTitle" maxlength="120" required placeholder="เช่น ปิดปรับปรุงระบบคืนวันศุกร์ 22:00–23:00 น."></label>
         <label class="field"><span class="label">ข้อความ</span><textarea class="input textarea" id="newsBody" rows="5" maxlength="1500" required placeholder="รายละเอียดที่ต้องการแจ้ง"></textarea><small class="hint" id="newsCount">0/1500</small></label>
         <fieldset class="fgroup">
@@ -443,6 +455,10 @@
             <button type="button" role="radio" data-v="staff" aria-checked="false">เจ้าหน้าที่</button>
           </div>
         </fieldset>
+        <div class="news-img-pick">
+          <span class="news-img-prev" id="newsImgPrev" hidden></span>
+          <span class="row-wrap"><label class="btn btn-tonal btn-sm"><svg class="ic ic-16" aria-hidden="true"><use href="#i-image"/></svg>แนบรูป (ไม่บังคับ)<input type="file" accept="image/*" id="newsImgFile" hidden></label><button type="button" class="btn btn-ghost btn-sm" id="newsImgDel" hidden>เอารูปออก</button></span>
+        </div>
         <div class="form-grid-2">
           <label class="field"><span class="label">ลิงก์ (ไม่บังคับ)</span><input class="input" id="newsLink" type="url" inputmode="url" maxlength="300" placeholder="https://"></label>
           <label class="field"><span class="label">แสดงถึง (ไม่บังคับ)</span><input class="input" id="newsExpires" type="datetime-local"></label>
@@ -525,7 +541,7 @@
   <!-- ===== Sign in ===== -->
   <div id="authView" class="login" hidden>
     <section class="login-intro" aria-labelledby="authTitle">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.40.1" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.41.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <p class="eyebrow">สำหรับเจ้าหน้าที่ HR และผู้ดูแลระบบ</p>
       <h1 id="authTitle">ติดตามรายงานการขาย<br>ของผู้ใช้สิทธิ์ทุกคนในที่เดียว</h1>
       <ol class="intro-steps">
@@ -585,12 +601,12 @@
   <!-- ===== App ===== -->
   <div id="appContainer" class="app" hidden>
     <header class="topbar">
-      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.40.1" alt="" width="36" height="36"><span>HR Staff</span></a>
+      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.41.0" alt="" width="36" height="36"><span>HR Staff</span></a>
       <div class="topbar-actions"><span class="live" data-live><span class="live-dot"></span><span data-live-text>อัปเดตสด</span></span></div>
     </header>
 
     <nav class="sidenav" aria-label="เมนูหลัก">
-      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.40.1" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></a>
+      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.41.0" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></a>
       <div class="nav-items">
         <button type="button" class="nav-item" data-tab="overview" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-grid"/></svg><span>ภาพรวม</span></button>
         <button type="button" class="nav-item" data-tab="records" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-list"/></svg><span>รายงาน</span></button>
@@ -802,44 +818,48 @@
       </section>
       <div class="kpis an-kpis" id="anKpis" aria-live="polite"></div>
       <div class="an-grid">
-        <section class="card an-wide" aria-labelledby="anTrendTitle">
-          <div class="card-head"><h3 class="card-title" id="anTrendTitle">แนวโน้ม</h3>
-            <div class="set-seg seg-sm" id="anMetric" role="radiogroup" aria-label="ตัวชี้วัด">
-              <button type="button" role="radio" data-m="users" aria-checked="true">ผู้ใช้</button>
-              <button type="button" role="radio" data-m="sessions" aria-checked="false">เซสชัน</button>
-              <button type="button" role="radio" data-m="views" aria-checked="false">การดูหน้า</button>
-            </div></div>
-          <div id="anTrend" class="an-chart"></div>
-          <div class="legend-row" id="anTrendLegend"></div>
-        </section>
-        <section class="card an-realtime" aria-labelledby="anRtTitle">
-          <div class="card-head"><h3 class="card-title" id="anRtTitle"><span class="live-dot" aria-hidden="true"></span>เรียลไทม์</h3><span class="muted-text" id="anRtTime">30 นาทีล่าสุด</span></div>
-          <div class="an-rt-top"><b id="anActive">0</b><span>ผู้ใช้ใน 5 นาทีล่าสุด</span></div>
-          <div id="anRtBars" class="an-chart-sm"></div>
-          <ul class="an-list" id="anRtPages"></ul>
-        </section>
-        <section class="card" aria-labelledby="anFunnelTitle" id="anFunnelCard">
-          <div class="card-head"><h3 class="card-title" id="anFunnelTitle">ขั้นตอนการส่งรายงาน</h3><span class="muted-text">นับเป็นเซสชัน</span></div>
-          <ol class="funnel" id="anFunnel"></ol>
-          <div class="an-outcomes" id="anOutcomes"></div>
-        </section>
-        <section class="card" aria-labelledby="anPagesTitle">
-          <div class="card-head"><h3 class="card-title" id="anPagesTitle">หน้าที่เปิดมากที่สุด</h3></div>
-          <div class="an-table" id="anPages"></div>
-        </section>
-        <section class="card" aria-labelledby="anEventsTitle">
-          <div class="card-head"><h3 class="card-title" id="anEventsTitle">เหตุการณ์</h3><span class="muted-text">แตะเพื่อดูรายละเอียด</span></div>
-          <div class="an-table" id="anEvents"></div>
-        </section>
-        <section class="card" aria-labelledby="anTechTitle">
-          <div class="card-head"><h3 class="card-title" id="anTechTitle">อุปกรณ์และเบราว์เซอร์</h3><span class="muted-text">นับเป็นผู้ใช้</span></div>
-          <div class="an-tech" id="anTech"></div>
-        </section>
-        <section class="card" aria-labelledby="anSrcTitle">
-          <div class="card-head"><h3 class="card-title" id="anSrcTitle">ที่มาและแอป</h3><span class="muted-text">นับเป็นผู้ใช้</span></div>
-          <div class="an-tech" id="anSources"></div>
-        </section>
-        <section class="card an-wide" aria-labelledby="anHeatTitle">
+        <div class="an-col an-col-main">
+          <section style="order:1" class="card" aria-labelledby="anTrendTitle">
+            <div class="card-head"><h3 class="card-title" id="anTrendTitle">แนวโน้ม</h3>
+              <div class="set-seg seg-sm" id="anMetric" role="radiogroup" aria-label="ตัวชี้วัด">
+                <button type="button" role="radio" data-m="users" aria-checked="true">ผู้ใช้</button>
+                <button type="button" role="radio" data-m="sessions" aria-checked="false">เซสชัน</button>
+                <button type="button" role="radio" data-m="views" aria-checked="false">การดูหน้า</button>
+              </div></div>
+            <div id="anTrend" class="an-chart"></div>
+            <div class="legend-row" id="anTrendLegend"></div>
+          </section>
+          <section style="order:3" class="card" aria-labelledby="anFunnelTitle" id="anFunnelCard">
+            <div class="card-head"><h3 class="card-title" id="anFunnelTitle">ขั้นตอนการส่งรายงาน</h3><span class="muted-text">นับเป็นเซสชัน</span></div>
+            <ol class="funnel" id="anFunnel"></ol>
+            <div class="an-outcomes" id="anOutcomes"></div>
+          </section>
+          <section style="order:5" class="card" aria-labelledby="anEventsTitle">
+            <div class="card-head"><h3 class="card-title" id="anEventsTitle">เหตุการณ์</h3><span class="muted-text">แตะเพื่อดูรายละเอียด</span></div>
+            <div class="an-table" id="anEvents"></div>
+          </section>
+          <section style="order:7" class="card" aria-labelledby="anSrcTitle">
+            <div class="card-head"><h3 class="card-title" id="anSrcTitle">ที่มาและแอป</h3><span class="muted-text">นับเป็นผู้ใช้</span></div>
+            <div class="an-tech" id="anSources"></div>
+          </section>
+        </div>
+        <div class="an-col an-col-side">
+          <section style="order:2" class="card an-realtime" aria-labelledby="anRtTitle">
+            <div class="card-head"><h3 class="card-title" id="anRtTitle"><span class="live-dot" aria-hidden="true"></span>เรียลไทม์</h3><span class="muted-text" id="anRtTime">30 นาทีล่าสุด</span></div>
+            <div class="an-rt-top"><b id="anActive">0</b><span>ผู้ใช้ใน 5 นาทีล่าสุด</span></div>
+            <div id="anRtBars" class="an-chart-sm"></div>
+            <ul class="an-list" id="anRtPages"></ul>
+          </section>
+          <section style="order:4" class="card" aria-labelledby="anPagesTitle">
+            <div class="card-head"><h3 class="card-title" id="anPagesTitle">หน้าที่เปิดมากที่สุด</h3></div>
+            <div class="an-table" id="anPages"></div>
+          </section>
+          <section style="order:6" class="card" aria-labelledby="anTechTitle">
+            <div class="card-head"><h3 class="card-title" id="anTechTitle">อุปกรณ์และเบราว์เซอร์</h3><span class="muted-text">นับเป็นผู้ใช้</span></div>
+            <div class="an-tech" id="anTech"></div>
+          </section>
+        </div>
+        <section style="order:8" class="card an-wide" aria-labelledby="anHeatTitle">
           <div class="card-head"><h3 class="card-title" id="anHeatTitle">ช่วงเวลาที่ใช้งาน</h3><span class="muted-text">เซสชันที่เริ่ม · วัน × ชั่วโมง</span></div>
           <div class="heat" id="anHeat"></div>
         </section>
@@ -1056,28 +1076,28 @@
 
   <div id="pdfStage" class="pdf-stage" aria-hidden="true"></div>
 
-  <script src="js/consent.js?v=3.40.1"></script>
-  <script src="js/config.js?v=3.40.1"></script>
-  <script src="js/utils.js?v=3.40.1"></script>
-  <script src="js/glass.js?v=3.40.1"></script>
-  <script src="js/analytics.js?v=3.40.1"></script>
-  <script src="js/api.js?v=3.40.1"></script>
-  <script src="js/charts.js?v=3.40.1"></script>
-  <script src="js/notify.js?v=3.40.1"></script>
-  <script src="js/staff/core.js?v=3.40.1"></script>
-  <script src="js/staff/mapkit.js?v=3.40.1"></script>
-  <script src="js/staff/overview.js?v=3.40.1"></script>
-  <script src="js/staff/records.js?v=3.40.1"></script>
-  <script src="js/staff/participants.js?v=3.40.1"></script>
-  <script src="js/staff/admin.js?v=3.40.1"></script>
-  <script src="js/staff/export.js?v=3.40.1"></script>
-  <script src="js/staff/reports.js?v=3.40.1"></script>
-  <script src="js/staff/analytics.js?v=3.40.1"></script>
-  <script src="js/staff/dev.js?v=3.40.1"></script>
-  <script src="js/feedback.js?v=3.40.1"></script>
-  <script src="js/staff/feedback.js?v=3.40.1"></script>
-  <script src="js/inbox.js?v=3.40.1"></script>
-  <script src="js/staff/inbox.js?v=3.40.1"></script>
-  <script src="js/reveal.js?v=3.40.1"></script>
+  <script src="js/consent.js?v=3.41.0"></script>
+  <script src="js/config.js?v=3.41.0"></script>
+  <script src="js/utils.js?v=3.41.0"></script>
+  <script src="js/glass.js?v=3.41.0"></script>
+  <script src="js/analytics.js?v=3.41.0"></script>
+  <script src="js/api.js?v=3.41.0"></script>
+  <script src="js/charts.js?v=3.41.0"></script>
+  <script src="js/notify.js?v=3.41.0"></script>
+  <script src="js/staff/core.js?v=3.41.0"></script>
+  <script src="js/staff/mapkit.js?v=3.41.0"></script>
+  <script src="js/staff/overview.js?v=3.41.0"></script>
+  <script src="js/staff/records.js?v=3.41.0"></script>
+  <script src="js/staff/participants.js?v=3.41.0"></script>
+  <script src="js/staff/admin.js?v=3.41.0"></script>
+  <script src="js/staff/export.js?v=3.41.0"></script>
+  <script src="js/staff/reports.js?v=3.41.0"></script>
+  <script src="js/staff/analytics.js?v=3.41.0"></script>
+  <script src="js/staff/dev.js?v=3.41.0"></script>
+  <script src="js/feedback.js?v=3.41.0"></script>
+  <script src="js/staff/feedback.js?v=3.41.0"></script>
+  <script src="js/inbox.js?v=3.41.0"></script>
+  <script src="js/staff/inbox.js?v=3.41.0"></script>
+  <script src="js/reveal.js?v=3.41.0"></script>
 </body>
 </html>
