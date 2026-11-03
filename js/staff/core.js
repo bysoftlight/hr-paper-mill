@@ -336,7 +336,10 @@ const SUB_STATE_TH = { trial: 'ทดลองใช้ฟรี', active: 'ใ�
 // แสดงเฉพาะผู้ดูแลระบบขององค์กร — เจ้าหน้าที่ทั่วไปใช้งานตามที่องค์กรจ่ายให้ ไม่ต้องเห็นเรื่องการชำระเงิน
 function renderSubBanner() {
     const el = $('subBanner'), s = ST.sub;
-    if (typeof OrgMark !== 'undefined') OrgMark.set(s && s.org ? s.org : null); // โลโก้องค์กรคู่กับชื่อแอป
+    if (typeof OrgMark !== 'undefined') OrgMark.set(s && s.org ? s.org : null, { // การ์ดองค์กรในเมนูด้านข้าง
+        meta: s && s.plan ? s.plan.name : '', count: OrgMark.opts && OrgMark.org && s && s.org && OrgMark.org.id === s.org.id ? OrgMark.opts.count : null,
+        open: () => { haptic(); if (can('dev') && VIEWS.dev) { VIEWS.dev.sec = 'orgs'; switchTab('dev'); } else switchTab(can('participants.view') ? 'participants' : 'account'); }
+    });
     if (!el) return;
     const show = s && s.ok && (s.state === 'trial' || s.warn) && isOrgAdmin(ST.me) && ST.me.role !== 'dev'; // Dev = ผู้ให้บริการ ไม่ใช่ลูกค้า
     el.hidden = !show;
