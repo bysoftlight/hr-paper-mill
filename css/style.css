@@ -1807,8 +1807,9 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
 /* หน้าแจ้งเตือน */
 .inbox-view .inbox-tabs { padding: 0 0 12px; border-bottom: 0; margin-bottom: 4px; }
 .inbox-view .inbox-body { padding: 0; overflow: visible; }
-.inbox-view .inbox-item { background: var(--surface); }
-.inbox-view .inbox-item + .inbox-item { margin-top: 2px; }
+.inbox-view .inbox-item { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+.inbox-view .inbox-item:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+.inbox-view .inbox-item + .inbox-item { margin-top: 8px; }
 .inbox-view .inbox-item.is-unread { background: color-mix(in srgb, var(--accent-soft) 45%, var(--surface)); }
 .inbox-view .inbox-foot { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 18px 0 8px; border-top: 1px solid var(--line-soft); margin-top: 12px; }
 .inbox-view .inbox-foot .btn-text { display: inline-flex; align-items: center; gap: 6px; }
