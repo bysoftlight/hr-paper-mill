@@ -758,35 +758,46 @@ VIEWS.account = {
         const box = $('accBilling');
         const show = can('billing') && !!(ST.me && ST.me.org);
         box.hidden = !show;
+        // ไม่มีการ์ดแพ็กเกจ: ย้ายปุ่มท้ายหน้าไปคอลัมน์ขวา (ใต้สิทธิ์) ให้สองคอลัมน์สูงใกล้กัน · มือถือเรียงตาม order เหมือนเดิม
+        const place = withBill => { const cols = $('accountView').querySelectorAll('.acc-col'); if (cols.length === 2) cols[withBill ? 0 : 1].append($('accountView').querySelector('.acc-btns'), $('accountView').querySelector('.acc-o7')); };
+        place(show);
         if (!show) return;
         if (!this.bill) $('accBillBody').innerHTML = '<div class="skel" style="height:120px;border-radius:16px"></div>';
         const r = await api('staff.billing.info');
         if (!r.success) { $('accBillBody').innerHTML = emptyState(r.message || 'โหลดไม่สำเร็จ', 'wifi-off'); return; }
         this.bill = r;
-        if (!r.org) { box.hidden = true; return; }
+        if (!r.org) { box.hidden = true; place(false); return; }
         const a = r.access || {}, st = SUB_STATE_TH[a.state] || a.state || '-';
         const tone = a.state === 'past_due' || a.ok === false ? 'is-bad' : a.warn ? 'is-warn' : a.state === 'trial' ? 'is-info' : 'is-ok';
-        const lim = (n, max) => `${fmtNum(n)}${max ? ` / ${fmtNum(max)}` : ' (ไม่จำกัด)'}`;
-        const price = r.plan ? (r.org.cycle === 'yearly' ? `${thb(r.plan.priceYearly)} / ปี` : `${thb(r.plan.priceMonthly)} / เดือน`) : '-';
+        const meter = (label, n, max) => {
+            const pct = max ? Math.min(100, Math.round(n / max * 100)) : 0, cls = !max ? '' : pct >= 100 ? 'is-bad' : pct >= 80 ? 'is-warn' : '';
+            return `<div class="bill-meter ${cls}"><div class="bill-meter-top"><small>${label}</small><b>${fmtNum(n)}<span>${max ? ' / ' + fmtNum(max) : ' · ไม่จำกัด'}</span></b></div>${max ? `<span class="bill-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="${label} ${pct}%"><i style="width:${pct}%"></i></span>` : ''}</div>`;
+        };
+        const price = r.plan ? (r.org.cycle === 'yearly' ? `${thb(r.plan.priceYearly)} <small>/ ปี</small>` : `${thb(r.plan.priceMonthly)} <small>/ เดือน</small>`) : '';
         const INV = { pending: ['รอชำระ', 'is-warn'], paid: ['ชำระแล้ว', 'is-ok'] };
         const inv = (r.invoices || []).map(i => {
             const [t, c] = INV[i.status] || [i.status, ''], late = i.status === 'pending' && i.due && i.due < Date.now();
-            return `<li class="bill-inv"><span><b class="mono">${esc(i.id)}</b><small>${i.periodStart ? thDate(i.periodStart) : ''}${i.periodEnd ? ' – ' + thDate(i.periodEnd) : ''}${i.status === 'paid' && i.paidAt ? ' · ชำระ ' + thDate(i.paidAt) : i.due ? ' · ครบกำหนด ' + thDate(i.due) : ''}</small></span>
+            return `<li class="bill-row"><span class="bill-row-main"><b class="mono">${esc(i.id)}</b><small>${i.periodStart ? thDate(i.periodStart) : ''}${i.periodEnd ? ' – ' + thDate(i.periodEnd) : ''}</small><small>${i.status === 'paid' && i.paidAt ? 'ชำระ ' + thDate(i.paidAt) : i.due ? 'ครบกำหนด ' + thDate(i.due) : ''}</small></span>
               <span class="bill-amt"><b>${thb(i.amount)}</b><span class="badge ${late ? 'is-bad' : c}">${late ? 'เลยกำหนด' : t}</span></span></li>`;
         }).join('');
-        const acc = (r.accounts || []).map(x => `<li class="bill-acc"><span class="icon-box">${icon(x.type === 'promptpay' ? 'phone' : 'database')}</span><span><b>${esc(x.bank || (x.type === 'promptpay' ? 'พร้อมเพย์' : 'บัญชี'))}${x.isDefault ? ' <span class="badge is-info">หลัก</span>' : ''}</b><small><span class="mono">${esc(x.number)}</span> · ${esc(x.name)}${x.branch ? ' · สาขา' + esc(x.branch) : ''}</small>${x.note ? `<small>${esc(x.note)}</small>` : ''}</span><button type="button" class="icon-btn" data-copy="${esc(x.number)}" aria-label="คัดลอกเลขบัญชี">${icon('file')}</button></li>`).join('');
+        const acc = (r.accounts || []).map(x => `<li class="bill-row"><span class="icon-box">${icon(x.type === 'promptpay' ? 'phone' : 'database')}</span>
+            <span class="bill-row-main"><b>${esc(x.bank || (x.type === 'promptpay' ? 'พร้อมเพย์' : 'บัญชี'))}${x.isDefault ? ' <span class="badge is-info">หลัก</span>' : ''}</b><small><span class="mono">${esc(x.number)}</span></small><small>${esc(x.name)}${x.branch ? ' · สาขา' + esc(x.branch) : ''}${x.note ? ' · ' + esc(x.note) : ''}</small></span>
+            <button type="button" class="icon-btn" data-copy="${esc(x.number)}" aria-label="คัดลอกเลข ${esc(x.number)}" title="คัดลอก">${icon('copy')}</button></li>`).join('');
+        const until = a.endsAt ? `${a.state === 'trial' ? 'ทดลองใช้ถึง' : 'รอบบิลถึง'} ${thDate(a.endsAt)}${a.daysLeft != null ? ` · เหลือ ${fmtNum(Math.max(0, a.daysLeft))} วัน` : ''}` : '';
+        const alert = a.ok === false || a.state === 'past_due' || (a.warn && a.state !== 'trial') ? `<p class="bill-alert ${tone}">${icon('alert', 'ic-16')}<span>${esc(a.message || '')}</span></p>` : '';
         $('accBillBody').innerHTML = `
-          <div class="bill-head"><span><small>แพลน</small><b>${esc(r.plan ? r.plan.name : '-')}</b><small>${price}</small></span><span class="badge ${tone}">${esc(st)}</span></div>
-          <dl class="kv">
-            ${a.endsAt ? `<div><dt>${a.state === 'trial' ? 'ทดลองใช้ถึง' : 'รอบบิลถึง'}</dt><dd>${thDate(a.endsAt)}${a.daysLeft != null ? ` (เหลือ ${fmtNum(Math.max(0, a.daysLeft))} วัน)` : ''}</dd></div>` : ''}
-            <div><dt>ผู้ใช้สิทธิ์</dt><dd>${lim(r.usage.users, r.limits.users)}</dd></div>
-            <div><dt>เจ้าหน้าที่</dt><dd>${lim(r.usage.staff, r.limits.staff)}</dd></div>
-          </dl>
-          ${a.message && a.state !== 'active' ? `<p class="hint bill-msg ${tone}">${esc(a.message)}</p>` : ''}
+          <div class="bill-plan">
+            <div><small>แพลนปัจจุบัน</small><b class="bill-plan-name">${esc(r.plan ? r.plan.name : '-')}</b>${price ? `<span class="bill-price">${price}</span>` : ''}</div>
+            <span class="badge bill-state ${tone}">${esc(st)}</span>
+          </div>
+          ${until ? `<p class="bill-until ${a.warn ? 'is-warn' : ''}">${icon('calendar', 'ic-16')}<span>${until}</span></p>` : ''}
+          ${alert}
+          <div class="bill-meters">${meter('ผู้ใช้สิทธิ์', r.usage.users, r.limits.users)}${meter('เจ้าหน้าที่', r.usage.staff, r.limits.staff)}</div>
           <h4 class="bill-sub">ใบแจ้งหนี้</h4>
-          ${inv ? `<ul class="bill-list">${inv}</ul>` : '<p class="muted-text">ยังไม่มีใบแจ้งหนี้</p>'}
-          ${acc ? `<h4 class="bill-sub">ช่องทางชำระเงิน</h4><ul class="bill-list">${acc}</ul><p class="hint">โอนแล้วแจ้งหลักฐานกับผู้ให้บริการ${r.salesPhone ? ` โทร <a href="tel:${esc(r.salesPhone.replace(/[^0-9+]/g, ''))}">${esc(r.salesPhone)}</a>` : ''}${r.salesEmail ? ` · <a href="mailto:${esc(r.salesEmail)}">${esc(r.salesEmail)}</a>` : ''}</p>` : ''}
-          <a class="btn btn-tonal btn-sm" href="${PRODUCT_URL}#packages" target="_blank" rel="noopener">${icon('external', 'ic-16')} ดูแพ็กเกจทั้งหมด</a>`;
+          ${inv ? `<ul class="bill-list">${inv}</ul>` : '<p class="bill-empty">ยังไม่มีใบแจ้งหนี้</p>'}
+          ${acc ? `<h4 class="bill-sub">ช่องทางชำระเงิน</h4><ul class="bill-list">${acc}</ul>
+            <p class="hint">โอนแล้วส่งหลักฐานให้ผู้ให้บริการ${r.salesPhone ? ` · โทร <a href="tel:${esc(r.salesPhone.replace(/[^0-9+]/g, ''))}">${esc(r.salesPhone)}</a>` : ''}${r.salesEmail ? ` · <a href="mailto:${esc(r.salesEmail.replace(/[,\s]+$/, ''))}">${esc(r.salesEmail.replace(/[,\s]+$/, ''))}</a>` : ''}</p>` : ''}
+          <a class="btn btn-tonal btn-sm bill-pkg" href="${PRODUCT_URL}#packages" target="_blank" rel="noopener">${icon('external', 'ic-16')} ดูแพ็กเกจทั้งหมด</a>`;
         $('accBillBody').querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => { navigator.clipboard && navigator.clipboard.writeText(b.dataset.copy).then(() => toast('คัดลอกเลขบัญชีแล้ว')).catch(() => {}); }));
     }
 };
