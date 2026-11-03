@@ -1155,45 +1155,69 @@ dialog:focus-visible { outline: none; } /* กรอบโฟกัสของ�
 .bill-pkg { margin-top: 14px; }
 @media (max-width: 359px) { .bill-meters { grid-template-columns: minmax(0, 1fr); } }
 
-/* ---------- แถบเมนูด้านข้าง: ซ่อน/แสดงตลอด (หน้า Staff · จอ ≥ 768px) ---------- */
-.side-rail, .side-head .side-toggle { display: none; }
+/* ---------- แถบเมนูด้านข้าง: ย่อเป็นแถบไอคอน / ขยายเต็ม (หน้า Staff · จอ ≥ 768px) ----------
+   ย่อ (ค่าเริ่มต้น): แถบไอคอนกว้าง 64px — กดไอคอนเปลี่ยนหน้าได้ทันที ชี้ดูชื่อเมนู · ปุ่มบนสุด/Ctrl(⌘)+B = ขยาย
+   ขยาย: คอมพิวเตอร์ (≥ 1100) แถบเต็มดันเนื้อหา · แท็บเล็ต (768–1099) แถบเต็มลอยทับ แตะนอกแถบเพื่อย่อ */
+.side-head .side-toggle { display: none; }
 @media (min-width: 768px) {
     .staff .side-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; }
     .staff .side-head .brand { min-width: 0; }
-    .staff .side-head .side-toggle { display: inline-grid; flex: none; color: var(--muted); }
-    .staff .sidenav { transition: transform .22s cubic-bezier(.2, .7, .3, 1), box-shadow .22s; }
-    /* ซ่อน: เหลือแถบแคบด้านซ้าย (ปุ่มแสดง + จุดชี้/กดค้างเพื่อเปิดชั่วคราว) */
-    :root[data-side="hidden"] .staff { --side-w: 56px; }
-    :root[data-side="hidden"] .staff .side-rail { display: flex; position: fixed; inset: 0 auto 0 0; z-index: 29; width: 56px; flex-direction: column; align-items: center;
-        padding: max(16px, env(safe-area-inset-top)) 0 16px; background: var(--surface); border-right: 1px solid var(--line-soft); }
-    :root[data-side="hidden"] .staff .side-rail .side-toggle { color: var(--ink-2); }
-    :root[data-side="hidden"] .staff .sidenav { width: 248px; transform: translateX(-100%); visibility: hidden; align-items: stretch; padding: 24px 16px; gap: 28px; }
-    :root[data-side="hidden"].side-peek .staff .sidenav { transform: none; visibility: visible; z-index: 40; box-shadow: 0 12px 40px rgba(0, 0, 0, .22); }
-    /* แถบชั่วคราวแสดงแบบเต็ม (ชื่อเมนู) แม้จอแท็บเล็ต */
-    :root[data-side="hidden"] .staff .sidenav .brand-text, :root[data-side="hidden"] .staff .nav-user-text { display: inline; }
-    :root[data-side="hidden"] .staff .nav-user-text { display: flex; }
-    :root[data-side="hidden"] .staff .sidenav .nav-item { flex-direction: row; justify-content: flex-start; gap: 12px; min-height: 48px; padding: 0 14px; font-size: 15px; }
-    :root[data-side="hidden"] .staff .sidenav .side-head .brand { padding: 0 8px; }
-    :root[data-side="hidden"] .staff .nav-user { align-items: stretch; }
-    :root[data-side="hidden"] .staff .org-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
-    :root[data-side="hidden"] .staff .org-go { display: block; flex: none; }
-    :root[data-side="hidden"] .staff .org-txt b { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    :root[data-side="hidden"] .staff .org-txt small { display: flex; gap: 6px; font-size: 12px; color: var(--muted); }
-    :root[data-side="hidden"] .staff .org-sec-label { display: block; }
-    :root[data-side="hidden"] .staff .org-card { justify-content: flex-start; }
-    :root[data-side="hidden"] .staff .sidenav { visibility: hidden; }
-    :root[data-side="hidden"].side-peek .staff .sidenav { visibility: visible; }
+    .staff .side-head .side-toggle { display: inline-grid; flex: none; width: 40px; height: 40px; color: var(--ink-2); }
+    .staff .sidenav { transition: width .2s cubic-bezier(.2, .7, .3, 1), box-shadow .2s; overflow-x: hidden; }
+    .staff .app { transition: padding-left .2s cubic-bezier(.2, .7, .3, 1); }
+
+    /* ย่อ = แถบไอคอน */
+    :root[data-side="hidden"] .staff { --side-w: 64px; }
+    :root[data-side="hidden"]:not(.side-peek) .staff .sidenav { width: 64px; align-items: center; padding: max(14px, env(safe-area-inset-top)) 8px 14px; gap: 14px; }
+    :root[data-side="hidden"]:not(.side-peek) .staff .side-head { flex-direction: column; gap: 8px; }
+    :root[data-side="hidden"]:not(.side-peek) .staff .side-head .brand { padding: 0; }
+    :root[data-side="hidden"]:not(.side-peek) .staff .side-head .brand .logo { width: 32px; height: 32px; }
+    :root[data-side="hidden"]:not(.side-peek) .staff .sidenav .brand-text,
+    :root[data-side="hidden"]:not(.side-peek) .staff .sidenav .nav-item > span:not(.nav-bell-ic):not(.nav-ava-wrap):not(.nav-badge),
+    :root[data-side="hidden"]:not(.side-peek) .staff .nav-user-text,
+    :root[data-side="hidden"]:not(.side-peek) .staff .nav-user .chip,
+    :root[data-side="hidden"]:not(.side-peek) .staff .nav-user [data-live-text],
+    :root[data-side="hidden"]:not(.side-peek) .staff .org-sec-label,
+    :root[data-side="hidden"]:not(.side-peek) .staff .org-txt,
+    :root[data-side="hidden"]:not(.side-peek) .staff .org-go { display: none !important; }
+    :root[data-side="hidden"]:not(.side-peek) .staff .nav-items { gap: 4px; align-items: center; }
+    :root[data-side="hidden"]:not(.side-peek) .staff .sidenav .nav-item { position: relative; width: 44px; min-height: 44px; height: 44px; padding: 0; justify-content: center; flex-direction: column; gap: 0; border-radius: 12px; }
+    :root[data-side="hidden"]:not(.side-peek) .staff .sidenav .nav-badge { position: absolute; top: 2px; right: 0; margin: 0; }
+    :root[data-side="hidden"]:not(.side-peek) .staff .nav-user { align-items: center; gap: 8px; padding-top: 10px; }
+    :root[data-side="hidden"]:not(.side-peek) .staff .nav-user-row { padding: 4px; }
+    :root[data-side="hidden"]:not(.side-peek) .staff .nav-user .btn-text { font-size: 0; gap: 0; padding: 10px; }
+    :root[data-side="hidden"]:not(.side-peek) .staff .nav-user .btn-text .ic { width: 20px; height: 20px; }
+    :root[data-side="hidden"]:not(.side-peek) .staff .nav-user .live { font-size: 0; }
+    :root[data-side="hidden"]:not(.side-peek) .staff .org-card { justify-content: center; padding: 4px; }
+    :root[data-side="hidden"]:not(.side-peek) .staff .org-ava { width: 40px; height: 40px; }
+    :root[data-side="hidden"]:not(.side-peek) .staff .sidenav > .org-sec { padding-top: 10px; }
+}
+/* แท็บเล็ต + ขยาย: แถบเต็มลอยทับเนื้อหา */
+@media (min-width: 768px) {
+    :root[data-side="hidden"].side-peek .staff .sidenav { width: 248px; z-index: 40; box-shadow: 0 12px 40px rgba(0, 0, 0, .22); align-items: stretch; padding: 20px 16px; gap: 20px; }
+    :root[data-side="hidden"].side-peek .staff .sidenav .brand-text { display: inline; }
+    :root[data-side="hidden"].side-peek .staff .sidenav .nav-item { flex-direction: row; justify-content: flex-start; gap: 12px; min-height: 48px; padding: 0 14px; font-size: 15px; }
+    :root[data-side="hidden"].side-peek .staff .nav-user { align-items: stretch; gap: 12px; padding-top: 16px; border-top: 1px solid var(--line-soft); }
+    :root[data-side="hidden"].side-peek .staff .nav-user-row { display: flex; align-items: center; gap: 10px; }
+    :root[data-side="hidden"].side-peek .staff .nav-user-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+    :root[data-side="hidden"].side-peek .staff .nav-user .btn-text { flex-direction: row; font-size: 14px; gap: 6px; justify-content: flex-start; }
+    :root[data-side="hidden"].side-peek .staff .org-sec-label { display: block; }
+    :root[data-side="hidden"].side-peek .staff .org-card { justify-content: flex-start; padding: 8px; }
+    :root[data-side="hidden"].side-peek .staff .org-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+    :root[data-side="hidden"].side-peek .staff .org-txt b { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    :root[data-side="hidden"].side-peek .staff .org-txt small { display: flex; gap: 6px; font-size: 12px; color: var(--muted); }
+    :root[data-side="hidden"].side-peek .staff .org-go { display: block; flex: none; }
+    .staff .side-scrim { display: none; }
+    :root.side-peek .staff .side-scrim { display: block; position: fixed; inset: 0; z-index: 39; background: rgba(0, 0, 0, .18); }
 }
 @media (min-width: 768px) and (max-width: 1099px) {
-    /* แท็บเล็ต + แสดงตลอด: แถบแคบเหมือนเดิม — ปุ่มซ่อนอยู่ใต้โลโก้ */
-    :root[data-side="pinned"] .staff .side-head { flex-direction: column; }
+    /* แท็บเล็ต: "แสดงตลอด" ใช้แถบไอคอนเดิมของแท็บเล็ต (88px) — ปุ่มอยู่ใต้โลโก้ */
+    :root[data-side="pinned"] .staff .side-head { flex-direction: column; gap: 2px; }
     :root[data-side="pinned"] .staff .sidenav { gap: 14px; }
-    :root[data-side="pinned"] .staff .side-head { gap: 2px; }
     :root[data-side="pinned"] .staff .side-head .side-toggle { width: 36px; height: 36px; }
 }
 @media (min-width: 768px) and (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
-    :root[data-side] .staff .side-rail { display: none !important; }
     :root[data-side] .staff .app { padding-left: 0; }
 }
-@media (prefers-reduced-motion: reduce) { .staff .sidenav { transition: none; } }
-[data-motion="reduce"] .staff .sidenav { transition: none; }
+@media (prefers-reduced-motion: reduce) { .staff .sidenav, .staff .app { transition: none; } }
+[data-motion="reduce"] .staff .sidenav, [data-motion="reduce"] .staff .app { transition: none; }
