@@ -333,7 +333,7 @@ const isOrgAdmin = me => !!me && (me.role === 'admin' || me.role === 'dev');
 function subLocked(sub, me) { return !!(sub && sub.ok === false && !(me && me.role === 'dev')); }
 const SUB_STATE_TH = { trial: 'ทดลองใช้ฟรี', active: 'ใช้งาน', past_due: 'ค้างชำระ', trial_expired: 'หมดช่วงทดลองใช้', expired: 'หมดอายุ', suspended: 'ถูกระงับ', cancelled: 'ยกเลิกแล้ว' };
 // แถบแจ้งสถานะการสมัครสมาชิกขององค์กร: ทดลองใช้ (เหลือกี่วัน) · ใกล้หมดรอบ · ค้างชำระ
-// แสดงเฉพาะผู้ดูแลระบบขององค์กร — เจ้าหน้าที่ทั่วไปใช้งานตามที่องค์กรจ่ายให้ ไม่ต้องเห็นเรื่องการชำระเงิน
+// ผู้ดูแลระบบเห็นทุกช่วง · ผู้แก้ไขเห็นเฉพาะตอนใกล้หมดอายุ/ค้างชำระ (ไม่มีปุ่มแพ็กเกจ ให้แจ้งผู้ดูแล) · ผู้ดูข้อมูลไม่เห็น
 function renderSubBanner() {
     const el = $('subBanner'), s = ST.sub;
     if (typeof OrgMark !== 'undefined') OrgMark.set(s && s.org ? s.org : null, { // การ์ดองค์กรในเมนูด้านข้าง
@@ -341,12 +341,14 @@ function renderSubBanner() {
         open: () => { haptic(); if (can('dev') && VIEWS.dev) { VIEWS.dev.sec = 'orgs'; switchTab('dev'); } else switchTab(can('participants.view') ? 'participants' : 'account'); }
     });
     if (!el) return;
-    const show = s && s.ok && (s.state === 'trial' || s.warn) && isOrgAdmin(ST.me) && ST.me.role !== 'dev'; // Dev = ผู้ให้บริการ ไม่ใช่ลูกค้า
+    // ผู้ดูแลระบบ: ช่วงทดลองใช้ทั้งหมด + ใกล้หมดรอบ/ค้างชำระ · ผู้แก้ไข: เฉพาะใกล้หมดอายุ (≤ 7 วัน) หรือค้างชำระ · Dev = ผู้ให้บริการ ไม่ใช่ลูกค้า
+    const role = ST.me ? ST.me.role : '', admin = isOrgAdmin(ST.me) && role !== 'dev', editor = role === 'editor';
+    const show = !!(s && s.ok && ((admin && (s.state === 'trial' || s.warn)) || (editor && s.warn)));
     el.hidden = !show;
     if (!show) return;
     const tone = s.state === 'past_due' ? 'is-bad' : s.warn ? 'is-warn' : 'is-accent';
     const left = s.daysLeft === null || s.daysLeft === undefined ? '' : s.daysLeft <= 0 ? 'วันนี้วันสุดท้าย' : `เหลือ ${fmtNum(s.daysLeft)} วัน`;
-    el.innerHTML = `<div class="sub-card ${tone}">${icon(s.state === 'past_due' ? 'alert' : 'calendar')}<span class="sub-text"><b>${esc(SUB_STATE_TH[s.state] || s.state)}${s.plan ? ' · แพลน ' + esc(s.plan.name) : ''}${left ? ' — ' + left : ''}</b><small>${esc(s.org ? s.org.name : '')}${s.endsAt ? ' · ถึง ' + thDate(s.endsAt, { day: 'numeric', month: 'short', year: 'numeric' }) : ''} · ${esc(s.message || '')}</small></span><a class="btn btn-sm ${s.state === 'past_due' ? 'btn-primary' : 'btn-tonal'}" href="${PRODUCT_URL}#packages" target="_blank" rel="noopener">ดูแพ็กเกจ</a></div>`;
+    el.innerHTML = `<div class="sub-card ${tone}">${icon(s.state === 'past_due' ? 'alert' : 'calendar')}<span class="sub-text"><b>${esc(SUB_STATE_TH[s.state] || s.state)}${s.plan ? ' · แพลน ' + esc(s.plan.name) : ''}${left ? ' — ' + left : ''}</b><small>${esc(s.org ? s.org.name : '')}${s.endsAt ? ' · ถึง ' + thDate(s.endsAt, { day: 'numeric', month: 'short', year: 'numeric' }) : ''} · ${esc(s.message || '')}</small>${admin ? '' : '<small class="sub-note">โปรดแจ้งผู้ดูแลระบบขององค์กรเพื่อต่ออายุการใช้งาน</small>'}</span>${admin ? `<a class="btn btn-sm ${s.state === 'past_due' ? 'btn-primary' : 'btn-tonal'}" href="${PRODUCT_URL}#packages" target="_blank" rel="noopener">ดูแพ็กเกจ</a>` : ''}</div>`;
 }
 
 function enter(me, sub) {

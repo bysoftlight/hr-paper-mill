@@ -1023,6 +1023,7 @@ dialog:focus-visible { outline: none; } /* กรอบโฟกัสของ�
 .sub-text b { font-size: 14px; font-weight: 600; }
 .sub-text small { font-size: 12.5px; color: var(--ink-2); }
 .sub-card .btn { flex: none; }
+.sub-text .sub-note { font-weight: 600; color: var(--ink); }
 @media (max-width: 479px) { .sub-card { flex-wrap: wrap; } .sub-card .btn { margin-left: 36px; } }
 
 /* โลโก้องค์กร (Dev Console) */
