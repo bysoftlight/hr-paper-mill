@@ -116,7 +116,7 @@ VIEWS.dev = {
           <thead><tr><th>องค์กร</th><th>แพลน</th><th>สถานะ</th><th>ผู้ใช้สิทธิ์</th><th>เจ้าหน้าที่</th><th>สิ้นสุด</th><th><span class="sr-only">จัดการ</span></th></tr></thead>
           <tbody>${list.map(o => `
             <tr data-org="${esc(o.id)}" tabindex="0" aria-label="${esc(o.name)}">
-              <td class="td-main"><div class="cell-person"><span class="avatar avatar-org" aria-hidden="true">${esc(o.name.replace(/^(บริษัท|บจก\.?|หจก\.?)\s*/, '').slice(0, 1))}</span><span><b>${esc(o.name)}</b><small>${esc(o.contact || o.email || o.id)}</small></span></div></td>
+              <td class="td-main"><div class="cell-person"><span class="avatar avatar-org" aria-hidden="true">${o.logo ? `<img src="${esc(o.logo)}" alt="" referrerpolicy="no-referrer" loading="lazy">` : esc(o.name.replace(/^(บริษัท|บจก\.?|หจก\.?)\s*/, '').slice(0, 1))}</span><span><b>${esc(o.name)}</b><small>${esc(o.contact || o.email || o.id)}</small></span></div></td>
               <td data-label="แพลน">${esc(o.planName)}<div class="cell-sub">${CYCLE_TH[o.cycle]}${o.mrr ? ' · ' + baht(o.mrr) + '/ด.' : ''}</div></td>
               <td data-label="สถานะ">${this.orgBadge(o)}</td>
               <td data-label="ผู้ใช้สิทธิ์" class="mono">${lim(o.users, o.limits.users)}</td>
@@ -187,11 +187,24 @@ VIEWS.dev = {
         if (isNew) fields.push({ k: 'trialDays', label: 'ทดลองใช้ฟรี (วัน)', type: 'number', min: 0, max: 365, hint: 'ค่าเริ่มต้นตามแพลน (30 วัน) · 0 = ไม่ทดลอง' }, { k: 'startActive', label: 'เริ่มใช้งานจริงทันที (ไม่ทดลอง)', type: 'check' });
         fields.push({ k: 'note', label: 'หมายเหตุ', type: 'textarea', rows: 2, span: true });
         const v = o ? Object.assign({}, o, { maxUsers: o.maxUsers || '', maxStaff: o.maxStaff || '' }) : { plan: (plans.find(p => p.highlight) || plans[0] || {}).id, cycle: 'monthly', trialDays: 30 };
+        const logo = { file: null, remove: false };
         this.form({
             title: isNew ? 'เพิ่มองค์กร' : 'แก้ไของค์กร', sub: isNew ? 'องค์กรใหม่เริ่มทดลองใช้ฟรีทันที' : o.id, fields, values: v, save: isNew ? 'สร้างและเริ่มทดลองใช้' : 'บันทึก',
+            extra: `<div class="logo-pick">
+                <span class="logo-prev" id="devLogoPrev">${o && o.logo ? `<img src="${esc(o.logo)}" alt="" referrerpolicy="no-referrer">` : icon('image')}</span>
+                <span class="logo-txt"><b>โลโก้องค์กร</b><small>แสดงคู่กับชื่อแอปของเจ้าหน้าที่และผู้ใช้สิทธิ์ในองค์กร · PNG พื้นโปร่งใสดีที่สุด</small>
+                  <span class="row-wrap"><label class="btn btn-tonal btn-sm">${icon('image')}เลือกรูป<input type="file" accept="image/*" id="devLogoFile" hidden></label><button type="button" class="btn btn-ghost btn-sm" id="devLogoDel" ${o && o.logo ? '' : 'hidden'}>ลบโลโก้</button></span></span>
+              </div>`,
             danger: isNew ? null : { label: 'ลบองค์กร', fn: () => this.orgDelete(o) },
-            onSubmit: d => this.run('dev.orgs.save', { org: Object.assign({ id: o ? o.id : '' }, d) }, isNew ? 'สร้างองค์กรแล้ว' : 'บันทึกแล้ว', ['orgs', 'users'])
+            onSubmit: d => this.run('dev.orgs.save', { org: Object.assign({ id: o ? o.id : '' }, d, logo.file ? { logo: { data: logo.file.data, mimeType: logo.file.mimeType } } : {}, logo.remove ? { removeLogo: true } : {}) }, isNew ? 'สร้างองค์กรแล้ว' : 'บันทึกแล้ว', ['orgs', 'users'])
         });
+        $('devLogoFile').addEventListener('change', async e => {
+            const f = e.target.files[0]; if (!f) return;
+            try { logo.file = await shrinkImage(f, 512, true); logo.remove = false; $('devLogoPrev').innerHTML = `<img src="${logo.file.url}" alt="">`; $('devLogoDel').hidden = false; this.formErr(''); }
+            catch (err) { this.formErr(err.message); }
+            e.target.value = '';
+        });
+        $('devLogoDel').addEventListener('click', () => { logo.file = null; logo.remove = true; $('devLogoPrev').innerHTML = icon('image'); $('devLogoDel').hidden = true; });
     },
     async orgDelete(o) {
         const ok = await showMessage({ title: `ลบ ${o.name}?`, text: 'ลบได้เฉพาะองค์กรที่ไม่มีผู้ใช้และไม่มีใบแจ้งหนี้ — ถ้าเลิกใช้บริการ แนะนำให้เปลี่ยนสถานะเป็น "ยกเลิก"', tone: 'bad', okText: 'ลบ', cancelText: 'ยกเลิก' });
