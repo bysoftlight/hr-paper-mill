@@ -5,7 +5,7 @@
 //   2) ส่งรายงานที่ค้างในเครื่อง (js/outbox.js) เมื่อเน็ตกลับมา แม้ปิดแอปอยู่ (Background Sync — Android/Chrome)
 //   3) การแจ้งเตือน (Web Push): ระบบส่ง push แบบไม่มีเนื้อหา → ดึงข้อความล่าสุดของเครื่องนี้ (notify.inbox) แล้วแสดง
 const APP_ALERT = 'HR Paper Mill Alerts'; // บรรทัดแรกของการแจ้งเตือนทุกอัน
-const VERSION = '3.42.1';
+const VERSION = '3.42.2';
 importScripts('js/config.js?v=' + VERSION, 'js/outbox.js?v=' + VERSION);
 
 const SHELL = 'hrpm-shell-' + VERSION;

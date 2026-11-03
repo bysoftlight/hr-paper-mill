@@ -413,6 +413,7 @@ VIEWS.records = {
         ];
         if (rec.updatedBy) rows.push(['แก้ไขล่าสุด', `${esc(rec.updatedBy)} · ${rec.updatedAt ? thDateTime(rec.updatedAt) : ''}`]);
         $('recKv').innerHTML = rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+        EditHistory.mount($('recHist'), { kind: 'record', userId: rec.userId, date: rec.date });
         // รูปซ้ำ: แตะเพื่อเปิดรายการที่ใช้รูปเดียวกัน
         $('recKv').querySelectorAll('[data-dup-row]').forEach(b => b.addEventListener('click', async () => {
             const d = rec.dupWith.find(x => String(x.row) === b.dataset.dupRow);

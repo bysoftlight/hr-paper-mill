@@ -205,6 +205,7 @@ VIEWS.participants = {
         $('pActions').innerHTML = acts.join('') || '<button type="button" class="btn btn-outline" data-close>ปิด</button>';
         if ($('pViewRecords')) $('pViewRecords').onclick = () => { $('participantModal').close(); VIEWS.records.openWith({ period: 'month', userIds: [p.id] }); };
         if ($('pEdit')) $('pEdit').onclick = () => { $('participantModal').close(); this.openForm(p); };
+        EditHistory.mount($('pHist'), { kind: 'participant', id: p.id });
         showModal('participantModal');
         this.renderCalendar();
         this.initContact(p);

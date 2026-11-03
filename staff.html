@@ -24,9 +24,9 @@
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <!-- เปลี่ยนเลข ?v= ทุกครั้งที่แก้ CSS/JS -->
-  <script src="js/settings.js?v=3.42.1"></script>
-  <link rel="stylesheet" href="css/style.css?v=3.42.1">
-  <link rel="stylesheet" href="css/staff.css?v=3.42.1">
+  <script src="js/settings.js?v=3.42.2"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.42.2">
+  <link rel="stylesheet" href="css/staff.css?v=3.42.2">
 </head>
 <body class="staff">
 
@@ -227,6 +227,7 @@
       <div class="viewer-body rec-photo"><img id="recImg" alt=""><div class="empty" id="recImgEmpty" hidden><svg class="ic" aria-hidden="true"><use href="#i-image"/></svg>ไม่มีภาพหลักฐาน</div>
         <button type="button" class="rec-full" id="recFull" hidden aria-label="ดูภาพเต็ม"><svg class="ic ic-16" aria-hidden="true"><use href="#i-maximize"/></svg><span>ดูภาพเต็ม</span></button></div>
       <dl class="kv rec-kv" id="recKv"></dl>
+      <div class="hist-box" id="recHist" hidden></div>
     </div>
     <div class="sheet-foot foot-row" id="recActions"></div>
   </dialog>
@@ -351,6 +352,7 @@
         <ol class="contact-list" id="pContactList" aria-live="polite"></ol>
       </section>
       <dl class="kv" id="pKv"></dl>
+      <div class="hist-box" id="pHist" hidden></div>
     </div>
     <div class="sheet-foot foot-row" id="pActions"></div>
   </dialog>
@@ -530,6 +532,7 @@
           <label class="field"><span class="label">บทบาท</span>
             <select class="select select-lg" id="smRole">
               <option value="viewer">ผู้ดูข้อมูล (Viewer)</option>
+              <option value="billing">ผู้ดูแลการเงิน (Billing)</option>
               <option value="editor">ผู้แก้ไข (Editor)</option>
               <option value="admin">ผู้ดูแลระบบ (Admin)</option>
             </select>
@@ -567,7 +570,7 @@
   <!-- ===== Sign in ===== -->
   <div id="authView" class="login" hidden>
     <section class="login-intro" aria-labelledby="authTitle">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.42.1" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.42.2" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <p class="eyebrow">สำหรับเจ้าหน้าที่ HR และผู้ดูแลระบบ</p>
       <h1 id="authTitle">ติดตามรายงานการขาย<br>ของผู้ใช้สิทธิ์ทุกคนในที่เดียว</h1>
       <ol class="intro-steps">
@@ -627,12 +630,12 @@
   <!-- ===== App ===== -->
   <div id="appContainer" class="app" hidden>
     <header class="topbar">
-      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.42.1" alt="" width="36" height="36"><span>HR Staff</span></a>
+      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.42.2" alt="" width="36" height="36"><span>HR Staff</span></a>
       <div class="topbar-actions"><span class="live" data-live><span class="live-dot"></span><span data-live-text>อัปเดตสด</span></span></div>
     </header>
 
     <nav class="sidenav" aria-label="เมนูหลัก">
-      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.42.1" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></a>
+      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.42.2" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></a>
       <div class="nav-items">
         <button type="button" class="nav-item" data-tab="overview" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-grid"/></svg><span>ภาพรวม</span></button>
         <button type="button" class="nav-item" data-tab="records" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-list"/></svg><span>รายงาน</span></button>
@@ -1075,9 +1078,14 @@
           <dl class="kv" id="accKv"></dl>
         </section>
         <div class="stack">
+          <section class="card" id="accBilling" hidden aria-labelledby="accBillTitle">
+            <h3 class="card-title" id="accBillTitle">แพ็กเกจและการชำระเงิน</h3>
+            <div id="accBillBody"></div>
+          </section>
           <section class="card">
             <h3 class="card-title">สิทธิ์ของคุณ</h3>
             <ul class="perm-view" id="accPerms"></ul>
+            <p class="hint perm-note" id="accPermsNote"></p>
           </section>
           <ul class="card menu" aria-label="การตั้งค่า">
             <li><button type="button" data-settings><svg class="ic" aria-hidden="true"><use href="#i-settings"/></svg><span>ตั้งค่า</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></button></li>
@@ -1108,28 +1116,28 @@
 
   <div id="pdfStage" class="pdf-stage" aria-hidden="true"></div>
 
-  <script src="js/consent.js?v=3.42.1"></script>
-  <script src="js/config.js?v=3.42.1"></script>
-  <script src="js/utils.js?v=3.42.1"></script>
-  <script src="js/glass.js?v=3.42.1"></script>
-  <script src="js/analytics.js?v=3.42.1"></script>
-  <script src="js/api.js?v=3.42.1"></script>
-  <script src="js/charts.js?v=3.42.1"></script>
-  <script src="js/notify.js?v=3.42.1"></script>
-  <script src="js/staff/core.js?v=3.42.1"></script>
-  <script src="js/staff/mapkit.js?v=3.42.1"></script>
-  <script src="js/staff/overview.js?v=3.42.1"></script>
-  <script src="js/staff/records.js?v=3.42.1"></script>
-  <script src="js/staff/participants.js?v=3.42.1"></script>
-  <script src="js/staff/admin.js?v=3.42.1"></script>
-  <script src="js/staff/export.js?v=3.42.1"></script>
-  <script src="js/staff/reports.js?v=3.42.1"></script>
-  <script src="js/staff/analytics.js?v=3.42.1"></script>
-  <script src="js/staff/dev.js?v=3.42.1"></script>
-  <script src="js/feedback.js?v=3.42.1"></script>
-  <script src="js/staff/feedback.js?v=3.42.1"></script>
-  <script src="js/inbox.js?v=3.42.1"></script>
-  <script src="js/staff/inbox.js?v=3.42.1"></script>
-  <script src="js/reveal.js?v=3.42.1"></script>
+  <script src="js/consent.js?v=3.42.2"></script>
+  <script src="js/config.js?v=3.42.2"></script>
+  <script src="js/utils.js?v=3.42.2"></script>
+  <script src="js/glass.js?v=3.42.2"></script>
+  <script src="js/analytics.js?v=3.42.2"></script>
+  <script src="js/api.js?v=3.42.2"></script>
+  <script src="js/charts.js?v=3.42.2"></script>
+  <script src="js/notify.js?v=3.42.2"></script>
+  <script src="js/staff/core.js?v=3.42.2"></script>
+  <script src="js/staff/mapkit.js?v=3.42.2"></script>
+  <script src="js/staff/overview.js?v=3.42.2"></script>
+  <script src="js/staff/records.js?v=3.42.2"></script>
+  <script src="js/staff/participants.js?v=3.42.2"></script>
+  <script src="js/staff/admin.js?v=3.42.2"></script>
+  <script src="js/staff/export.js?v=3.42.2"></script>
+  <script src="js/staff/reports.js?v=3.42.2"></script>
+  <script src="js/staff/analytics.js?v=3.42.2"></script>
+  <script src="js/staff/dev.js?v=3.42.2"></script>
+  <script src="js/feedback.js?v=3.42.2"></script>
+  <script src="js/staff/feedback.js?v=3.42.2"></script>
+  <script src="js/inbox.js?v=3.42.2"></script>
+  <script src="js/staff/inbox.js?v=3.42.2"></script>
+  <script src="js/reveal.js?v=3.42.2"></script>
 </body>
 </html>

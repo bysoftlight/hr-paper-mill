@@ -10,13 +10,66 @@ const SELF_TYPE = 'ทำการขายด้วยตัวเอง';
 const AGENT_TYPE = 'ทำการขายโดยตัวแทน';
 const MONTHS = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
 const MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-const ROLE_LABELS = { pending: 'รออนุมัติ', viewer: 'ผู้ดูข้อมูล', editor: 'ผู้แก้ไข', admin: 'ผู้ดูแลระบบ', dev: 'Dev (ผู้พัฒนาระบบ)' };
+const ROLE_LABELS = { pending: 'รออนุมัติ', viewer: 'ผู้ดูข้อมูล', billing: 'ผู้ดูแลการเงิน', editor: 'ผู้แก้ไข', admin: 'ผู้ดูแลระบบ', dev: 'Dev (ผู้พัฒนาระบบ)' };
 const STATUS_LABELS = { pending: 'รออนุมัติ', active: 'ใช้งาน', suspended: 'ระงับ', rejected: 'ปฏิเสธ' };
 const PERM_LABELS = {
     'records.view': 'ดูรายงานการส่ง', 'records.edit': 'เพิ่ม / แก้ไขรายงาน', 'records.delete': 'ลบ / กู้คืนรายงาน', 'participants.view': 'ดูข้อมูลผู้ใช้สิทธิ์',
     'participants.edit': 'เพิ่ม / แก้ไขผู้ใช้สิทธิ์', 'participants.delete': 'ลบ / กู้คืนผู้ใช้สิทธิ์ (ถังขยะ)', 'export': 'ส่งออกข้อมูล (Excel, PDF, Google Sheets)', 'admin': 'จัดการบัญชีเจ้าหน้าที่และดู Log',
+    'billing': 'แพ็กเกจ ใบแจ้งหนี้ และการชำระเงินขององค์กร',
     'dev': 'Dev Console: องค์กร แพลน การชำระเงิน ทุกองค์กร'
 };
+// คำอธิบายสั้นๆ ของแต่ละสิทธิ์ (หน้าบัญชี › สิทธิ์ของคุณ)
+const PERM_DESC = {
+    'records.view': 'เปิดดูภาพรวม รายการรายงาน แผนที่ และรูปหลักฐาน',
+    'records.edit': 'เพิ่มรายงานแทนผู้ใช้สิทธิ์ และแก้ไขประเภทการขาย เวลา หรือหมายเหตุ',
+    'records.delete': 'ลบรายงานที่ผิด/ซ้ำ (ไม่นับเป็นการส่ง) และกู้คืนได้ภายหลัง',
+    'participants.view': 'ดูรายชื่อ เบอร์โทร จุดขาย ปฏิทินการส่ง และบันทึกการโทรติดตาม',
+    'participants.edit': 'เพิ่มผู้ใช้สิทธิ์ใหม่ แก้ชื่อ จุดขาย พิกัด รูป หรือปิดใช้งาน',
+    'participants.delete': 'ย้ายผู้ใช้สิทธิ์ไปถังขยะ และกู้คืนได้ภายใน 30 วัน',
+    'export': 'ส่งออก Excel / Google Sheets / PDF และรายงานมาตรา 35',
+    'billing': 'ดูแพลน สถานะ ใบแจ้งหนี้ และช่องทางชำระเงิน (ไม่เห็นข้อมูลผู้ใช้สิทธิ์ถ้าไม่มีสิทธิ์ดู)',
+    'admin': 'อนุมัติ/ระงับบัญชีเจ้าหน้าที่ ตั้งสิทธิ์ ประกาศ แบบสอบถาม เรื่องที่แจ้ง สถิติ Log และประวัติการแก้ไข',
+    'dev': 'จัดการองค์กร แพลน ใบแจ้งหนี้ และความปลอดภัยของทั้งระบบ (เฉพาะผู้ให้บริการ)'
+};
+// ---------- ประวัติการแก้ไข (ผู้ดูแลระบบ): ใคร ทำอะไร เมื่อไร เปลี่ยนจากอะไรเป็นอะไร — จาก Log ขององค์กร ----------
+const EditHistory = {
+    KEYS: { name: 'ชื่อ', status: 'การใช้สิทธิ์', site: 'จุดขาย', phone: 'เบอร์โทร', active: 'ใช้งาน', siteLat: 'ละติจูดจุดขาย', siteLng: 'ลองจิจูดจุดขาย', pic: 'รูปโปรไฟล์',
+        id: 'รหัส', recordsMoved: 'ย้ายรายงาน', reason: 'เหตุผล', type: 'ประเภทการขาย', time: 'เวลา', note: 'หมายเหตุ', date: 'วันที่', lat: 'ละติจูด', lng: 'ลองจิจูด',
+        records: 'จำนวนรายงาน', trashDays: 'เก็บในถังขยะ (วัน)', result: 'ผลการติดต่อ', deletedAt: 'ลบเมื่อ', deletedBy: 'ลบโดย', photoTrashed: 'ย้ายรูปไปถังขยะ', force: 'บันทึกซ้ำวันเดิม' },
+    val(v) { return v === true ? 'ใช่' : v === false ? 'ไม่' : v === null || v === undefined || v === '' ? '-' : typeof v === 'object' ? JSON.stringify(v) : String(v); },
+    details(raw) {
+        if (!raw) return '';
+        let o; try { o = JSON.parse(raw); } catch (e) { return `<li>${esc(raw)}</li>`; }
+        return Object.keys(o || {}).filter(k => o[k] !== undefined && o[k] !== '').map(k => {
+            const v = o[k], label = esc(this.KEYS[k] || k);
+            return Array.isArray(v) && v.length === 2 ? `<li><b>${label}</b> <s>${esc(this.val(v[0]))}</s> → ${esc(this.val(v[1]))}</li>` : `<li><b>${label}</b> ${esc(this.val(v))}</li>`;
+        }).join('');
+    },
+    // ปุ่ม "ประวัติการแก้ไข" ในแผ่นรายละเอียด — โหลดเมื่อแตะ (ไม่ดึง Log ทุกครั้งที่เปิด)
+    mount(el, params) {
+        el.hidden = !can('admin');
+        if (el.hidden) return;
+        el.innerHTML = `<button type="button" class="hist-toggle" aria-expanded="false">${icon('activity', 'ic-16')}<span>ประวัติการแก้ไข</span>${icon('chevron-down', 'ic-16')}</button><div class="hist-body" hidden></div>`;
+        const btn = el.querySelector('.hist-toggle'), body = el.querySelector('.hist-body');
+        btn.onclick = async () => {
+            const open = btn.getAttribute('aria-expanded') !== 'true';
+            btn.setAttribute('aria-expanded', String(open)); body.hidden = !open;
+            if (!open || body.dataset.loaded) return;
+            body.innerHTML = '<div class="skel" style="height:60px;border-radius:12px"></div>';
+            const r = await api('admin.history', params);
+            if (!r.success) { body.innerHTML = `<p class="muted-text">${esc(r.message || 'โหลดไม่สำเร็จ')}</p>`; return; }
+            body.dataset.loaded = '1';
+            body.innerHTML = r.items.length ? `<ol class="hist-list">${r.items.map(h => `<li class="hist-item">
+                <span class="hist-dot ${((typeof ACTION_TONE !== 'undefined' && ACTION_TONE[h.action.split('.')[1] || '']) || '')}"></span>
+                <div><b>${esc((typeof ACTION_LABELS !== 'undefined' && ACTION_LABELS[h.action]) || h.action)}</b>
+                <small>${esc(h.actorName || '-')}${h.actorRole ? ' · ' + esc(ROLE_LABELS[h.actorRole] || h.actorRole) : ''} · ${thDateTime(h.ts)}</small>
+                ${this.details(h.details) ? `<ul class="hist-changes">${this.details(h.details)}</ul>` : ''}</div></li>`).join('')}</ol>${r.total > r.items.length ? `<p class="hint">แสดง ${r.items.length} จาก ${fmtNum(r.total)} รายการล่าสุด · ดูทั้งหมดได้ที่ ผู้ดูแลระบบ › Logs</p>` : ''}`
+                : '<p class="muted-text">ยังไม่มีการแก้ไขโดยเจ้าหน้าที่</p>';
+        };
+    }
+};
+
+const thb = n => '฿' + Number(n || 0).toLocaleString('th-TH', { maximumFractionDigits: 2 });
 const VIEWS = {};      // โมดูลแต่ละหน้า: { show(), onLive?(count) }
 const $ = (id) => document.getElementById(id);
 
@@ -329,7 +382,8 @@ function endSession(message) {
 // องค์กรหมดช่วงทดลอง/ค้างชำระเกินกำหนด/ถูกระงับ (Dev ใช้งานได้เสมอ)
 // หน้าแพ็กเกจและราคา (เว็บไซต์ softlight) — เห็นเฉพาะผู้ดูแลระบบ/Dev
 const PRODUCT_URL = 'https://bysoftlight.github.io/software/hr-paper-mill.html';
-const isOrgAdmin = me => !!me && (me.role === 'admin' || me.role === 'dev');
+// ผู้ที่เห็นเรื่องแพลน/การชำระเงินขององค์กร: ผู้ดูแลระบบ · ผู้ดูแลการเงิน · Dev
+const isOrgAdmin = me => !!me && (me.role === 'admin' || me.role === 'dev' || me.role === 'billing');
 function subLocked(sub, me) { return !!(sub && sub.ok === false && !(me && me.role === 'dev')); }
 const SUB_STATE_TH = { trial: 'ทดลองใช้ฟรี', active: 'ใช้งาน', past_due: 'ค้างชำระ', trial_expired: 'หมดช่วงทดลองใช้', expired: 'หมดอายุ', suspended: 'ถูกระงับ', cancelled: 'ยกเลิกแล้ว' };
 // แถบแจ้งสถานะการสมัครสมาชิกขององค์กร: ทดลองใช้ (เหลือกี่วัน) · ใกล้หมดรอบ · ค้างชำระ
@@ -439,6 +493,7 @@ function tabFromHash() {
     if (TAB_ORDER.includes(t) && tabAllowed(t)) return t;
     const start = Prefs.get('startTab');
     if (TAB_ORDER.includes(start) && tabAllowed(start)) return start;
+    if (!can('records.view') && can('billing')) return 'account'; // ผู้ดูแลการเงิน: เปิดที่หน้าบัญชี (แพ็กเกจและการชำระเงิน)
     return TAB_ORDER.find(tabAllowed);
 }
 
@@ -690,8 +745,49 @@ VIEWS.account = {
             ['เข้าใช้ล่าสุด', me.lastLoginAt ? thDateTime(me.lastLoginAt) : '-'],
             ['จำการเข้าสู่ระบบถึง', exp + ' (ต่ออายุอัตโนมัติเมื่อเปิดใช้งาน)']
         ].map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('');
-        $('accPerms').innerHTML = Object.keys(PERM_LABELS).map(p =>
-            `<li class="${can(p) ? '' : 'is-off'}">${icon(can(p) ? 'check-circle' : 'x-circle')}<span>${PERM_LABELS[p]}</span></li>`).join('');
+        // สิทธิ์ที่มีก่อน แล้วตามด้วยที่ไม่มี (จาง) — แต่ละข้อมีคำอธิบายว่าทำอะไรได้ · Dev แสดงเฉพาะบัญชี Dev
+        const perms = Object.keys(PERM_LABELS).filter(p => p !== 'dev' || can('dev'));
+        $('accPerms').innerHTML = perms.filter(can).concat(perms.filter(p => !can(p))).map(p =>
+            `<li class="${can(p) ? '' : 'is-off'}">${icon(can(p) ? 'check-circle' : 'x-circle')}<span class="perm-txt"><b>${PERM_LABELS[p]}</b>${PERM_DESC[p] ? `<small>${PERM_DESC[p]}</small>` : ''}</span></li>`).join('');
+        $('accPermsNote').textContent = can('admin') ? 'ผู้ดูแลระบบได้ทุกสิทธิ์ขององค์กร' : 'ต้องการสิทธิ์เพิ่ม ติดต่อผู้ดูแลระบบขององค์กร';
+        this.billing();
+    },
+
+    // ---------- แพ็กเกจและการชำระเงินขององค์กร (ผู้ดูแลระบบ / ผู้ดูแลการเงิน) ----------
+    async billing() {
+        const box = $('accBilling');
+        const show = can('billing') && !!(ST.me && ST.me.org);
+        box.hidden = !show;
+        if (!show) return;
+        if (!this.bill) $('accBillBody').innerHTML = '<div class="skel" style="height:120px;border-radius:16px"></div>';
+        const r = await api('staff.billing.info');
+        if (!r.success) { $('accBillBody').innerHTML = emptyState(r.message || 'โหลดไม่สำเร็จ', 'wifi-off'); return; }
+        this.bill = r;
+        if (!r.org) { box.hidden = true; return; }
+        const a = r.access || {}, st = SUB_STATE_TH[a.state] || a.state || '-';
+        const tone = a.state === 'past_due' || a.ok === false ? 'is-bad' : a.warn ? 'is-warn' : a.state === 'trial' ? 'is-info' : 'is-ok';
+        const lim = (n, max) => `${fmtNum(n)}${max ? ` / ${fmtNum(max)}` : ' (ไม่จำกัด)'}`;
+        const price = r.plan ? (r.org.cycle === 'yearly' ? `${thb(r.plan.priceYearly)} / ปี` : `${thb(r.plan.priceMonthly)} / เดือน`) : '-';
+        const INV = { pending: ['รอชำระ', 'is-warn'], paid: ['ชำระแล้ว', 'is-ok'] };
+        const inv = (r.invoices || []).map(i => {
+            const [t, c] = INV[i.status] || [i.status, ''], late = i.status === 'pending' && i.due && i.due < Date.now();
+            return `<li class="bill-inv"><span><b class="mono">${esc(i.id)}</b><small>${i.periodStart ? thDate(i.periodStart) : ''}${i.periodEnd ? ' – ' + thDate(i.periodEnd) : ''}${i.status === 'paid' && i.paidAt ? ' · ชำระ ' + thDate(i.paidAt) : i.due ? ' · ครบกำหนด ' + thDate(i.due) : ''}</small></span>
+              <span class="bill-amt"><b>${thb(i.amount)}</b><span class="badge ${late ? 'is-bad' : c}">${late ? 'เลยกำหนด' : t}</span></span></li>`;
+        }).join('');
+        const acc = (r.accounts || []).map(x => `<li class="bill-acc"><span class="icon-box">${icon(x.type === 'promptpay' ? 'phone' : 'database')}</span><span><b>${esc(x.bank || (x.type === 'promptpay' ? 'พร้อมเพย์' : 'บัญชี'))}${x.isDefault ? ' <span class="badge is-info">หลัก</span>' : ''}</b><small><span class="mono">${esc(x.number)}</span> · ${esc(x.name)}${x.branch ? ' · สาขา' + esc(x.branch) : ''}</small>${x.note ? `<small>${esc(x.note)}</small>` : ''}</span><button type="button" class="icon-btn" data-copy="${esc(x.number)}" aria-label="คัดลอกเลขบัญชี">${icon('file')}</button></li>`).join('');
+        $('accBillBody').innerHTML = `
+          <div class="bill-head"><span><small>แพลน</small><b>${esc(r.plan ? r.plan.name : '-')}</b><small>${price}</small></span><span class="badge ${tone}">${esc(st)}</span></div>
+          <dl class="kv">
+            ${a.endsAt ? `<div><dt>${a.state === 'trial' ? 'ทดลองใช้ถึง' : 'รอบบิลถึง'}</dt><dd>${thDate(a.endsAt)}${a.daysLeft != null ? ` (เหลือ ${fmtNum(Math.max(0, a.daysLeft))} วัน)` : ''}</dd></div>` : ''}
+            <div><dt>ผู้ใช้สิทธิ์</dt><dd>${lim(r.usage.users, r.limits.users)}</dd></div>
+            <div><dt>เจ้าหน้าที่</dt><dd>${lim(r.usage.staff, r.limits.staff)}</dd></div>
+          </dl>
+          ${a.message && a.state !== 'active' ? `<p class="hint bill-msg ${tone}">${esc(a.message)}</p>` : ''}
+          <h4 class="bill-sub">ใบแจ้งหนี้</h4>
+          ${inv ? `<ul class="bill-list">${inv}</ul>` : '<p class="muted-text">ยังไม่มีใบแจ้งหนี้</p>'}
+          ${acc ? `<h4 class="bill-sub">ช่องทางชำระเงิน</h4><ul class="bill-list">${acc}</ul><p class="hint">โอนแล้วแจ้งหลักฐานกับผู้ให้บริการ${r.salesPhone ? ` โทร <a href="tel:${esc(r.salesPhone.replace(/[^0-9+]/g, ''))}">${esc(r.salesPhone)}</a>` : ''}${r.salesEmail ? ` · <a href="mailto:${esc(r.salesEmail)}">${esc(r.salesEmail)}</a>` : ''}</p>` : ''}
+          <a class="btn btn-tonal btn-sm" href="${PRODUCT_URL}#packages" target="_blank" rel="noopener">${icon('external', 'ic-16')} ดูแพ็กเกจทั้งหมด</a>`;
+        $('accBillBody').querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => { navigator.clipboard && navigator.clipboard.writeText(b.dataset.copy).then(() => toast('คัดลอกเลขบัญชีแล้ว')).catch(() => {}); }));
     }
 };
 

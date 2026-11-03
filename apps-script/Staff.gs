@@ -31,7 +31,8 @@ function handleStaffRequest_(req) {
   SCOPE_ORG_ = isDev_(staff) ? null : (staff.org || null);
   const sub = staff.org && typeof orgAccess_ === 'function' ? orgAccess_(staff.org) : null;
   // หมดช่วงทดลอง / ค้างชำระเกินกำหนด / ถูกระงับ: ใช้งานไม่ได้ (ยกเว้นดูบัญชีตัวเอง ออกจากระบบ และ Dev)
-  if (sub && !sub.ok && !isDev_(staff) && !/^staff\.(me|logout|inbox\.)/.test(req.action)) fail_('SUBSCRIPTION', sub.message);
+  // ผู้ดูแลการเงินยังเปิดข้อมูลการชำระเงินได้ (เพื่อชำระแล้วกลับมาใช้งาน)
+  if (sub && !sub.ok && !isDev_(staff) && !/^staff\.(me|logout|inbox\.)/.test(req.action) && !(req.action === 'staff.billing.info' && can_(staff, 'billing'))) fail_('SUBSCRIPTION', sub.message);
   if (/^dev\./.test(req.action)) {
     if (!isDev_(staff)) fail_('FORBIDDEN', 'เฉพาะบัญชี Dev เท่านั้น');
     if (typeof handleDev_ !== 'function') return { success: false, message: 'ต้องเพิ่มไฟล์ Billing.gs ใน Apps Script ก่อน' };
@@ -154,6 +155,13 @@ function handleStaffRequest_(req) {
     case 'admin.logs.list':
       requirePerm_(staff, 'admin');
       return adminLogsList_(req);
+    case 'admin.history':
+      requirePerm_(staff, 'admin');
+      return adminHistory_(req);
+    case 'staff.billing.info':
+      requirePerm_(staff, 'billing');
+      if (typeof orgBillingInfo_ !== 'function') return { success: false, message: 'ต้องเพิ่มไฟล์ Billing.gs ใน Apps Script ก่อน' };
+      return orgBillingInfo_(staff);
     default:
       // แจ้งปัญหา / แบบสอบถาม (Feedback.gs)
       // กล่องการแจ้งเตือน / ประกาศ (Inbox.gs)

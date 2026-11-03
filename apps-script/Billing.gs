@@ -189,6 +189,23 @@ function orgPublic_(orgId) {
   const a = orgAccess_(orgId);
   return a && a.org ? { id: a.org.id, name: a.org.name, logo: a.org.logo || '' } : null;
 }
+// ข้อมูลการเงินขององค์กรตัวเอง (ผู้ดูแลระบบ / ผู้ดูแลการเงิน): แพลน · สถานะ · จำนวนที่ใช้ · ใบแจ้งหนี้ · ช่องทางชำระเงิน
+function orgBillingInfo_(staff) {
+  const o = staff.org ? readOrgs_().filter(x => x.id === staff.org)[0] : null;
+  if (!o) return { success: true, org: null };
+  const plan = readPlans_().filter(p => p.id === o.plan)[0] || null;
+  const counts = orgCounts_(), lim = orgLimits_(o, plan);
+  const invoices = readInvoices_().filter(i => i.org === o.id && i.status !== 'void').sort((a, b) => (b.issued || 0) - (a.issued || 0)).slice(0, 24)
+    .map(i => ({ id: i.id, plan: i.plan, cycle: i.cycle, periodStart: i.periodStart, periodEnd: i.periodEnd, amount: i.amount, status: i.status, issued: i.issued, due: i.due, paidAt: i.paidAt, method: i.method, ref: i.ref }));
+  const accounts = readAccounts_().filter(a => a.active).sort((a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0))
+    .map(a => ({ type: a.type, bank: a.bank, name: a.name, number: a.number, branch: a.branch, isDefault: a.isDefault, note: a.note }));
+  return {
+    success: true, org: { id: o.id, name: o.name, logo: o.logo || '', cycle: o.cycle, status: o.status },
+    plan: plan ? { id: plan.id, name: plan.name, priceMonthly: plan.priceMonthly, priceYearly: plan.priceYearly } : null,
+    access: orgAccessDto_(orgAccess_(o.id)), limits: lim, usage: { users: counts.users[o.id] || 0, staff: counts.staff[o.id] || 0 },
+    invoices: invoices, accounts: accounts, salesPhone: prop_('SALES_PHONE'), salesEmail: prop_('SALES_EMAIL')
+  };
+}
 function orgLimits_(o, plan) {
   return { users: o.maxUsers || (plan ? plan.maxUsers : 0), staff: o.maxStaff || (plan ? plan.maxStaff : 0) };
 }

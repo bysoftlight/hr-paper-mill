@@ -11,13 +11,15 @@ function sessionMs_() {
 }
 
 // ลบ (และกู้คืน) แยกจากแก้ไข: ผู้แก้ไขเพิ่ม/แก้ได้ แต่ลบต้องได้สิทธิ์ลบเพิ่ม (ผู้ดูแลระบบได้ครบเสมอ)
-const PERMS = ['records.view', 'records.edit', 'records.delete', 'participants.view', 'participants.edit', 'participants.delete', 'export', 'admin'];
+// billing = ดูแพ็กเกจ ใบแจ้งหนี้ และช่องทางชำระเงินขององค์กร (ผู้ดูแลการเงิน เช่น ฝ่ายบัญชีของลูกค้า)
+const PERMS = ['records.view', 'records.edit', 'records.delete', 'participants.view', 'participants.edit', 'participants.delete', 'export', 'billing', 'admin'];
 const ROLE_PRESETS = {
   viewer: ['records.view', 'participants.view'],
   editor: ['records.view', 'records.edit', 'participants.view', 'participants.edit', 'export'],
+  billing: ['billing'], // ผู้ดูแลการเงิน: ไม่เห็นข้อมูลผู้ใช้สิทธิ์/รายงาน
   admin: PERMS.slice()
 };
-const ROLES = ['pending', 'viewer', 'editor', 'admin', 'dev'];
+const ROLES = ['pending', 'viewer', 'billing', 'editor', 'admin', 'dev'];
 // dev = ผู้พัฒนา/ผู้ให้บริการระบบ: ทุกสิทธิ์ของผู้ดูแล + Dev console (องค์กร แพลน การสมัครสมาชิก การชำระเงิน) และเห็นข้อมูลทุกองค์กร
 //   ตั้งต้นด้วย Script Property DEV_EMAILS (คั่นด้วย ,) — เข้าสู่ระบบครั้งถัดไปจะเป็น dev อัตโนมัติ · dev เท่านั้นที่ตั้งบทบาท dev ให้คนอื่นได้
 const isDev_ = s => !!s && s.role === 'dev' && s.status === 'active';
