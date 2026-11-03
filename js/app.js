@@ -327,7 +327,7 @@ function setupApp(history, cachedAt) {
 }
 
 function renderUser() {
-    if (typeof OrgMark !== 'undefined') OrgMark.set(CURRENT_USER.orgInfo || null); // โลโก้องค์กรคู่กับชื่อแอป
+    if (typeof OrgMark !== 'undefined') OrgMark.set(CURRENT_USER.orgInfo || null, { open: () => { haptic(); switchTab('account'); } }); // การ์ดองค์กรในเมนูด้านข้าง
     document.querySelectorAll('[data-user="name"]').forEach(el => el.textContent = CURRENT_USER.name || '-');
     document.querySelectorAll('[data-user="id"]').forEach(el => el.textContent = CURRENT_USER.id || '-');
     document.querySelectorAll('[data-user="status"]').forEach(el => el.textContent = CURRENT_USER.status || '-');

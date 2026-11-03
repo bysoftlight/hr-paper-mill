@@ -397,22 +397,47 @@ document.addEventListener('DOMContentLoaded', () => { tidyFootLinks(); if (windo
 window.addEventListener('load', tidyFootLinks);
 
 // ---------- องค์กรของผู้ใช้ (Dev Console › องค์กร) ----------
-// คอมพิวเตอร์/แท็บเล็ต: การ์ดใต้ชื่อแอปในเมนูด้านข้าง · มือถือ: ไม่ใส่ในแถบบน (แน่นเกิน) แสดงในการ์ดโปรไฟล์/หน้าบัญชีแทน ([data-org-line])
+// คอมพิวเตอร์/แท็บเล็ต: การ์ด "Organizations" เหนือบัญชีผู้ใช้ท้ายเมนูด้านข้าง (โลโก้วงกลม · ชื่อ · แพลน • จำนวนคน)
+// มือถือ: ไม่มีเมนูด้านข้าง แสดงในการ์ดโปรไฟล์/หน้าบัญชีแทน ([data-org-line])
+// opts: { meta: 'Pro', count: 46, open: () => {} } — open = แตะการ์ดแล้วไปไหน
 const OrgMark = {
-    set(org) {
+    org: null, opts: {},
+    set(org, opts) {
+        this.org = org && (org.logo || org.name) ? org : null;
+        this.opts = Object.assign({}, opts || {});
+        this.render();
+    },
+    count(n) { if (this.opts.count === n) return; this.opts.count = n; this.render(); }, // จำนวนผู้ใช้สิทธิ์ (จากหน้าภาพรวม)
+    render() {
         const e = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-        const has = org && (org.logo || org.name);
+        const org = this.org, has = !!org, o = this.opts;
         const html = has ? (org.logo ? `<img src="${e(org.logo)}" alt="" referrerpolicy="no-referrer" loading="lazy">` : '') + `<span>${e(org.name)}</span>` : '';
-        const guard = root => root.querySelectorAll('img').forEach(img => img.addEventListener('error', () => { img.remove(); root.classList.remove('has-logo'); }, { once: true }));
-        document.querySelectorAll('.topbar > .org-mark').forEach(m => m.remove()); // รุ่นก่อนใส่ไว้ในแถบบน
-        document.querySelectorAll('.sidenav > .brand').forEach(b => {
-            let m = b.nextElementSibling && b.nextElementSibling.classList.contains('org-mark') ? b.nextElementSibling : null;
-            if (!has) { if (m) m.remove(); return; }
-            if (!m) { m = document.createElement('span'); m.className = 'org-mark'; b.after(m); }
-            m.classList.toggle('has-logo', !!org.logo); m.title = org.name || ''; m.innerHTML = html; guard(m);
+        const guard = (root, onFail) => root.querySelectorAll('img').forEach(img => img.addEventListener('error', () => { img.remove(); onFail(); }, { once: true }));
+        document.querySelectorAll('.topbar > .org-mark, .sidenav > .org-mark').forEach(m => m.remove()); // รุ่นก่อน: แถบบน / ใต้ชื่อแอป
+        const initial = has ? (String(org.name || '?').replace(/^(บริษัท|บจก\.?|หจก\.?)\s*/, '').trim().charAt(0) || '?') : '';
+        const meta = [o.meta ? e(o.meta) : '', o.count != null ? `<span class="org-count"><svg class="ic ic-14" aria-hidden="true"><use href="#i-user"/></svg>${Number(o.count).toLocaleString('th-TH')}</span>` : ''].filter(Boolean).join('<span class="org-sep" aria-hidden="true">•</span>');
+        document.querySelectorAll('.sidenav').forEach(nav => {
+            let sec = nav.querySelector(':scope > .org-sec');
+            if (!has) { if (sec) sec.remove(); return; }
+            if (!sec) {
+                sec = document.createElement('div'); sec.className = 'org-sec';
+                const user = nav.querySelector(':scope > .nav-user');
+                nav.insertBefore(sec, user || null);
+                sec.addEventListener('click', ev => { if (ev.target.closest('.org-card') && typeof this.opts.open === 'function') this.opts.open(); });
+                sec.addEventListener('keydown', ev => { if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.closest('.org-card') && typeof this.opts.open === 'function') { ev.preventDefault(); this.opts.open(); } });
+            }
+            const link = typeof o.open === 'function';
+            sec.innerHTML = `<span class="org-sec-label">Organizations</span>
+              <div class="org-card"${link ? ' role="link" tabindex="0"' : ''} title="${e(org.name)}" aria-label="องค์กร ${e(org.name)}">
+                <span class="org-ava">${org.logo ? `<img src="${e(org.logo)}" alt="" referrerpolicy="no-referrer" loading="lazy">` : ''}<i aria-hidden="true">${e(initial)}</i></span>
+                <span class="org-txt"><b>${e(org.name)}</b>${meta ? `<small>${meta}</small>` : ''}</span>
+                ${link ? '<svg class="ic ic-16 org-go" aria-hidden="true"><use href="#i-chevron-right"/></svg>' : ''}
+              </div>`;
+            const ava = sec.querySelector('.org-ava'); ava.classList.toggle('has-logo', !!org.logo);
+            guard(ava, () => ava.classList.remove('has-logo'));
         });
         document.querySelectorAll('[data-org-line]').forEach(el => {
-            el.innerHTML = html; el.classList.toggle('has-logo', !!(has && org.logo)); guard(el);
+            el.innerHTML = html; el.classList.toggle('has-logo', !!(has && org.logo)); guard(el, () => el.classList.remove('has-logo'));
             el.hidden = !has;
             const row = el.closest('[data-org-row]'); if (row) row.hidden = !has;
         });
