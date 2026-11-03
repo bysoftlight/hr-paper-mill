@@ -90,17 +90,40 @@ function adminStaffDelete_(req, actor, ua) {
   }
 }
 
-function adminLogsList_(req) {
-  const f = req.filters || {};
-  const q = String(f.q || '').trim().toLowerCase();
-  const rows = readRows_(SHEET.LOGS, L_HEADERS.length).map(r => {
+// แถว Log → ออบเจกต์ (ทุกองค์กร — ผู้เรียกกรองด้วย inScope_ เอง)
+function readLogs_() {
+  return readRows_(SHEET.LOGS, L_HEADERS.length).map(r => {
     const ts = toDate_(r[LCOL.TS]);
     return ts ? {
       ts: ts.getTime(), date: fmtDate_(ts), actorId: String(r[LCOL.ACTOR_ID] || ''), actorName: String(r[LCOL.ACTOR_NAME] || ''),
       actorRole: String(r[LCOL.ACTOR_ROLE] || ''), action: String(r[LCOL.ACTION] || ''), target: String(r[LCOL.TARGET] || ''),
       details: String(r[LCOL.DETAILS] || ''), userAgent: String(r[LCOL.USER_AGENT] || ''), org: String(r[LCOL.ORG] || '').trim()
     } : null;
-  }).filter(Boolean).filter(l => {
+  }).filter(Boolean);
+}
+
+// ประวัติการแก้ไขของรายการเดียว (ใคร ทำอะไร เมื่อไร เปลี่ยนจากอะไรเป็นอะไร) — จาก Log ขององค์กรตัวเอง
+// kind = participant (id) · record (userId + date)
+function adminHistory_(req) {
+  let match;
+  if (req.kind === 'participant') {
+    const id = String(req.id || '').trim().toUpperCase();
+    if (!/^[A-Z0-9]{6}$/.test(id)) fail_('INVALID', 'รหัสไม่ถูกต้อง');
+    match = l => /^participants\./.test(l.action) && (l.target === id || l.target.indexOf(id + ' ') === 0);
+  } else if (req.kind === 'record') {
+    const key = String(req.userId || '').trim().toUpperCase() + ' ' + String(req.date || '').trim();
+    if (!/^[A-Z0-9]{6} \d{4}-\d{2}-\d{2}$/.test(key)) fail_('INVALID', 'คำขอไม่ถูกต้อง');
+    match = l => /^records\./.test(l.action) && l.target.toUpperCase() === key;
+  } else fail_('INVALID', 'คำขอไม่ถูกต้อง');
+  // ใหม่สุดก่อน · เวลาเท่ากันใช้ลำดับแถว (แถวหลัง = ทีหลัง)
+  const list = readLogs_().map((l, i) => Object.assign(l, { i: i })).filter(l => inScope_(l.org) && match(l)).sort((a, b) => (b.ts - a.ts) || (b.i - a.i));
+  return { success: true, total: list.length, items: list.slice(0, 50).map(l => ({ ts: l.ts, actorName: l.actorName, actorRole: l.actorRole, action: l.action, details: l.details })) };
+}
+
+function adminLogsList_(req) {
+  const f = req.filters || {};
+  const q = String(f.q || '').trim().toLowerCase();
+  const rows = readLogs_().filter(l => {
     if (!inScope_(l.org)) return false; // ผู้ดูแลองค์กรเห็นเฉพาะ Log ขององค์กรตัวเอง
     if (f.from && l.date < f.from) return false;
     if (f.to && l.date > f.to) return false;

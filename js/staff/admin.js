@@ -5,16 +5,16 @@ const ACTION_LABELS = {
     'admin.staff.approve': 'อนุมัติบัญชี', 'admin.staff.reject': 'ปฏิเสธบัญชี', 'admin.staff.suspend': 'ระงับบัญชี', 'admin.staff.update': 'แก้ไขสิทธิ์',
     'admin.staff.revoke': 'บังคับออกจากระบบ', 'admin.staff.delete': 'ลบบัญชีเจ้าหน้าที่',
     'records.create': 'เพิ่มรายงาน', 'records.update': 'แก้ไขรายงาน', 'records.delete': 'ลบรายงาน', 'records.restore': 'กู้คืนรายงาน',
-    'participants.create': 'เพิ่มผู้ใช้สิทธิ์', 'participants.update': 'แก้ไขผู้ใช้สิทธิ์', 'participants.rename': 'เปลี่ยนรหัสผู้ใช้สิทธิ์', 'participants.delete': 'ลบบัญชีผู้ใช้สิทธิ์',
+    'participants.create': 'เพิ่มผู้ใช้สิทธิ์', 'participants.update': 'แก้ไขผู้ใช้สิทธิ์', 'participants.rename': 'เปลี่ยนรหัสผู้ใช้สิทธิ์', 'participants.delete': 'ย้ายผู้ใช้สิทธิ์ไปถังขยะ',
     'participant.submit': 'ส่งรายงาน (ผู้ใช้สิทธิ์)', 'participant.login_failed': 'เข้าสู่ระบบไม่สำเร็จ (ผู้ใช้สิทธิ์)',
     'export.xlsx': 'ส่งออก Excel', 'export.pdf': 'ส่งออก PDF', 'export.gsheet': 'ส่งออก Google Sheets', 'export.logs': 'ส่งออก Log',
     'system.daily_summary': 'ส่งสรุปรายวัน', 'system.notify_remind': 'เตือนผู้ใช้สิทธิ์ที่ยังไม่ส่ง', 'system.monthly_report': 'ส่งรายงานประจำเดือน',
-    'system.health': 'ตรวจสุขภาพระบบ', 'client.error': 'ข้อผิดพลาดบนเครื่องผู้ใช้', 'participants.contact': 'บันทึกการติดต่อ',
+    'system.health': 'ตรวจสุขภาพระบบ', 'client.error': 'ข้อผิดพลาดบนเครื่องผู้ใช้', 'participants.contact': 'บันทึกการติดต่อ', 'participants.restore': 'กู้คืนผู้ใช้สิทธิ์', 'participants.purge': 'ลบผู้ใช้สิทธิ์ถาวร (ครบ 30 วัน)',
     'feedback.problem': 'แจ้งปัญหาการใช้งาน', 'admin.problem_status': 'เปลี่ยนสถานะเรื่องที่แจ้ง', 'survey.answer': 'ตอบแบบสอบถาม',
     'admin.survey_create': 'สร้างแบบสอบถาม', 'admin.survey_update': 'แก้ไขแบบสอบถาม', 'admin.survey_close': 'ปิดรับแบบสอบถาม', 'admin.survey_reopen': 'เปิดรับแบบสอบถามอีกครั้ง',
     'admin.survey_delete': 'ลบแบบสอบถาม', 'admin.news_create': 'ประกาศข่าวสาร', 'admin.news_update': 'แก้ไขประกาศ', 'admin.news_delete': 'ลบประกาศ', 'system.survey_notify': 'แจ้งเตือนแบบสอบถามใหม่', 'system.survey_remind': 'เตือนทำแบบสอบถามซ้ำ'
 };
-const ACTION_TONE = { delete: 'is-bad', reject: 'is-bad', suspend: 'is-bad', revoke: 'is-warn', rename: 'is-warn', login_failed: 'is-warn', approve: 'is-ok', create: 'is-ok', signup: 'is-accent', signup_admin: 'is-accent', restore: 'is-ok' };
+const ACTION_TONE = { purge: 'is-bad', delete: 'is-bad', reject: 'is-bad', suspend: 'is-bad', revoke: 'is-warn', rename: 'is-warn', login_failed: 'is-warn', approve: 'is-ok', create: 'is-ok', signup: 'is-accent', signup_admin: 'is-accent', restore: 'is-ok' };
 
 VIEWS.admin = {
     tab: 'staff', staff: [], meta: null, logPage: 1, logReq: 0,
@@ -212,6 +212,7 @@ VIEWS.admin = {
               <label class="sr-only" for="role-${esc(s.id)}">บทบาท</label>
               <select class="select" id="role-${esc(s.id)}">
                 <option value="viewer">ผู้ดูข้อมูล (Viewer)</option>
+                <option value="billing">ผู้ดูแลการเงิน (Billing)</option>
                 <option value="editor">ผู้แก้ไข (Editor)</option>
                 <option value="admin">ผู้ดูแลระบบ (Admin)</option>
               </select>
