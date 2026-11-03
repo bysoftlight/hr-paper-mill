@@ -64,6 +64,26 @@ const inboxItems = [{ id: 'n1', kind: 'news', title: 'ประกาศ: วั
 const user = { id: 'AB12C0', name: NAMES[0], status: 'ผู้พิการทางการเคลื่อนไหว', pic: '', active: true, org: '' };
 const history = records.filter(r => r.userId === user.id).slice(0, 30).map(r => ({ date: r.date, time: r.time, type: r.type, image: PIC, fileId: '', lat: r.lat, lng: r.lng, mapUrl: r.mapUrl, timestamp: r.ts }));
 
+// สถิติการใช้งาน (รูปแบบเดียวกับ analyticsReport_ ใน apps-script/Analytics.gs)
+function analyticsReport(app, days) {
+    const totals = (k) => ({ users: 38 * k, newUsers: 6 * k, sessions: 120 * k, views: 410 * k, events: 900 * k, avgSession: 95, engagementRate: 72, viewsPerSession: 3.4 });
+    const from = ymd(new Date(now.getTime() - (days - 1) * 86400e3));
+    const share = keys => keys.map((key, i) => ({ key, users: 30 - i * 8 }));
+    return {
+        success: true, from, to: today, days, app, generatedAt: Date.now(),
+        totals: totals(1), previous: totals(0.9),
+        daily: Array.from({ length: days }, (_, i) => ({ date: ymd(new Date(now.getTime() - (days - 1 - i) * 86400e3)), users: 20 + (i * 7) % 15, sessions: 40 + (i * 11) % 25, views: 120 + (i * 13) % 60 })),
+        realtime: { active: 3, perMinute: Array.from({ length: 30 }, (_, i) => (i * 7) % 5), users30: 9, pages: [{ key: 'user:form', views: 4 }, { key: 'staff:overview', views: 2 }] },
+        pages: [{ app: 'user', page: 'form', views: 220, users: 30, avgTime: 75 }, { app: 'user', page: 'history', views: 90, users: 22, avgTime: 40 }, { app: 'staff', page: 'overview', views: 60, users: 4, avgTime: 120 }],
+        events: [{ app: 'user', event: 'submit_success', count: 95, users: 30, labels: [] }, { app: 'user', event: 'login', count: 40, users: 28, labels: [{ label: 'manual', count: 12 }, { label: 'auto', count: 28 }] }],
+        devices: share(['mobile', 'desktop', 'tablet']), os: share(['Android', 'iOS', 'Windows']), browsers: share(['Chrome', 'Safari', 'Samsung Internet']),
+        pwa: share(['เบราว์เซอร์', 'แอปบนหน้าจอโฮม']), sources: share(['เข้าตรง', 'line.me']), apps: share(['user', 'staff']),
+        heat: Array.from({ length: 7 }, (_, d) => Array.from({ length: 24 }, (_, h) => (d && h >= 7 && h <= 17 ? (h * d) % 9 : 0))),
+        funnel: [['form_view', 'เปิดหน้าส่งรายงาน', 120], ['location_ok', 'ระบุตำแหน่งแล้ว', 110], ['type_select', 'เลือกประเภทการขาย', 105], ['photo_ok', 'ถ่ายภาพแล้ว', 100], ['submit', 'กดบันทึก', 98], ['submit_success', 'ส่งสำเร็จ', 95]].map(([step, label, sessions]) => ({ step, label, sessions })),
+        outcomes: { submitSuccess: 95, submitFail: 3, queued: 2, loginFail: 4, errors: 0, failReasons: [{ label: 'เครือข่ายขัดข้อง', count: 3 }] }
+    };
+}
+
 function mock(action, body) {
     switch (action) {
         case 'login': return { success: true, data: user, history, trust: 't', surveys: [], inbox: inboxItems, inboxState: {} };
@@ -91,6 +111,16 @@ function mock(action, body) {
         case 'staff.contacts.list': return { success: true, contacts: [] };
         case 'admin.staff.list': return { success: true, staff: [me, Object.assign({}, me, { id: 'S2', name: 'รออนุมัติ ทดสอบ', email: 'p@example.com', role: 'pending', status: 'pending', permissions: [] })] };
         case 'admin.logs.list': return { success: true, total: 1, logs: [{ ts: Date.now(), actor: 'ผู้ทดสอบ', role: 'dev', action: 'staff.login', target: 'tester@example.com', detail: '', ua: '' }] };
+        case 'staff.analytics.report': return analyticsReport(body.app || 'all', body.days || 7);
+        case 'staff.analytics.live': return { success: true, realtime: analyticsReport('all', 1).realtime, generatedAt: Date.now() };
+        case 'dev.overview': return {
+            success: true, generatedAt: Date.now(),
+            totals: { orgs: 4, users: 42, unassignedUsers: 3, mrr: 4970, arr: 59640, paidMonth: 3980, unpaidAmount: 990, unpaidCount: 1, byStatus: { trial: 1, active: 2, past_due: 1, suspended: 0, cancelled: 0 } },
+            plans: [{ id: 'basic', name: 'Basic', orgs: 2 }, { id: 'pro', name: 'Pro', orgs: 2 }],
+            trialsEnding: [{ id: 'o3', name: 'บริษัท ทดลอง จำกัด', planName: 'Pro', access: { state: 'trial', daysLeft: 3 } }],
+            attention: [{ id: 'o4', name: 'บริษัท ค้างชำระ จำกัด', planName: 'Basic', access: { state: 'past_due', daysLeft: 0 } }],
+            revenue: Array.from({ length: 6 }, (_, i) => { const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1); return { month: `${d.getFullYear()}-${pad(d.getMonth() + 1)}`, amount: 2000 + i * 400 }; })
+        };
         default: return null; // ไม่ได้จำลอง → แอปแสดงสถานะ error ของตัวเอง (แจ้งใน unmocked ไม่นับเป็นปัญหา)
     }
 }
