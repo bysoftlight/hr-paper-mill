@@ -644,12 +644,19 @@ async function logoutEverywhere() {
 VIEWS.account = {
     init() {
         // รูปโปรไฟล์ของตัวเอง: บัญชี Google/LINE ที่ไม่ได้ตั้งรูปไว้ อัปโหลดเองได้ (ใช้แทนรูปจากผู้ให้บริการ)
-        $('accPhoto').addEventListener('change', async e => {
+        // กดที่รูป (หรือ "แก้ไขรูปโปรไฟล์") → แผ่นตัวเลือก: เลือกจากคลังภาพ · ถ่ายรูป · ลบรูปปัจจุบัน
+        const open = () => { haptic(); $('accPhotoResetRow').hidden = !ST.me.customPicture; showModal('photoSheet'); };
+        $('accAvaBtn').addEventListener('click', open);
+        $('accAvaLink').addEventListener('click', open);
+        const pick = async e => {
             const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+            $('photoSheet').close();
             let img; try { img = await shrinkImage(f, 512, false); } catch (err) { return showMessage({ title: 'ใช้รูปนี้ไม่ได้', text: err.message, tone: 'warn' }); }
             this.savePhoto({ photo: { data: img.data, mimeType: img.mimeType } }, 'เปลี่ยนรูปโปรไฟล์แล้ว');
-        });
-        $('accPhotoReset').addEventListener('click', () => this.savePhoto({ remove: true }, 'ใช้รูปจากบัญชีแล้ว'));
+        };
+        $('accPhoto').addEventListener('change', pick);
+        $('accPhotoCam').addEventListener('change', pick);
+        $('accPhotoReset').addEventListener('click', () => { $('photoSheet').close(); this.savePhoto({ remove: true }, 'ลบรูปแล้ว · ใช้รูปจากบัญชี Google/LINE'); });
     },
     async savePhoto(args, msg) {
         showLoading(true, 'กำลังบันทึกรูป…');
@@ -661,7 +668,7 @@ VIEWS.account = {
     },
     show() {
         const me = ST.me;
-        $('accPhotoReset').hidden = !me.customPicture;
+        $('accPhotoResetRow').hidden = !me.customPicture;
         document.querySelectorAll('[data-me="roleChip"]').forEach(el => {
             el.textContent = ROLE_LABELS[me.role] || me.role;
             el.className = 'chip ' + (me.role === 'admin' ? 'chip-self' : '');

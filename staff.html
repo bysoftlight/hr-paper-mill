@@ -280,6 +280,22 @@
   </dialog>
 
   <!-- ===== Reason prompt (ลบรายการ / ปฏิเสธ) ===== -->
+  <!-- รูปโปรไฟล์: กดที่รูป → เลือกจากคลังภาพ / ถ่ายรูป / ลบรูปปัจจุบัน -->
+  <dialog id="photoSheet" class="sheet photo-sheet" aria-labelledby="photoSheetTitle">
+    <div class="sheet-head">
+      <div><h2 id="photoSheetTitle">รูปโปรไฟล์</h2><p id="photoSheetSub">รูปนี้แสดงในระบบสำหรับเจ้าหน้าที่</p></div>
+      <button type="button" class="icon-btn" data-close aria-label="ปิด"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="sheet-body">
+      <div class="photo-sheet-ava"><span class="avatar avatar-lg" data-me="avatar"></span></div>
+      <ul class="action-list">
+        <li><label class="action-item"><svg class="ic" aria-hidden="true"><use href="#i-image"/></svg><span>เลือกจากคลังภาพ</span><input type="file" accept="image/*" id="accPhoto" hidden></label></li>
+        <li><label class="action-item"><svg class="ic" aria-hidden="true"><use href="#i-camera"/></svg><span>ถ่ายรูป</span><input type="file" accept="image/*" capture="user" id="accPhotoCam" hidden></label></li>
+        <li id="accPhotoResetRow" hidden><button type="button" class="action-item is-bad" id="accPhotoReset"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg><span>ลบรูปปัจจุบัน<small>กลับไปใช้รูปจากบัญชี Google/LINE</small></span></button></li>
+      </ul>
+    </div>
+  </dialog>
+
   <dialog id="reasonModal" class="alert" aria-labelledby="reasonTitle">
     <form id="reasonForm" novalidate>
       <div class="alert-icon is-bad"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg></div>
@@ -1037,11 +1053,11 @@
       <div class="view-head"><h2 id="accTitle">บัญชีของฉัน</h2><p>ข้อมูลการเข้าสู่ระบบและสิทธิ์</p></div>
       <div class="acc-grid">
         <section class="card profile-card">
-          <div class="avatar avatar-xl" data-me="avatar"></div>
-          <div class="acc-photo">
-            <label class="btn-chip"><svg class="ic ic-16" aria-hidden="true"><use href="#i-image"/></svg>เปลี่ยนรูปโปรไฟล์<input type="file" accept="image/*" id="accPhoto" hidden></label>
-            <button type="button" class="btn-chip" id="accPhotoReset" hidden>ใช้รูปจากบัญชี Google/LINE</button>
-          </div>
+          <button type="button" class="acc-ava" id="accAvaBtn" aria-label="แก้ไขรูปโปรไฟล์">
+            <span class="avatar avatar-xl" data-me="avatar"></span>
+            <span class="acc-ava-cam" aria-hidden="true"><svg class="ic ic-16"><use href="#i-camera"/></svg></span>
+          </button>
+          <button type="button" class="btn-text acc-ava-link" id="accAvaLink">แก้ไขรูปโปรไฟล์</button>
           <b class="profile-name" data-me="name"></b>
           <span class="chip" data-me="roleChip"></span>
           <span class="org-line" data-org-line hidden></span>
