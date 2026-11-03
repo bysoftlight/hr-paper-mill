@@ -64,6 +64,30 @@ const inboxItems = [{ id: 'n1', kind: 'news', title: 'ประกาศ: วั
 const user = { id: 'AB12C0', name: NAMES[0], status: 'ผู้พิการทางการเคลื่อนไหว', pic: '', active: true, org: '' };
 const history = records.filter(r => r.userId === user.id).slice(0, 30).map(r => ({ date: r.date, time: r.time, type: r.type, image: PIC, fileId: '', lat: r.lat, lng: r.lng, mapUrl: r.mapUrl, timestamp: r.ts }));
 
+// Dev Console (รูปแบบเดียวกับ orgDto_ / readPlans_ / devInvoicesList_ / readAccounts_ ใน apps-script/Billing.gs)
+const DAY = 86400e3;
+const PLANS = [
+    { id: 'basic', name: 'Basic', tagline: 'สำหรับองค์กรขนาดเล็ก', priceMonthly: 990, priceYearly: 9900, setupFee: 0, trialDays: 30, maxUsers: 20, maxStaff: 3, features: ['ส่งรายงานรายวัน', 'ส่งออก Excel / PDF'], public: true, active: true, highlight: false, fromPrice: false, order: 1 },
+    { id: 'pro', name: 'Pro', tagline: 'คุ้มที่สุดสำหรับองค์กรทั่วไป', priceMonthly: 1990, priceYearly: 19900, setupFee: 5000, trialDays: 30, maxUsers: 100, maxStaff: 10, features: ['ทุกอย่างใน Basic', 'แผนที่และตรวจพิกัด', 'Google Sheets'], public: true, active: true, highlight: true, fromPrice: false, order: 2 },
+    { id: 'enterprise', name: 'Enterprise', tagline: 'ปรับแต่งตามองค์กร', priceMonthly: 0, priceYearly: 0, setupFee: 0, trialDays: 0, maxUsers: 0, maxStaff: 0, features: ['ไม่จำกัดผู้ใช้'], public: false, active: true, highlight: false, fromPrice: false, order: 3 }
+];
+const org = (id, name, plan, status, cycle, access, extra) => Object.assign({ id, name, contact: 'คุณติดต่อ ' + id, email: id + '@example.com', phone: '021234567', logo: '', plan, planName: PLANS.find(p => p.id === plan).name, status, cycle, trialEnd: null, periodEnd: now.getTime() + 20 * DAY, access: Object.assign({ ok: true, warn: false, daysLeft: 20 }, access), limits: { users: PLANS.find(p => p.id === plan).maxUsers, staff: PLANS.find(p => p.id === plan).maxStaff }, users: 12, staffCount: 2, mrr: status === 'active' || status === 'past_due' ? PLANS.find(p => p.id === plan).priceMonthly : 0 }, extra);
+const ORGS = [
+    org('o1', 'บริษัท กระดาษไทย จำกัด', 'pro', 'active', 'monthly', { state: 'active' }),
+    org('o2', 'หจก. ตัวอย่างการค้า', 'basic', 'active', 'yearly', { state: 'active' }),
+    org('o3', 'บริษัท ทดลอง จำกัด', 'pro', 'trial', 'monthly', { state: 'trial', daysLeft: 3, warn: true }, { trialEnd: now.getTime() + 3 * DAY, periodEnd: null, users: 5 }),
+    org('o4', 'บริษัท ค้างชำระ จำกัด', 'basic', 'past_due', 'monthly', { state: 'past_due', daysLeft: 0, warn: true }, { periodEnd: now.getTime() - 2 * DAY })
+];
+const ACCOUNTS = [
+    { id: 'a1', type: 'bank', bank: 'กสิกรไทย', name: 'บจก. ซอฟต์ไลท์', number: '123-4-56789-0', branch: 'สีลม', note: '', isDefault: true, active: true },
+    { id: 'a2', type: 'promptpay', bank: '', name: 'บจก. ซอฟต์ไลท์', number: '0105561234567', branch: '', note: '', isDefault: false, active: true }
+];
+const INVOICES = [
+    { id: 'INV-0003', org: 'o4', orgName: ORGS[3].name, plan: 'basic', planName: 'Basic', cycle: 'monthly', amount: 990, status: 'pending', issued: now.getTime() - 12 * DAY, due: now.getTime() - 2 * DAY, periodStart: now.getTime() - 12 * DAY, periodEnd: now.getTime() + 18 * DAY, paidAt: null, ref: '', overdue: true },
+    { id: 'INV-0002', org: 'o1', orgName: ORGS[0].name, plan: 'pro', planName: 'Pro', cycle: 'monthly', amount: 1990, status: 'paid', issued: now.getTime() - 15 * DAY, due: now.getTime() - 8 * DAY, periodStart: now.getTime() - 10 * DAY, periodEnd: now.getTime() + 20 * DAY, paidAt: now.getTime() - 9 * DAY, ref: 'TRX123', overdue: false },
+    { id: 'INV-0001', org: 'o2', orgName: ORGS[1].name, plan: 'basic', planName: 'Basic', cycle: 'yearly', amount: 9900, status: 'void', issued: now.getTime() - 60 * DAY, due: now.getTime() - 53 * DAY, periodStart: now.getTime() - 60 * DAY, periodEnd: now.getTime() + 305 * DAY, paidAt: null, ref: '', overdue: false }
+];
+
 // สถิติการใช้งาน (รูปแบบเดียวกับ analyticsReport_ ใน apps-script/Analytics.gs)
 function analyticsReport(app, days) {
     const totals = (k) => ({ users: 38 * k, newUsers: 6 * k, sessions: 120 * k, views: 410 * k, events: 900 * k, avgSession: 95, engagementRate: 72, viewsPerSession: 3.4 });
@@ -120,6 +144,15 @@ function mock(action, body) {
             trialsEnding: [{ id: 'o3', name: 'บริษัท ทดลอง จำกัด', planName: 'Pro', access: { state: 'trial', daysLeft: 3 } }],
             attention: [{ id: 'o4', name: 'บริษัท ค้างชำระ จำกัด', planName: 'Basic', access: { state: 'past_due', daysLeft: 0 } }],
             revenue: Array.from({ length: 6 }, (_, i) => { const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1); return { month: `${d.getFullYear()}-${pad(d.getMonth() + 1)}`, amount: 2000 + i * 400 }; })
+        };
+        case 'dev.orgs.list': return { success: true, orgs: ORGS, plans: PLANS, statuses: ['trial', 'active', 'past_due', 'suspended', 'cancelled'], unassigned: { users: 3, staff: 1 } };
+        case 'dev.plans.list': return { success: true, plans: PLANS };
+        case 'dev.invoices.list': return { success: true, invoices: INVOICES, accounts: ACCOUNTS.filter(a => a.active) };
+        case 'dev.accounts.list': return { success: true, accounts: ACCOUNTS };
+        case 'dev.users.list': return {
+            success: true, orgs: ORGS.map(o => ({ id: o.id, name: o.name })), roles: ['pending', 'viewer', 'editor', 'admin', 'dev'],
+            staff: [me, { id: 'S2', name: 'สมศรี ฝ่ายบุคคล', email: 'hr@example.com', picture: '', role: 'editor', status: 'active', org: 'o1', lastLoginAt: now.getTime() - 3600e3 }, { id: 'S3', name: 'รออนุมัติ ทดสอบ', email: 'p@example.com', picture: '', role: 'pending', status: 'pending', org: '', lastLoginAt: null }],
+            participants: participants.map((p, i) => ({ id: p.id, name: p.name, site: p.site, active: p.active, org: i < 4 ? 'o1' : '' }))
         };
         default: return null; // ไม่ได้จำลอง → แอปแสดงสถานะ error ของตัวเอง (แจ้งใน unmocked ไม่นับเป็นปัญหา)
     }
@@ -189,6 +222,13 @@ async function run(label, ctxOpts) {
         await page.evaluate(t => { location.hash = t; }, t);
         await page.waitForLoadState('networkidle').catch(() => {});
         await shot('s-' + t);
+        // แท็บย่อยของ Dev Console
+        if (t === 'dev') for (const sec of ['orgs', 'plans', 'invoices', 'accounts', 'users']) {
+            cur = 's-dev-' + sec;
+            await page.click(`#devTabs [data-s="${sec}"]`);
+            await page.waitForLoadState('networkidle').catch(() => {});
+            await shot('s-dev-' + sec);
+        }
     }
     await browser.close();
     results.push({ label, shots, issues, unmocked: [...unmocked] });
