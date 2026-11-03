@@ -86,6 +86,22 @@ VIEWS.overview = {
 
     render() {
         const d = this.data, k = d.kpi, W = this.words();
+        // ยังไม่มีผู้ใช้สิทธิ์ (เช่น องค์กรใหม่ที่ยังไม่ได้ย้ายผู้ใช้เข้า): บอกให้ชัด แทนตัวเลข 0 ทั้งหน้า
+        const empty = !k.participants && !k.reportedToday && !(d.anomalies || []).length;
+        $('overviewView').querySelector('.ov-grid').hidden = empty;
+        $('ovDates').hidden = empty;
+        if (empty) {
+            const org = ST.sub && ST.sub.org ? ST.sub.org.name : '';
+            $('ovTitle').textContent = 'ภาพรวม';
+            $('ovDate').textContent = org ? org : '';
+            $('ovKpis').innerHTML = `<div class="card ov-empty">${icon('users')}
+              <b>${org ? 'องค์กรนี้ยังไม่มีผู้ใช้สิทธิ์' : 'ยังไม่มีผู้ใช้สิทธิ์ในระบบ'}</b>
+              <p>${org ? 'ติดต่อผู้ดูแลระบบเพื่อเพิ่มผู้ใช้สิทธิ์เข้าองค์กร เมื่อมีผู้ใช้สิทธิ์และรายงานแล้ว ภาพรวมจะแสดงที่นี่' : 'เพิ่มผู้ใช้สิทธิ์ก่อน แล้วภาพรวมการส่งรายงานจะแสดงที่นี่'}</p>
+              ${can('participants.edit') ? `<button type="button" class="btn btn-primary btn-sm" data-goto="participants">${icon('plus', 'ic-16')}เพิ่มผู้ใช้สิทธิ์</button>` : ''}
+              ${can('dev') ? '<small class="muted-text">Dev: ย้ายผู้ใช้สิทธิ์เข้าองค์กรได้ที่ Dev Console › ผู้ใช้</small>' : ''}
+            </div>`;
+            return;
+        }
         $('ovTitle').textContent = W.title;
         $('ovDate').textContent = d.isToday === false ? `${thDateLong(d.today)} · ข้อมูลย้อนหลัง` : `${thDateLong(d.today)} · อัปเดต ${thTime(d.generatedAt)} น.`;
         $('missTitle').firstChild.textContent = 'ยังไม่ส่ง' + W.day + ' ';

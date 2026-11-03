@@ -34,6 +34,8 @@ function handleStaffRequest_(req) {
   switch (req.action) {
     case 'staff.me':
       return { success: true, staff: staffDto_(staff), token: renewedToken_(staff), subscription: sub && typeof orgAccessDto_ === 'function' ? orgAccessDto_(sub) : null };
+    case 'staff.profile.photo':
+      return staffProfilePhoto_(req, staff, ua);
     case 'staff.logout':
       if (req.everywhere) return staffLogoutEverywhere_(staff, ua);
       log_(staff, 'staff.logout', staff.email || staff.name, '', ua);
@@ -691,6 +693,20 @@ function staffParticipantDelete_(req, staff, ua) {
 // รูปโปรไฟล์ผู้ใช้สิทธิ์: ไฟล์ชื่อ IMG_<รหัส> ในโฟลเดอร์รูปโปรไฟล์ (เปลี่ยนได้ด้วย Script Property PROFILE_FOLDER_ID)
 const PROFILE_FOLDER_ID = '1-GZAWmJ0daUrM6R9HuiayZzRBQwu_-HE';
 const MAX_PROFILE_BYTES = 2 * 1024 * 1024;
+// เจ้าหน้าที่ตั้งรูปโปรไฟล์เอง (หน้าบัญชี) — ใช้แทนรูปจาก Google/LINE · remove = กลับไปใช้รูปจากผู้ให้บริการ
+function staffProfilePhoto_(req, staff, ua) {
+  const sh = sheet_(SHEET.STAFF);
+  if (req.remove) {
+    sh.getRange(staff.row, SCOL.CUSTOM_PIC + 1).setValue('');
+  } else {
+    if (!req.photo || !req.photo.data) fail_('INVALID', 'กรุณาเลือกรูป');
+    sh.getRange(staff.row, SCOL.CUSTOM_PIC + 1).setValue(saveNamedImage_('STAFF_' + staff.id, req.photo));
+  }
+  clearStaffCache_();
+  log_(staff, 'staff.profile_photo', staff.email || staff.name, { action: req.remove ? 'remove' : 'upload' }, ua);
+  return { success: true, staff: staffDto_(findStaffById_(staff.id)) };
+}
+
 function saveProfilePhoto_(id, photo) { return saveNamedImage_('IMG_' + id, photo); }
 // บันทึกรูปลงโฟลเดอร์รูป (PROFILE_FOLDER_ID) ชื่อ name — ใช้กับรูปโปรไฟล์ · โลโก้องค์กร (LOGO_<รหัส>) · รูปประกาศ (NEWS_<รหัส>)
 function saveNamedImage_(name, photo) {

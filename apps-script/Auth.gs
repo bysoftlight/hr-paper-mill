@@ -86,12 +86,14 @@ function rowToStaff_(r, row) {
   const stored = String(r[SCOL.PERMS] || '').split(',').map(s => s.trim()).filter(p => PERMS.indexOf(p) !== -1);
   return {
     row: row, id: String(r[SCOL.ID]), provider: r[SCOL.PROVIDER], sub: String(r[SCOL.SUB]), email: r[SCOL.EMAIL], name: r[SCOL.NAME],
-    picture: r[SCOL.PICTURE], role: role, permissions: stored.length ? stored : (ROLE_PRESETS[role] || []),
+    picture: r[SCOL.CUSTOM_PIC] ? toImageUrl_(String(r[SCOL.CUSTOM_PIC])) : r[SCOL.PICTURE], role: role, permissions: stored.length ? stored : (ROLE_PRESETS[role] || []),
     status: STAFF_STATUSES.indexOf(r[SCOL.STATUS]) === -1 ? 'pending' : r[SCOL.STATUS],
     tokenVersion: Number(r[SCOL.TOKEN_VER]) || 1,
     createdAt: toDate_(r[SCOL.CREATED_AT]), lastLoginAt: toDate_(r[SCOL.LAST_LOGIN]),
     approvedBy: r[SCOL.APPROVED_BY], approvedAt: toDate_(r[SCOL.APPROVED_AT]), note: r[SCOL.NOTE],
-    org: String(r[SCOL.ORG] || '').trim()
+    org: String(r[SCOL.ORG] || '').trim(),
+    // รูปที่อัปโหลดเองในหน้าบัญชีมาก่อนรูปจาก Google/LINE (บัญชีที่ไม่ได้ตั้งรูปไว้กับผู้ให้บริการ)
+    customPicture: String(r[SCOL.CUSTOM_PIC] || ''), providerPicture: r[SCOL.PICTURE]
   };
 }
 
@@ -160,7 +162,7 @@ function staffDto_(s) {
     permissions: effectivePerms_(s), storedPermissions: s.permissions, status: s.status,
     createdAt: s.createdAt ? s.createdAt.getTime() : null, lastLoginAt: s.lastLoginAt ? s.lastLoginAt.getTime() : null,
     approvedBy: s.approvedBy || '', approvedAt: s.approvedAt ? s.approvedAt.getTime() : null, note: s.note || '',
-    org: s.org || ''
+    org: s.org || '', customPicture: !!s.customPicture
   };
 }
 
@@ -191,7 +193,7 @@ function loginStaff_(identity, userAgent) {
       // อัปเดตชื่อ/รูป/อีเมลล่าสุดจากผู้ให้บริการ
       sh.getRange(staff.row, SCOL.EMAIL + 1, 1, 3).setValues([[clean_(identity.email || staff.email, 200), clean_(identity.name, 120), clean_(identity.picture, 500)]]);
       sh.getRange(staff.row, SCOL.LAST_LOGIN + 1).setValue(now);
-      staff.email = identity.email || staff.email; staff.name = identity.name; staff.picture = identity.picture; staff.lastLoginAt = now;
+      staff.email = identity.email || staff.email; staff.name = identity.name; staff.picture = staff.customPicture ? staff.picture : identity.picture; staff.lastLoginAt = now;
       // อีเมลอยู่ใน DEV_EMAILS → เลื่อนเป็น dev (ตั้งต้นระบบ)
       if (staff.role !== 'dev' && staff.email && devEmails_().indexOf(String(staff.email).toLowerCase()) !== -1) {
         sh.getRange(staff.row, SCOL.ROLE + 1, 1, 3).setValues([['dev', PERMS.join(','), 'active']]);

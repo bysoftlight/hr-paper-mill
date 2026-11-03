@@ -12,8 +12,8 @@ const RCOL = { TS: 0, DATE: 1, TIME: 2, USER_ID: 3, USER_NAME: 4, TYPE: 5, IMAGE
 const R_HEADERS = ['Timestamp', 'วันที่', 'เวลา', 'รหัส', 'ชื่อ', 'ประเภทการขาย', 'รูปหลักฐาน', 'Latitude', 'Longitude', 'แผนที่', 'หมายเหตุ', 'สถานะ', 'แก้ไขโดย', 'แก้ไขล่าสุด', 'ที่มา', 'ความแม่นยำ GPS (ม.)', 'ลายนิ้วมือรูป', 'ระบบได้รับเมื่อ'];
 
 // Staff: บัญชีเจ้าหน้าที่ (เข้าสู่ระบบด้วย Google / LINE)
-const SCOL = { ID: 0, PROVIDER: 1, SUB: 2, EMAIL: 3, NAME: 4, PICTURE: 5, ROLE: 6, PERMS: 7, STATUS: 8, TOKEN_VER: 9, CREATED_AT: 10, LAST_LOGIN: 11, APPROVED_BY: 12, APPROVED_AT: 13, NOTE: 14, ORG: 15 };
-const S_HEADERS = ['ID', 'ผู้ให้บริการ', 'Subject', 'อีเมล', 'ชื่อ', 'รูป', 'บทบาท', 'สิทธิ์', 'สถานะ', 'Token version', 'สร้างเมื่อ', 'เข้าใช้ล่าสุด', 'อนุมัติโดย', 'อนุมัติเมื่อ', 'หมายเหตุ', 'องค์กร'];
+const SCOL = { ID: 0, PROVIDER: 1, SUB: 2, EMAIL: 3, NAME: 4, PICTURE: 5, ROLE: 6, PERMS: 7, STATUS: 8, TOKEN_VER: 9, CREATED_AT: 10, LAST_LOGIN: 11, APPROVED_BY: 12, APPROVED_AT: 13, NOTE: 14, ORG: 15, CUSTOM_PIC: 16 };
+const S_HEADERS = ['ID', 'ผู้ให้บริการ', 'Subject', 'อีเมล', 'ชื่อ', 'รูป', 'บทบาท', 'สิทธิ์', 'สถานะ', 'Token version', 'สร้างเมื่อ', 'เข้าใช้ล่าสุด', 'อนุมัติโดย', 'อนุมัติเมื่อ', 'หมายเหตุ', 'องค์กร', 'รูปโปรไฟล์ (อัปโหลดเอง)'];
 
 // องค์กร (บริษัทลูกค้า) ของเจ้าหน้าที่ที่ส่งคำขออยู่ — ตั้งใน handleStaffRequest_: เจ้าหน้าที่ขององค์กรเห็นเฉพาะผู้ใช้สิทธิ์/รายงานขององค์กรตัวเอง
 // null = ไม่จำกัด (Dev, บัญชีที่ไม่ได้ผูกองค์กร, งานเบื้องหลัง) · ล้างทุกคำขอใน doPost
