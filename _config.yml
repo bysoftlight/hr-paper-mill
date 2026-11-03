@@ -3,3 +3,4 @@ exclude:
   - apps-script/
   - DESIGN.md
   - README.md
+  - guides/
