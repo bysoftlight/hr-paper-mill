@@ -169,6 +169,13 @@ VIEWS.dev = {
         return r;
     },
 
+    // โลโก้ขนาดเล็ก (PNG พื้นโปร่งใส) สำหรับเก็บในชีต: ลดขนาดจนพอดีช่อง
+    async logoSmall(f) {
+        for (const px of [192, 160, 128, 96, 72]) {
+            try { const r = await shrinkImage(f, px, true); if (r.mimeType === 'image/png' && r.data.length <= 40000) return r.data; } catch (e) { return ''; }
+        }
+        return '';
+    },
     async orgForm(o) {
         const pr = await this.get('dev.orgs.list', 'orgs');
         if (!pr.success) return showMessage({ title: 'โหลดข้อมูลไม่สำเร็จ', text: pr.message, tone: 'bad' });
@@ -196,11 +203,11 @@ VIEWS.dev = {
                   <span class="row-wrap"><label class="btn btn-tonal btn-sm">${icon('image')}เลือกรูป<input type="file" accept="image/*" id="devLogoFile" hidden></label><button type="button" class="btn btn-ghost btn-sm" id="devLogoDel" ${o && o.logo ? '' : 'hidden'}>ลบโลโก้</button></span></span>
               </div>`,
             danger: isNew ? null : { label: 'ลบองค์กร', fn: () => this.orgDelete(o) },
-            onSubmit: d => this.run('dev.orgs.save', { org: Object.assign({ id: o ? o.id : '' }, d, logo.file ? { logo: { data: logo.file.data, mimeType: logo.file.mimeType } } : {}, logo.remove ? { removeLogo: true } : {}) }, isNew ? 'สร้างองค์กรแล้ว' : 'บันทึกแล้ว', ['orgs', 'users'])
+            onSubmit: d => this.run('dev.orgs.save', { org: Object.assign({ id: o ? o.id : '' }, d, logo.file ? { logo: { data: logo.file.data, mimeType: logo.file.mimeType, small: logo.file.small || '' } } : {}, logo.remove ? { removeLogo: true } : {}) }, isNew ? 'สร้างองค์กรแล้ว' : 'บันทึกแล้ว', ['orgs', 'users'])
         });
         $('devLogoFile').addEventListener('change', async e => {
             const f = e.target.files[0]; if (!f) return;
-            try { logo.file = await shrinkImage(f, 512, true); logo.remove = false; $('devLogoPrev').innerHTML = `<img src="${logo.file.url}" alt="">`; $('devLogoDel').hidden = false; this.formErr(''); }
+            try { logo.file = await shrinkImage(f, 512, true); logo.file.small = await this.logoSmall(f); logo.remove = false; $('devLogoPrev').innerHTML = `<img src="${logo.file.url}" alt="">`; $('devLogoDel').hidden = false; this.formErr(''); }
             catch (err) { this.formErr(err.message); }
             e.target.value = '';
         });
