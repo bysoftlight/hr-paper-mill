@@ -396,19 +396,25 @@ function tidyFootLinks() {
 document.addEventListener('DOMContentLoaded', () => { tidyFootLinks(); if (window.ResizeObserver) document.querySelectorAll('.foot-links').forEach(n => new ResizeObserver(tidyFootLinks).observe(n)); else window.addEventListener('resize', tidyFootLinks); });
 window.addEventListener('load', tidyFootLinks);
 
-// ---------- โลโก้องค์กร (Dev Console › องค์กร) แสดงคู่กับชื่อแอป: แถบบนมือถือ + เมนูด้านข้าง ----------
+// ---------- องค์กรของผู้ใช้ (Dev Console › องค์กร) ----------
+// คอมพิวเตอร์/แท็บเล็ต: การ์ดใต้ชื่อแอปในเมนูด้านข้าง · มือถือ: ไม่ใส่ในแถบบน (แน่นเกิน) แสดงในการ์ดโปรไฟล์/หน้าบัญชีแทน ([data-org-line])
 const OrgMark = {
     set(org) {
         const e = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-        document.querySelectorAll('.topbar > .brand, .sidenav > .brand').forEach(b => {
+        const has = org && (org.logo || org.name);
+        const html = has ? (org.logo ? `<img src="${e(org.logo)}" alt="" referrerpolicy="no-referrer" loading="lazy">` : '') + `<span>${e(org.name)}</span>` : '';
+        const guard = root => root.querySelectorAll('img').forEach(img => img.addEventListener('error', () => { img.remove(); root.classList.remove('has-logo'); }, { once: true }));
+        document.querySelectorAll('.topbar > .org-mark').forEach(m => m.remove()); // รุ่นก่อนใส่ไว้ในแถบบน
+        document.querySelectorAll('.sidenav > .brand').forEach(b => {
             let m = b.nextElementSibling && b.nextElementSibling.classList.contains('org-mark') ? b.nextElementSibling : null;
-            if (!org || !(org.logo || org.name)) { if (m) m.remove(); return; }
+            if (!has) { if (m) m.remove(); return; }
             if (!m) { m = document.createElement('span'); m.className = 'org-mark'; b.after(m); }
-            m.classList.toggle('has-logo', !!org.logo);
-            m.title = org.name || '';
-            m.innerHTML = (org.logo ? `<img src="${e(org.logo)}" alt="${e(org.name)}" referrerpolicy="no-referrer" loading="lazy">` : '') + `<span>${e(org.name)}</span>`;
-            const img = m.querySelector('img');
-            if (img) img.addEventListener('error', () => { img.remove(); m.classList.remove('has-logo'); }, { once: true });
+            m.classList.toggle('has-logo', !!org.logo); m.title = org.name || ''; m.innerHTML = html; guard(m);
+        });
+        document.querySelectorAll('[data-org-line]').forEach(el => {
+            el.innerHTML = html; el.classList.toggle('has-logo', !!(has && org.logo)); guard(el);
+            el.hidden = !has;
+            const row = el.closest('[data-org-row]'); if (row) row.hidden = !has;
         });
     }
 };

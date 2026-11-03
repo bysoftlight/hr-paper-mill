@@ -1852,11 +1852,6 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
 .org-mark { display: inline-flex; align-items: center; gap: 8px; min-width: 0; margin-left: 10px; padding-left: 12px; border-left: 1px solid var(--line); color: var(--ink-2); font-size: 13px; font-weight: 600; line-height: 1.25; }
 .org-mark img { height: 30px; width: auto; max-width: 84px; object-fit: contain; border-radius: 6px; flex: none; }
 .org-mark span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 28vw; }
-.topbar .org-mark.has-logo span { display: none; }
-.topbar > .org-mark { flex: 0 1 auto; margin-right: auto; overflow: hidden; }
-.topbar > .brand, .topbar > .topbar-actions { flex: none; }
-.topbar > .org-mark img { height: 28px; max-width: 64px; }
-@media (max-width: 420px) { .topbar > .org-mark { margin-left: 8px; padding-left: 8px; } .topbar > .org-mark img { height: 24px; max-width: 44px; } }
 .sidenav > .org-mark { display: flex; justify-content: center; margin: -8px 0 0; padding: 6px; border: 1px solid var(--line-soft); border-radius: 14px; background: var(--surface); width: 100%; }
 .sidenav > .org-mark span { display: none; }
 .sidenav > .org-mark:not(.has-logo) span { display: block; font-size: 11px; text-align: center; white-space: normal; max-width: none; }
@@ -1866,3 +1861,12 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
     .sidenav > .org-mark span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; white-space: normal; max-width: none; font-size: 13px; text-align: left; }
     .sidenav > .org-mark img { height: 32px; max-width: 72px; }
 }
+
+/* องค์กรในการ์ดโปรไฟล์ / หน้าบัญชี */
+.org-line { display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; margin-top: 4px; padding: 4px 10px 4px 4px; border-radius: 999px; background: var(--container); color: var(--ink-2); font-size: 13px; font-weight: 600; line-height: 1.3; align-self: flex-start; }
+.org-line[hidden] { display: none; }
+.org-line:not(.has-logo) { padding-left: 10px; }
+.org-line img { height: 22px; width: auto; max-width: 56px; object-fit: contain; border-radius: 6px; background: #fff; flex: none; }
+.org-line span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-card .org-line { align-self: center; margin-top: 2px; }
+dd .org-line, dd[data-org-line] { margin: 0; padding: 0; background: none; font-size: inherit; font-weight: 500; justify-content: flex-end; }
