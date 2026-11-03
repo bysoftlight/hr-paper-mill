@@ -57,6 +57,8 @@ VIEWS.participants = {
         });
         $('pfId').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6); this.updatePicInfo(); this.checkId(); });
         $('pfDelete').addEventListener('click', () => this.remove());
+        $('partTrash').addEventListener('click', () => { haptic(); this.openTrash(); });
+        $('trashList').addEventListener('click', e => { const b = e.target.closest('[data-restore]'); if (b) this.restore(b.closest('[data-id]').dataset.id); });
         $('pfName').addEventListener('input', debounce(() => this.previewPic(), 300));
         $('pfPic').addEventListener('input', debounce(() => this.previewPic(), 300));
         $('pfPicFile').addEventListener('change', e => this.pickPic(e.target.files[0]));
@@ -305,7 +307,7 @@ VIEWS.participants = {
         this.editing = p || null;
         $('pfTitle').textContent = p ? 'แก้ไขผู้ใช้สิทธิ์' : 'เพิ่มผู้ใช้สิทธิ์';
         $('pfId').value = p ? p.id : '';
-        $('pfDangerZone').hidden = !p;
+        $('pfDangerZone').hidden = !p || !can('participants.delete');
         this.checkId();
         $('pfName').value = p ? p.name : '';
         $('pfStatus').value = p ? p.status : `ใช้สิทธิ์ปี ${bkkParts().y + 543}`;
@@ -342,8 +344,8 @@ VIEWS.participants = {
         if (!p) return;
         const reason = await VIEWS.records.askReason({
             title: `ลบบัญชี ${p.name}?`,
-            text: `รหัส ${p.id} จะเข้าสู่ระบบไม่ได้อีก ประวัติรายงานเดิมยังเก็บไว้ในรายงาน รูปโปรไฟล์ IMG_${p.id} (ถ้ามี) จะย้ายไปถังขยะ และบันทึกเหตุผลไว้ใน Log`,
-            okText: 'ลบบัญชี'
+            text: `ย้ายไปถังขยะ: รหัส ${p.id} เข้าสู่ระบบไม่ได้ทันที · กู้คืนได้ภายใน ${this.trashDays} วันที่ ผู้ใช้สิทธิ์ › ถังขยะ จากนั้นจะลบถาวร · ประวัติรายงานยังเก็บไว้ครบ และบันทึกเหตุผลไว้ใน Log`,
+            okText: 'ย้ายไปถังขยะ'
         });
         if (!reason) return;
         showLoading(true, 'กำลังลบ…');
@@ -351,7 +353,45 @@ VIEWS.participants = {
         showLoading(false);
         if (!r.success) return showMessage({ title: 'ลบไม่สำเร็จ', text: r.message, tone: 'bad' });
         $('participantFormModal').close();
-        toast(`ลบบัญชี ${p.id} แล้ว`);
+        toast(`ย้าย ${p.id} ไปถังขยะแล้ว · กู้คืนได้ภายใน ${r.trashDays || this.trashDays} วัน`, 4000);
+        this.load(true);
+    },
+
+    // ---------- ถังขยะ: ผู้ใช้สิทธิ์ที่ลบไม่เกิน 30 วัน กู้คืนได้ ----------
+    trashDays: 30,
+    async openTrash() {
+        $('trashList').innerHTML = '<div class="skel" style="height:120px;border-radius:16px"></div>';
+        showModal('trashSheet');
+        const r = await api('staff.participants.trash');
+        if (!r.success) { $('trashList').innerHTML = emptyState(r.message || 'โหลดไม่สำเร็จ', 'wifi-off'); return; }
+        this.trashDays = r.days || 30; this.trash = r.trash;
+        $('trashSub').textContent = `ลบแล้วกู้คืนได้ภายใน ${this.trashDays} วัน หลังจากนั้นระบบลบถาวร`;
+        this.renderTrash();
+    },
+    renderTrash() {
+        const list = this.trash || [];
+        if (!list.length) { $('trashList').innerHTML = emptyState('ถังขยะว่าง', 'trash'); return; }
+        const now = Date.now();
+        $('trashList').innerHTML = list.map(t => {
+            const left = Math.max(0, Math.ceil((t.purgeAt - now) / 86400000));
+            return `<div class="trash-item" data-id="${esc(t.id)}">
+              ${avatarHtml(t.name, t.pic)}
+              <span class="trash-txt"><b>${esc(t.name)}</b><small class="mono">${esc(t.id)}${t.site ? ' · ' + esc(t.site) : ''}</small>
+                <small>ลบ ${thDateTime(t.deletedAt)}${t.deletedBy ? ' โดย ' + esc(t.deletedBy) : ''}${t.reason ? ' · ' + esc(t.reason) : ''}</small>
+                <small class="${left <= 3 ? 'is-bad' : ''}">${left ? `ลบถาวรในอีก ${left} วัน` : 'ลบถาวรเร็วๆ นี้'} · รายงาน ${fmtNum(t.records)} รายการ</small></span>
+              <button type="button" class="btn btn-tonal btn-sm" data-restore>${icon('restore', 'ic-16')} กู้คืน</button>
+            </div>`;
+        }).join('');
+    },
+    async restore(id) {
+        const t = (this.trash || []).find(x => x.id === id); if (!t) return;
+        if (!await showMessage({ title: `กู้คืน ${t.name}?`, text: `รหัส ${t.id} กลับมาเข้าสู่ระบบและส่งรายงานได้ตามเดิม พร้อมประวัติรายงานทั้งหมด`, okText: 'กู้คืน', cancelText: 'ยกเลิก' })) return;
+        showLoading(true, 'กำลังกู้คืน…');
+        const r = await api('staff.participants.restore', { id });
+        showLoading(false);
+        if (!r.success) return showMessage({ title: 'กู้คืนไม่สำเร็จ', text: r.message || '', tone: 'bad' });
+        toast(`กู้คืน ${id} แล้ว`);
+        this.trash = this.trash.filter(x => x.id !== id); this.renderTrash();
         this.load(true);
     },
 

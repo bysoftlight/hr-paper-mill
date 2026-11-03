@@ -10,7 +10,8 @@ function sessionMs_() {
   return (days > 0 ? Math.min(days, 365) : DEFAULT_SESSION_DAYS) * 86400000;
 }
 
-const PERMS = ['records.view', 'records.edit', 'participants.view', 'participants.edit', 'export', 'admin'];
+// ลบ (และกู้คืน) แยกจากแก้ไข: ผู้แก้ไขเพิ่ม/แก้ได้ แต่ลบต้องได้สิทธิ์ลบเพิ่ม (ผู้ดูแลระบบได้ครบเสมอ)
+const PERMS = ['records.view', 'records.edit', 'records.delete', 'participants.view', 'participants.edit', 'participants.delete', 'export', 'admin'];
 const ROLE_PRESETS = {
   viewer: ['records.view', 'participants.view'],
   editor: ['records.view', 'records.edit', 'participants.view', 'participants.edit', 'export'],

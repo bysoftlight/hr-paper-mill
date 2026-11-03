@@ -422,11 +422,12 @@ VIEWS.records = {
 
         const acts = [];
         if (rec.fileId) acts.push(`<button type="button" class="btn btn-outline" id="recDownload">${icon('download')} ดาวน์โหลดรูป</button>`);
-        if (can('records.edit')) {
+        // ลบ/กู้คืน แยกสิทธิ์จากแก้ไข (records.delete)
+        if (can('records.delete')) {
             if (rec.status === 'deleted') acts.push(`<button type="button" class="btn btn-outline" id="recRestore">${icon('restore')} กู้คืน</button>`);
             else acts.push(`<button type="button" class="btn btn-danger" id="recDelete">${icon('trash')} ลบ</button>`);
-            acts.push(`<button type="button" class="btn btn-primary" id="recEdit">${icon('edit')} แก้ไข</button>`);
         }
+        if (can('records.edit')) acts.push(`<button type="button" class="btn btn-primary" id="recEdit">${icon('edit')} แก้ไข</button>`);
         if (!acts.length) acts.push('<button type="button" class="btn btn-outline" data-close>ปิด</button>');
         $('recActions').innerHTML = acts.join('');
         const on = (id, fn) => { const b = $(id); if (b) b.addEventListener('click', fn); };
