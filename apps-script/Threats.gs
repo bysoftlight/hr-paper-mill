@@ -6,7 +6,7 @@
 // บล็อกเครื่อง = เครื่องนั้นใช้หน้าผู้ใช้สิทธิ์ไม่ได้ (เก็บใน Script Properties: GUARD_BLOCKS)
 
 const THREAT_SHEET = 'Threats';
-const T_HEADERS = ['เวลา', 'ระดับ', 'ประเภท', 'รายละเอียด', 'เครื่อง', 'รหัสผู้ใช้สิทธิ์', 'อุปกรณ์', 'สถานะ', 'จัดการโดย', 'รหัสประเภท'];
+const T_HEADERS = ['timestamp', 'level', 'label', 'details', 'device', 'user_id', 'client', 'status', 'handled_by', 'type'];
 const TC = { TS: 0, LEVEL: 1, LABEL: 2, DETAIL: 3, DEVICE: 4, USER: 5, CLIENT: 6, STATUS: 7, BY: 8, TYPE: 9 };
 const THREAT_LEVELS = { critical: 'วิกฤต', high: 'สูง', medium: 'ปานกลาง' };
 const THREAT_TYPES = {

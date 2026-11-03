@@ -11,7 +11,7 @@
 const NEWS_SHEET = 'Announcements';
 const NWCOL = { ID: 0, TS: 1, TITLE: 2, BODY: 3, AUDIENCE: 4, LINK: 5, EXPIRES: 6, BY: 7, STATUS: 8, PUSHED: 9, UPDATED_AT: 10, IMAGE: 11, KIND: 12, ORG: 13 };
 // องค์กร: ว่าง = ประกาศส่วนกลาง (Dev ส่งถึงทุกองค์กร) · มีรหัส = เฉพาะผู้ใช้/เจ้าหน้าที่ขององค์กรนั้น
-const NW_HEADERS = ['ID', 'เวลา', 'หัวข้อ', 'ข้อความ', 'ผู้รับ', 'ลิงก์', 'หมดอายุ', 'สร้างโดย', 'สถานะ', 'แจ้งเตือนมือถือ', 'แก้ไขล่าสุด', 'รูป', 'ประเภท', 'องค์กร'];
+const NW_HEADERS = ['news_id', 'timestamp', 'title', 'body', 'audience', 'link', 'expires_at', 'created_by', 'status', 'push_sent', 'updated_at', 'image', 'kind', 'org_id'];
 const NEWS_KINDS = { news: 'ข่าวสาร', system: 'ระบบ' }; // ระบบ = แจ้งเรื่องสำคัญของระบบ เช่น ปิดปรับปรุง ขัดข้อง (หมวด "ระบบ" ในกล่องแจ้งเตือน)
 const NEWS_AUDIENCES = { all: 'ทุกคน', participants: 'ผู้ใช้สิทธิ์', staff: 'เจ้าหน้าที่' };
 const INBOX_DAYS = 45; // แสดงย้อนหลังกี่วัน
@@ -210,7 +210,7 @@ function adminNewsDelete_(req, staff, ua) {
 //   first = รายการก่อนเวลานี้ถือว่าอ่านแล้ว · seen = เปิดหน้าแจ้งเตือนล่าสุด (ใช้นับเลขบนกระดิ่ง) · read = รหัสรายการที่อ่านแล้ว
 // รวมแบบไม่มีวันถอยหลัง: read = รวมกัน · seen = ค่ามากสุด · first = ค่าน้อยสุด — อุปกรณ์ไหนส่งก่อน/หลังก็ได้ผลเดียวกัน
 const STATE_SHEET = 'InboxState';
-const ST_HEADERS = ['บัญชี', 'อ่านแล้วก่อน (first)', 'เปิดล่าสุด (seen)', 'รายการที่อ่านแล้ว (JSON)', 'แก้ไขล่าสุด'];
+const ST_HEADERS = ['account', 'read_before (first)', 'last_opened (seen)', 'read_ids_json', 'updated_at'];
 const STATE_MAX_READ = 400;
 function stateSheet_() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);

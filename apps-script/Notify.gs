@@ -14,7 +14,7 @@
 //   - สรุปประจำวันให้เจ้าหน้าที่ (push + อีเมล) ทุกวัน 18:00 น. (รวมกับ SUMMARY_EMAILS เดิม)
 
 const NCOL = { ID: 0, OWNER_TYPE: 1, OWNER_ID: 2, CHANNEL: 3, ENDPOINT: 4, TOPICS: 5, DEVICE: 6, CREATED_AT: 7, LAST_SENT: 8, FAILS: 9, MESSAGE: 10 };
-const N_HEADERS = ['ID', 'ประเภท', 'เจ้าของ (รหัส)', 'ช่องทาง', 'ปลายทาง', 'หัวข้อ', 'อุปกรณ์', 'สร้างเมื่อ', 'ส่งล่าสุด', 'ส่งไม่สำเร็จ', 'ข้อความล่าสุด'];
+const N_HEADERS = ['sub_id', 'owner_type', 'owner_id', 'channel', 'endpoint', 'topic', 'device', 'created_at', 'last_sent', 'fail_count', 'last_message'];
 const NOTIFY_SHEET = 'Notify';
 const NOTIFY_TOPICS = { user: ['remind'], staff: ['new', 'summary'] }; // แบบสอบถาม (Feedback.gs) ส่งถึงทุกเครื่องของผู้ใช้สิทธิ์ที่เปิดการแจ้งเตือน
 const DEFAULT_REMIND_HOUR = 17;
