@@ -4,3 +4,4 @@ exclude:
   - DESIGN.md
   - README.md
   - guides/
+  - tests/
