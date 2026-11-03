@@ -1108,17 +1108,49 @@ dialog:focus-visible { outline: none; } /* กรอบโฟกัสของ�
 .perm-txt small { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
 .perm-view li.is-off .perm-txt b { font-weight: 500; }
 .perm-note { margin-top: 12px; }
+/* หน้าบัญชี: มือถือเรียงการ์ดใหม่ (โปรไฟล์ → แพ็กเกจ → สิทธิ์ → เมนู) · คอมพิวเตอร์สองคอลัมน์ */
+.acc-btns { display: flex; flex-direction: column; gap: 10px; }
+@media (max-width: 1023px) {
+    .staff .acc-grid { grid-template-columns: minmax(0, 1fr); }
+    .staff .acc-col { display: contents; }
+    .acc-o1 { order: 1; } .acc-o2 { order: 2; } .acc-o3 { order: 3; } .acc-o4 { order: 4; } .acc-o5 { order: 5; } .acc-o6 { order: 6; } .acc-o7 { order: 7; }
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+    .staff .acc-grid { max-width: 680px; margin-inline: auto; }
+    .acc-btns { flex-direction: row; } .acc-btns > * { flex: 1; }
+}
 /* แพ็กเกจและการชำระเงิน */
-.bill-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
-.bill-head > span:first-child { display: flex; flex-direction: column; gap: 2px; }
-.bill-head small { font-size: 12px; color: var(--muted); }
-.bill-head b { font-size: 20px; font-weight: 700; }
-.bill-sub { font-size: 14px; font-weight: 600; margin: 16px 0 8px; }
+.bill-plan { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.bill-plan > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.bill-plan small { font-size: 12px; color: var(--muted); }
+.bill-plan-name { font-size: 24px; font-weight: 700; line-height: 1.2; }
+.bill-price { font-size: 15px; font-weight: 600; color: var(--ink-2); }
+.bill-price small { font-weight: 400; }
+.badge.bill-state { font-size: 13px; padding: 4px 10px; flex: none; }
+.bill-until, .bill-alert { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; font-size: 13.5px; color: var(--ink-2); }
+.bill-until.is-warn { color: var(--warn); font-weight: 600; }
+.bill-alert { padding: 10px 12px; border-radius: 12px; background: var(--warn-soft); color: var(--ink); }
+.bill-alert.is-bad { background: var(--bad-soft); }
+.bill-alert .ic { flex: none; }
+.bill-meters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.bill-meter { padding: 10px 12px; border-radius: 12px; background: var(--container); display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.bill-meter-top { display: flex; flex-direction: column; gap: 2px; }
+.bill-meter small { font-size: 12px; color: var(--muted); }
+.bill-meter b { font-size: 18px; font-weight: 700; line-height: 1.2; }
+.bill-meter b span { font-size: 13px; font-weight: 500; color: var(--muted); }
+.bill-bar { display: block; height: 6px; border-radius: 3px; background: var(--line-soft); overflow: hidden; }
+.bill-bar i { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
+.bill-meter.is-warn .bill-bar i { background: var(--warn); } .bill-meter.is-bad .bill-bar i { background: var(--bad); }
+.bill-sub { font-size: 14px; font-weight: 600; margin: 18px 0 8px; }
+.bill-empty { margin: 0; padding: 12px; border-radius: 12px; border: 1px dashed var(--line); color: var(--muted); font-size: 13px; text-align: center; }
 .bill-list { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.bill-inv, .bill-acc { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); }
-.bill-inv > span:first-child, .bill-acc > span:nth-child(2) { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.bill-inv small, .bill-acc small { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.bill-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); min-width: 0; }
+.bill-row .icon-box { flex: none; }
+.bill-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.bill-row-main b { font-size: 14px; font-weight: 600; }
+.bill-row-main small { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.bill-row-main .mono { color: var(--ink); font-size: 13px; }
 .bill-amt { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
-.bill-msg { margin: 8px 0 0; }
-.bill-msg.is-bad { color: var(--bad); } .bill-msg.is-warn { color: var(--warn); }
-#accBillBody > .btn { margin-top: 12px; }
+.bill-amt b { font-size: 15px; }
+.bill-pkg { margin-top: 14px; }
+@media (max-width: 359px) { .bill-meters { grid-template-columns: minmax(0, 1fr); } }

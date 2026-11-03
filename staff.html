@@ -24,9 +24,9 @@
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <!-- เปลี่ยนเลข ?v= ทุกครั้งที่แก้ CSS/JS -->
-  <script src="js/settings.js?v=3.42.2"></script>
-  <link rel="stylesheet" href="css/style.css?v=3.42.2">
-  <link rel="stylesheet" href="css/staff.css?v=3.42.2">
+  <script src="js/settings.js?v=3.42.3"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.42.3">
+  <link rel="stylesheet" href="css/staff.css?v=3.42.3">
 </head>
 <body class="staff">
 
@@ -66,6 +66,7 @@
       <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
       <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></symbol>
       <symbol id="i-maximize" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
       <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></symbol>
       <symbol id="i-external" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14 21 3"/></symbol>
       <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></symbol>
@@ -570,7 +571,7 @@
   <!-- ===== Sign in ===== -->
   <div id="authView" class="login" hidden>
     <section class="login-intro" aria-labelledby="authTitle">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.42.2" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.42.3" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <p class="eyebrow">สำหรับเจ้าหน้าที่ HR และผู้ดูแลระบบ</p>
       <h1 id="authTitle">ติดตามรายงานการขาย<br>ของผู้ใช้สิทธิ์ทุกคนในที่เดียว</h1>
       <ol class="intro-steps">
@@ -630,12 +631,12 @@
   <!-- ===== App ===== -->
   <div id="appContainer" class="app" hidden>
     <header class="topbar">
-      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.42.2" alt="" width="36" height="36"><span>HR Staff</span></a>
+      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.42.3" alt="" width="36" height="36"><span>HR Staff</span></a>
       <div class="topbar-actions"><span class="live" data-live><span class="live-dot"></span><span data-live-text>อัปเดตสด</span></span></div>
     </header>
 
     <nav class="sidenav" aria-label="เมนูหลัก">
-      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.42.2" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></a>
+      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.42.3" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></a>
       <div class="nav-items">
         <button type="button" class="nav-item" data-tab="overview" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-grid"/></svg><span>ภาพรวม</span></button>
         <button type="button" class="nav-item" data-tab="records" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-list"/></svg><span>รายงาน</span></button>
@@ -1065,41 +1066,46 @@
 
     <main id="accountView" class="view" hidden aria-labelledby="accTitle">
       <div class="view-head"><h2 id="accTitle">บัญชีของฉัน</h2><p>ข้อมูลการเข้าสู่ระบบและสิทธิ์</p></div>
+      <!-- คอมพิวเตอร์: ซ้าย = โปรไฟล์ + เมนู · ขวา = แพ็กเกจ + สิทธิ์ | มือถือ: เรียงตาม acc-o* (โปรไฟล์ → แพ็กเกจ → สิทธิ์ → เมนู) -->
       <div class="acc-grid">
-        <section class="card profile-card">
-          <button type="button" class="acc-ava" id="accAvaBtn" aria-label="แก้ไขรูปโปรไฟล์">
-            <span class="avatar avatar-xl" data-me="avatar"></span>
-            <span class="acc-ava-cam" aria-hidden="true"><svg class="ic ic-16"><use href="#i-camera"/></svg></span>
-          </button>
-          <button type="button" class="btn-text acc-ava-link" id="accAvaLink">แก้ไขรูปโปรไฟล์</button>
-          <b class="profile-name" data-me="name"></b>
-          <span class="chip" data-me="roleChip"></span>
-          <span class="org-line" data-org-line hidden></span>
-          <dl class="kv" id="accKv"></dl>
-        </section>
-        <div class="stack">
-          <section class="card" id="accBilling" hidden aria-labelledby="accBillTitle">
-            <h3 class="card-title" id="accBillTitle">แพ็กเกจและการชำระเงิน</h3>
-            <div id="accBillBody"></div>
+        <div class="stack acc-col">
+          <section class="card profile-card acc-o1">
+            <button type="button" class="acc-ava" id="accAvaBtn" aria-label="แก้ไขรูปโปรไฟล์">
+              <span class="avatar avatar-xl" data-me="avatar"></span>
+              <span class="acc-ava-cam" aria-hidden="true"><svg class="ic ic-16"><use href="#i-camera"/></svg></span>
+            </button>
+            <button type="button" class="btn-text acc-ava-link" id="accAvaLink">แก้ไขรูปโปรไฟล์</button>
+            <b class="profile-name" data-me="name"></b>
+            <span class="chip" data-me="roleChip"></span>
+            <span class="org-line" data-org-line hidden></span>
+            <dl class="kv" id="accKv"></dl>
           </section>
-          <section class="card">
-            <h3 class="card-title">สิทธิ์ของคุณ</h3>
-            <ul class="perm-view" id="accPerms"></ul>
-            <p class="hint perm-note" id="accPermsNote"></p>
-          </section>
-          <ul class="card menu" aria-label="การตั้งค่า">
+          <ul class="card menu acc-o4" aria-label="การตั้งค่า">
             <li><button type="button" data-settings><svg class="ic" aria-hidden="true"><use href="#i-settings"/></svg><span>ตั้งค่า</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></button></li>
             <li><button type="button" data-action="logout-all"><svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg><span>ออกจากระบบทุกอุปกรณ์</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></button></li>
           </ul>
-          <ul class="card menu" aria-label="ช่วยเหลือ">
+          <ul class="card menu acc-o5" aria-label="ช่วยเหลือ">
             <li><button type="button" data-problem><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span>แจ้งปัญหาการใช้งาน</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></button></li>
             <li><a href="faq.html"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg><span>คำถามที่พบบ่อย</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></a></li>
             <li><a href="terms.html"><svg class="ic" aria-hidden="true"><use href="#i-file"/></svg><span>ข้อกำหนดการใช้งาน</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></a></li>
             <li><a href="privacy.html"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg><span>นโยบายความเป็นส่วนตัวและคุกกี้</span><svg class="ic ic-16" aria-hidden="true"><use href="#i-chevron-right"/></svg></a></li>
           </ul>
-          <a class="btn btn-outline" href="./"><svg class="ic" aria-hidden="true"><use href="#i-external"/></svg> เปิดหน้าผู้ใช้สิทธิ์</a>
-          <button type="button" class="btn btn-danger" data-action="logout"><svg class="ic" aria-hidden="true"><use href="#i-logout"/></svg> ออกจากระบบ</button>
-          <p class="footnote">HR Paper Mill Staff v1.0<br>Copyright © 2026 <a class="credit" href="https://www.instagram.com/softlight.works/" target="_blank" rel="noopener">softlight</a>. All rights reserved.</p>
+          <div class="acc-btns acc-o6">
+            <a class="btn btn-outline" href="./"><svg class="ic" aria-hidden="true"><use href="#i-external"/></svg> เปิดหน้าผู้ใช้สิทธิ์</a>
+            <button type="button" class="btn btn-danger" data-action="logout"><svg class="ic" aria-hidden="true"><use href="#i-logout"/></svg> ออกจากระบบ</button>
+          </div>
+          <p class="footnote acc-o7">HR Paper Mill Staff v1.0<br>Copyright © 2026 <a class="credit" href="https://www.instagram.com/softlight.works/" target="_blank" rel="noopener">softlight</a>. All rights reserved.</p>
+        </div>
+        <div class="stack acc-col">
+          <section class="card acc-o2" id="accBilling" hidden aria-labelledby="accBillTitle">
+            <h3 class="card-title" id="accBillTitle">แพ็กเกจและการชำระเงิน</h3>
+            <div id="accBillBody"></div>
+          </section>
+          <section class="card acc-o3">
+            <h3 class="card-title">สิทธิ์ของคุณ</h3>
+            <ul class="perm-view" id="accPerms"></ul>
+            <p class="hint perm-note" id="accPermsNote"></p>
+          </section>
         </div>
       </div>
     </main>
@@ -1116,28 +1122,28 @@
 
   <div id="pdfStage" class="pdf-stage" aria-hidden="true"></div>
 
-  <script src="js/consent.js?v=3.42.2"></script>
-  <script src="js/config.js?v=3.42.2"></script>
-  <script src="js/utils.js?v=3.42.2"></script>
-  <script src="js/glass.js?v=3.42.2"></script>
-  <script src="js/analytics.js?v=3.42.2"></script>
-  <script src="js/api.js?v=3.42.2"></script>
-  <script src="js/charts.js?v=3.42.2"></script>
-  <script src="js/notify.js?v=3.42.2"></script>
-  <script src="js/staff/core.js?v=3.42.2"></script>
-  <script src="js/staff/mapkit.js?v=3.42.2"></script>
-  <script src="js/staff/overview.js?v=3.42.2"></script>
-  <script src="js/staff/records.js?v=3.42.2"></script>
-  <script src="js/staff/participants.js?v=3.42.2"></script>
-  <script src="js/staff/admin.js?v=3.42.2"></script>
-  <script src="js/staff/export.js?v=3.42.2"></script>
-  <script src="js/staff/reports.js?v=3.42.2"></script>
-  <script src="js/staff/analytics.js?v=3.42.2"></script>
-  <script src="js/staff/dev.js?v=3.42.2"></script>
-  <script src="js/feedback.js?v=3.42.2"></script>
-  <script src="js/staff/feedback.js?v=3.42.2"></script>
-  <script src="js/inbox.js?v=3.42.2"></script>
-  <script src="js/staff/inbox.js?v=3.42.2"></script>
-  <script src="js/reveal.js?v=3.42.2"></script>
+  <script src="js/consent.js?v=3.42.3"></script>
+  <script src="js/config.js?v=3.42.3"></script>
+  <script src="js/utils.js?v=3.42.3"></script>
+  <script src="js/glass.js?v=3.42.3"></script>
+  <script src="js/analytics.js?v=3.42.3"></script>
+  <script src="js/api.js?v=3.42.3"></script>
+  <script src="js/charts.js?v=3.42.3"></script>
+  <script src="js/notify.js?v=3.42.3"></script>
+  <script src="js/staff/core.js?v=3.42.3"></script>
+  <script src="js/staff/mapkit.js?v=3.42.3"></script>
+  <script src="js/staff/overview.js?v=3.42.3"></script>
+  <script src="js/staff/records.js?v=3.42.3"></script>
+  <script src="js/staff/participants.js?v=3.42.3"></script>
+  <script src="js/staff/admin.js?v=3.42.3"></script>
+  <script src="js/staff/export.js?v=3.42.3"></script>
+  <script src="js/staff/reports.js?v=3.42.3"></script>
+  <script src="js/staff/analytics.js?v=3.42.3"></script>
+  <script src="js/staff/dev.js?v=3.42.3"></script>
+  <script src="js/feedback.js?v=3.42.3"></script>
+  <script src="js/staff/feedback.js?v=3.42.3"></script>
+  <script src="js/inbox.js?v=3.42.3"></script>
+  <script src="js/staff/inbox.js?v=3.42.3"></script>
+  <script src="js/reveal.js?v=3.42.3"></script>
 </body>
 </html>
