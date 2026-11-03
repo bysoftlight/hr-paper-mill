@@ -1,5 +1,5 @@
 // js/staff/dev.js — Dev Console (เฉพาะบทบาท dev): ภาพรวมธุรกิจ · องค์กรลูกค้า · แพลน · ใบแจ้งหนี้/การชำระเงิน · บัญชีรับเงิน · ผู้ใช้ทั้งระบบ
-// ข้อมูลจาก dev.* (apps-script/Billing.gs) · หน้าแพ็กเกจสำหรับลูกค้า = packages.html (สร้างลิงก์ข้อเสนอได้จากแท็บแพลน)
+// ข้อมูลจาก dev.* (apps-script/Billing.gs) · หน้าแพ็กเกจสำหรับลูกค้า = เว็บไซต์ softlight (PRODUCT_URL ใน core.js) (สร้างลิงก์ข้อเสนอได้จากแท็บแพลน)
 
 const ORG_ST = { trial: ['ทดลองใช้', 'is-accent'], active: ['ใช้งาน', 'is-ok'], past_due: ['ค้างชำระ', 'is-warn'], suspended: ['ระงับ', 'is-bad'], cancelled: ['ยกเลิก', ''] };
 const ACC_ST = { trial: 'ทดลองใช้', active: 'ใช้งานได้', past_due: 'ค้างชำระ (ช่วงผ่อนผัน)', trial_expired: 'หมดช่วงทดลอง', expired: 'หมดอายุ', suspended: 'ระงับ', cancelled: 'ยกเลิก' };
@@ -260,7 +260,7 @@ VIEWS.dev = {
         const lim = n => (n ? fmtNum(n) : 'ไม่จำกัด');
         $('devBody').innerHTML = `
           <section class="toolbar"><div class="toolbar-row">
-            <span class="muted-text grow">แพลนที่ "แสดงในหน้าแพ็กเกจ" จะปรากฏใน packages.html ให้ลูกค้าดูและดาวน์โหลดเป็น PDF/PNG</span>
+            <span class="muted-text grow">แพลนที่ "แสดงในหน้าแพ็กเกจ" จะปรากฏในหน้าแพ็กเกจบนเว็บไซต์ softlight ให้ลูกค้าดูและดาวน์โหลดเป็น PDF/PNG</span>
             <button type="button" class="btn btn-tonal btn-sm" data-act="offer">${icon('external')}สร้างลิงก์ข้อเสนอ</button>
             <button type="button" class="btn btn-primary btn-sm" data-act="plan-new">${icon('plus')}เพิ่มแพลน</button>
           </div></section>
@@ -269,7 +269,7 @@ VIEWS.dev = {
               <div class="dev-plan-top"><b>${esc(p.name)}</b>${p.highlight ? '<span class="badge is-accent">แนะนำ</span>' : ''}${!p.active ? '<span class="badge">ปิดขาย</span>' : !p.public ? '<span class="badge">ซ่อนจากหน้าแพ็กเกจ</span>' : ''}</div>
               <p class="muted-text">${esc(p.tagline || '')}</p>
               <div class="dev-price">${p.priceMonthly ? `${baht(p.priceMonthly)}<small>/เดือน</small>` : 'ติดต่อฝ่ายขาย'}</div>
-              <small class="muted-text">${p.priceYearly ? `${baht(p.priceYearly)}/ปี` : ''}${p.trialDays ? ` · ทดลองฟรี ${p.trialDays} วัน` : ''}</small>
+              <small class="muted-text">${p.fromPrice ? 'ราคาเริ่มต้น · ' : ''}${p.priceYearly ? `${baht(p.priceYearly)}/ปี` : ''}${p.setupFee ? ` · ติดตั้ง ${baht(p.setupFee)}` : ''}${p.trialDays ? ` · ทดลองฟรี ${p.trialDays} วัน` : ''}</small>
               <ul class="dev-feat"><li>${icon('users')}ผู้ใช้สิทธิ์ ${lim(p.maxUsers)} · เจ้าหน้าที่ ${lim(p.maxStaff)}</li>${p.features.slice(0, 6).map(f => `<li>${icon('check')}${esc(f)}</li>`).join('')}</ul>
               <div class="dev-plan-foot"><code>${esc(p.id)}</code><button type="button" class="btn btn-tonal btn-sm" data-act="plan-edit" data-id="${esc(p.id)}">${icon('edit')}แก้ไข</button></div>
             </article>`).join('')}</div>`;
@@ -278,13 +278,15 @@ VIEWS.dev = {
         const isNew = !p;
         this.form({
             title: isNew ? 'เพิ่มแพลน' : `แก้ไขแพลน ${p.name}`, sub: isNew ? '' : 'รหัสแพลนเปลี่ยนไม่ได้ (องค์กรอ้างอิงอยู่)', save: 'บันทึกแพลน',
-            values: p ? Object.assign({}, p, { features: p.features.join('\n'), maxUsers: p.maxUsers || '', maxStaff: p.maxStaff || '' }) : { public: true, active: true, trialDays: 30 },
+            values: p ? Object.assign({}, p, { features: p.features.join('\n'), maxUsers: p.maxUsers || '', maxStaff: p.maxStaff || '', setupFee: p.setupFee || '' }) : { public: true, active: true, trialDays: 30, setupFee: 5000 },
             fields: [
                 { k: 'id', label: 'รหัสแพลน', req: true, ph: 'เช่น pro', hint: 'a-z, 0-9, - หรือ _' }, { k: 'name', label: 'ชื่อแพลน', req: true, ph: 'เช่น Pro' },
                 { k: 'tagline', label: 'คำโปรย', span: true, ph: 'เช่น คุ้มที่สุดสำหรับองค์กรทั่วไป' },
                 { k: 'priceMonthly', label: 'ราคา/เดือน (บาท)', type: 'number', min: 0, hint: '0 = ติดต่อฝ่ายขาย' }, { k: 'priceYearly', label: 'ราคา/ปี (บาท)', type: 'number', min: 0, hint: 'เว้นว่าง = ไม่มีแบบรายปี' },
                 { k: 'maxUsers', label: 'ผู้ใช้สิทธิ์สูงสุด', type: 'number', min: 0, hint: 'เว้นว่าง/0 = ไม่จำกัด' }, { k: 'maxStaff', label: 'เจ้าหน้าที่สูงสุด', type: 'number', min: 0, hint: 'เว้นว่าง/0 = ไม่จำกัด' },
-                { k: 'trialDays', label: 'วันทดลองใช้', type: 'number', min: 0, max: 365 }, { k: 'order', label: 'ลำดับในหน้าแพ็กเกจ', type: 'number', min: 0 },
+                { k: 'setupFee', label: 'ค่าติดตั้ง ครั้งเดียว (บาท)', type: 'number', min: 0, hint: '0 = ไม่มีค่าติดตั้ง' }, { k: 'trialDays', label: 'วันทดลองใช้', type: 'number', min: 0, max: 365 },
+                { k: 'order', label: 'ลำดับในหน้าแพ็กเกจ', type: 'number', min: 0 },
+                { k: 'fromPrice', label: 'แสดงเป็น "เริ่มต้น" (ราคาปรับตามขอบเขต)', type: 'check' },
                 { k: 'features', label: 'ฟีเจอร์ (บรรทัดละข้อ)', type: 'textarea', rows: 6, span: true },
                 { k: 'highlight', label: 'แพลนแนะนำ (ไฮไลต์ในหน้าแพ็กเกจ)', type: 'check', span: true },
                 { k: 'public', label: 'แสดงในหน้าแพ็กเกจ', type: 'check', span: true },
@@ -318,7 +320,7 @@ VIEWS.dev = {
                 if (d.cycle === 'yearly') q.set('cycle', 'yearly');
                 ['to', 'valid', 'ref', 'note'].forEach(k => { if (d[k]) q.set(k, d[k]); });
                 if (Number(d.discount) > 0) q.set('off', String(Math.min(90, Math.round(Number(d.discount)))));
-                const url = new URL('packages.html?' + q.toString(), location.href).href;
+                const url = PRODUCT_URL + '?' + q.toString() + '#packages';
                 $('devMBody').innerHTML = `<p>ลิงก์หน้าแพ็กเกจสำหรับ <b>${esc(d.to || 'ลูกค้า')}</b> — ส่งให้ลูกค้าเปิดดู หรือเปิดแล้วกด "ดาวน์โหลด PDF / PNG"</p>
                   <label class="field"><span class="label">ลิงก์</span><input class="input mono" id="devOfferUrl" readonly value="${esc(url)}"></label>`;
                 $('devMFoot').innerHTML = `<button type="button" class="btn btn-tonal" id="devOfferCopy">${icon('file')}คัดลอกลิงก์</button>${navigator.share ? `<button type="button" class="btn btn-tonal" id="devOfferShare">แชร์</button>` : ''}<a class="btn btn-primary" href="${esc(url)}" target="_blank" rel="noopener">${icon('external')}เปิดหน้าแพ็กเกจ</a>`;
@@ -372,13 +374,14 @@ VIEWS.dev = {
         const org = o.orgs.find(x => x.id === orgId) || o.orgs[0];
         this.form({
             title: 'ออกใบแจ้งหนี้', sub: 'ชำระแล้วระบบจะต่ออายุองค์กรถึงสิ้นสุดรอบของใบนี้ให้อัตโนมัติ', save: 'ออกใบแจ้งหนี้',
-            values: { org: org.id, plan: org.plan, cycle: org.cycle, due: isoDate(new Date(Date.now() + 7 * 86400000)) },
+            values: { org: org.id, plan: org.plan, cycle: org.cycle, due: isoDate(new Date(Date.now() + 7 * 86400000)), withSetup: !org.periodEnd },
             fields: [
                 { k: 'org', label: 'องค์กร', type: 'select', req: true, span: true, options: o.orgs.map(x => [x.id, x.name]) },
                 { k: 'plan', label: 'แพลน', type: 'select', options: pl.plans.map(p => [p.id, p.name]) },
                 { k: 'cycle', label: 'รอบบิล', type: 'select', options: [['monthly', 'รายเดือน'], ['yearly', 'รายปี']] },
                 { k: 'amount', label: 'จำนวนเงิน (บาท)', type: 'number', min: 0, hint: 'เว้นว่าง = ตามราคาแพลน' },
                 { k: 'due', label: 'ครบกำหนดชำระ', type: 'date' },
+                { k: 'withSetup', label: 'รวมค่าติดตั้งครั้งเดียว (ใบแรกขององค์กร)', type: 'check', span: true, hint: 'คิดตามค่าติดตั้งของแพลน เมื่อไม่ได้กรอกจำนวนเงินเอง' },
                 { k: 'periodStart', label: 'เริ่มรอบ', type: 'date', hint: 'เว้นว่าง = ต่อจากรอบเดิม / วันนี้' },
                 { k: 'note', label: 'หมายเหตุ', type: 'textarea', rows: 2, span: true }
             ],
