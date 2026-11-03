@@ -402,14 +402,18 @@ function showApp() {
     applyPerms();
     document.querySelectorAll('[data-me="name"]').forEach(el => { el.textContent = ST.me.name; });
     document.querySelectorAll('[data-me="role"]').forEach(el => { el.textContent = ROLE_LABELS[ST.me.role] || ST.me.role; });
-    document.querySelectorAll('[data-me="avatar"]').forEach(el => {
-        const html = avatarHtml(ST.me.name, ST.me.picture, el.className.replace('avatar', '').trim());
-        el.innerHTML = html.replace(/^<div[^>]*>|<\/div>$/g, '');
-    });
+    renderMeAvatars();
     if (!ST.lastSeen) ST.lastSeen = Date.now();
     ST.lastSync = Date.now();
     switchTab(tabFromHash(), false);
     startLive();
+}
+
+function renderMeAvatars() {
+    document.querySelectorAll('[data-me="avatar"]').forEach(el => {
+        const html = avatarHtml(ST.me.name, ST.me.picture, el.className.replace('avatar', '').trim());
+        el.innerHTML = html.replace(/^<div[^>]*>|<\/div>$/g, '');
+    });
 }
 
 function applyPerms() {
@@ -638,8 +642,26 @@ async function logoutEverywhere() {
 
 // ---------- Account ----------
 VIEWS.account = {
+    init() {
+        // รูปโปรไฟล์ของตัวเอง: บัญชี Google/LINE ที่ไม่ได้ตั้งรูปไว้ อัปโหลดเองได้ (ใช้แทนรูปจากผู้ให้บริการ)
+        $('accPhoto').addEventListener('change', async e => {
+            const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+            let img; try { img = await shrinkImage(f, 512, false); } catch (err) { return showMessage({ title: 'ใช้รูปนี้ไม่ได้', text: err.message, tone: 'warn' }); }
+            this.savePhoto({ photo: { data: img.data, mimeType: img.mimeType } }, 'เปลี่ยนรูปโปรไฟล์แล้ว');
+        });
+        $('accPhotoReset').addEventListener('click', () => this.savePhoto({ remove: true }, 'ใช้รูปจากบัญชีแล้ว'));
+    },
+    async savePhoto(args, msg) {
+        showLoading(true, 'กำลังบันทึกรูป…');
+        const r = await api('staff.profile.photo', args);
+        showLoading(false);
+        if (!r.success) return showMessage({ title: 'บันทึกรูปไม่สำเร็จ', text: r.message || (r.code === 'INVALID' ? '' : 'ต้องอัปเดตไฟล์ Staff.gs / Auth.gs / Schema.gs ใน Apps Script ก่อน'), tone: 'bad' });
+        ST.me = Object.assign({}, ST.me, { picture: r.staff.picture, customPicture: r.staff.customPicture });
+        renderMeAvatars(); this.show(); toast(msg);
+    },
     show() {
         const me = ST.me;
+        $('accPhotoReset').hidden = !me.customPicture;
         document.querySelectorAll('[data-me="roleChip"]').forEach(el => {
             el.textContent = ROLE_LABELS[me.role] || me.role;
             el.className = 'chip ' + (me.role === 'admin' ? 'chip-self' : '');

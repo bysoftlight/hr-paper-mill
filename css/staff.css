@@ -1048,3 +1048,12 @@ dialog:focus-visible { outline: none; } /* กรอบโฟกัสของ�
 .news-img-prev img, .news-img { display: block; width: 100%; max-height: 320px; object-fit: cover; }
 .news-img { margin: 10px 0 4px; border-radius: 14px; border: 1px solid var(--line-soft); max-width: 520px; }
 .news-img-pick label.btn { cursor: pointer; }
+
+/* ภาพรวม: ยังไม่มีผู้ใช้สิทธิ์ · รูปโปรไฟล์ในหน้าบัญชี */
+.ov-empty { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 40px 24px; }
+.ov-empty > .ic { width: 44px; height: 44px; color: var(--accent); stroke-width: 1.6; }
+.ov-empty b { font-size: 19px; }
+.ov-empty p { max-width: 44ch; color: var(--ink-2); font-size: 15px; line-height: 1.6; }
+.ov-empty .btn { margin-top: 6px; }
+.acc-photo { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 2px 0 4px; }
+.acc-photo label { cursor: pointer; }
