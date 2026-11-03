@@ -877,51 +877,43 @@ const PhotoViewer = (() => {
     return { open };
 })();
 
-// ---------- แถบเมนูด้านข้าง: ซ่อน/แสดงตลอด (จอ ≥ 768px) ----------
-// ค่าเริ่มต้น = ซ่อน (เพิ่มพื้นที่ทำงาน) · ชี้เมาส์หรือกดค้างที่ขอบซ้ายเพื่อดูชั่วคราว · ปุ่มแถบเมนู / Ctrl(⌘)+B = แสดงตลอด/ซ่อน
+// ---------- แถบเมนูด้านข้าง: ย่อเป็นแถบไอคอน / ขยาย (จอ ≥ 768px) ----------
+// ค่าเริ่มต้น = ย่อ (แถบไอคอน กดเปลี่ยนหน้าได้ทันที) · ปุ่มบนสุดของแถบ / Ctrl(⌘)+B = ขยาย/ย่อ
+// คอมพิวเตอร์ (≥ 1100): จำสถานะไว้ (ขยาย = ดันเนื้อหา) · แท็บเล็ต: ขยายแบบลอยทับชั่วคราว แตะนอกแถบ/เลือกเมนู = ย่อ
 const SideNav = (() => {
     const root = document.documentElement;
-    let closeT = 0, holdT = 0;
-    const hidden = () => root.dataset.side !== 'pinned';
-    const peek = on => { clearTimeout(closeT); closeT = 0; root.classList.toggle('side-peek', !!on && hidden()); };
+    const wide = () => window.matchMedia('(min-width: 1100px)').matches;
+    const collapsed = () => root.dataset.side !== 'pinned' && !root.classList.contains('side-peek');
+    const overlay = on => root.classList.toggle('side-peek', !!on && root.dataset.side !== 'pinned');
     function toggle() {
         haptic();
-        root.classList.remove('side-peek');
-        Prefs.set('sidebar', hidden() ? 'pinned' : 'hidden');
-        sync();
+        if (root.classList.contains('side-peek')) { overlay(false); return sync(); }
+        if (wide() || root.dataset.side === 'pinned') { Prefs.set('sidebar', root.dataset.side === 'pinned' ? 'hidden' : 'pinned'); return sync(); }
+        overlay(true); sync(); // แท็บเล็ต: ขยายชั่วคราว
     }
     function sync() {
-        const h = hidden();
-        document.querySelectorAll('.sidenav [data-side-toggle]').forEach(b => { const t = h ? 'ปักหมุดแถบเมนู (แสดงตลอด)' : 'ซ่อนแถบเมนู'; b.setAttribute('aria-label', t); b.title = t + ' (Ctrl/⌘ + B)'; b.setAttribute('aria-pressed', String(!h)); });
+        const c = collapsed();
+        document.querySelectorAll('.sidenav [data-side-toggle]').forEach(b => { const t = c ? 'ขยายแถบเมนู' : 'ย่อแถบเมนู'; b.setAttribute('aria-label', t); b.title = t + ' (Ctrl/⌘ + B)'; b.setAttribute('aria-expanded', String(!c)); });
+        // แถบไอคอน: ชี้ไอคอนเพื่อดูชื่อเมนู
+        document.querySelectorAll('.sidenav .nav-item').forEach(n => {
+            const label = [...n.children].filter(x => x.tagName === 'SPAN' && !/nav-(bell-ic|ava-wrap|badge)/.test(x.className)).map(x => x.textContent.trim()).join(' ');
+            if (c && label) n.title = label; else n.removeAttribute('title');
+        });
     }
     function init() {
-        const nav = $('sideNav'), rail = $('sideRail');
-        if (!nav || !rail) return;
+        const nav = $('sideNav');
+        if (!nav) return;
+        if (!nav.parentElement.querySelector('.side-scrim')) { const sc = document.createElement('div'); sc.className = 'side-scrim'; sc.addEventListener('click', () => { overlay(false); sync(); }); nav.after(sc); }
         document.querySelectorAll('[data-side-toggle]').forEach(b => b.addEventListener('click', toggle));
-        // เมาส์: ชี้ที่ขอบซ้าย → เปิดชั่วคราว · ออกจากแถบ → ปิด
-        rail.addEventListener('mouseenter', () => peek(true));
-        nav.addEventListener('mouseenter', () => clearTimeout(closeT));
-        nav.addEventListener('mouseleave', () => { clearTimeout(closeT); closeT = setTimeout(() => { closeT = 0; peek(false); }, 250); });
-        // จอสัมผัส: กดค้างที่ขอบซ้าย ~0.4 วินาที → เปิด · แตะนอกแถบ → ปิด
-        rail.addEventListener('touchstart', e => { if (e.target.closest('[data-side-toggle]')) return; holdT = setTimeout(() => { peek(true); haptic(); }, 400); }, { passive: true });
-        ['touchend', 'touchcancel', 'touchmove'].forEach(t => rail.addEventListener(t, () => clearTimeout(holdT), { passive: true }));
-        // สำรอง: แถบเลื่อนเข้ามาใต้เมาส์ที่อยู่นิ่ง (ไม่มี mouseenter/leave) → ดูตำแหน่งเมาส์แทน
-        document.addEventListener('pointermove', e => {
-            if (e.pointerType !== 'mouse' || !root.classList.contains('side-peek')) return;
-            // ใช้ความกว้างจริงของแถบ (ไม่ขึ้นกับตำแหน่งระหว่างเลื่อนเข้า)
-            if (e.clientX > nav.offsetWidth + 24) { if (!closeT) closeT = setTimeout(() => { closeT = 0; peek(false); }, 200); }
-            else { clearTimeout(closeT); closeT = 0; }
-        }, { passive: true });
-        document.addEventListener('pointerdown', e => { if (root.classList.contains('side-peek') && !e.target.closest('#sideNav, #sideRail')) peek(false); });
-        // เลือกเมนูจากแถบชั่วคราว → ปิดแถบ
-        nav.addEventListener('click', e => { if (e.target.closest('[data-tab], [data-goto]') && root.classList.contains('side-peek')) setTimeout(() => peek(false), 120); });
+        nav.addEventListener('click', e => { if (e.target.closest('[data-tab], [data-goto]') && root.classList.contains('side-peek')) setTimeout(() => { overlay(false); sync(); }, 120); });
         document.addEventListener('keydown', e => {
             if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && (e.key === 'b' || e.key === 'B') && !/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '')) { e.preventDefault(); toggle(); }
-            if (e.key === 'Escape' && root.classList.contains('side-peek')) peek(false);
+            if (e.key === 'Escape' && root.classList.contains('side-peek')) { overlay(false); sync(); }
         });
+        window.addEventListener('resize', () => { if (wide() && root.classList.contains('side-peek')) { overlay(false); sync(); } });
         document.addEventListener('prefchange', sync);
         sync();
     }
-    return { init, toggle, peek };
+    return { init, toggle, sync };
 })();
 document.addEventListener('DOMContentLoaded', () => SideNav.init());
