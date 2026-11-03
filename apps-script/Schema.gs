@@ -6,16 +6,16 @@ const SHEET = { USERS: 'Users', RECORDS: 'Records', STAFF: 'Staff', LOGS: 'Logs'
 // Users: ผู้ใช้สิทธิ์ (A–D เดิม)
 // DELETED_AT…PREV_ACTIVE = ถังขยะ: ลบแล้วกู้คืนได้ภายใน PARTICIPANT_TRASH_DAYS วัน (ระหว่างนั้นเข้าสู่ระบบไม่ได้ · รหัสยังถูกจองไว้)
 const UCOL = { ID: 0, NAME: 1, STATUS: 2, PIC: 3, SITE: 4, SITE_LAT: 5, SITE_LNG: 6, PHONE: 7, ACTIVE: 8, NOTE: 9, UPDATED_AT: 10, UPDATED_BY: 11, ORG: 12, DELETED_AT: 13, DELETED_BY: 14, DELETE_REASON: 15, PREV_ACTIVE: 16 };
-const U_HEADERS = ['รหัส', 'ชื่อ-สกุล', 'การใช้สิทธิ์', 'รูป', 'จุดขาย', 'ละติจูดจุดขาย', 'ลองจิจูดจุดขาย', 'เบอร์โทร', 'ใช้งาน', 'หมายเหตุ', 'แก้ไขล่าสุด', 'แก้ไขโดย', 'องค์กร', 'ลบเมื่อ', 'ลบโดย', 'เหตุผลที่ลบ', 'สถานะก่อนลบ'];
+const U_HEADERS = ['user_id', 'full_name', 'entitlement', 'photo', 'site', 'site_lat', 'site_lng', 'phone', 'active', 'note', 'updated_at', 'updated_by', 'org_id', 'deleted_at', 'deleted_by', 'delete_reason', 'prev_active'];
 const PARTICIPANT_TRASH_DAYS = 30;
 
 // Records: รายงานการขาย (A–J เดิม)
 const RCOL = { TS: 0, DATE: 1, TIME: 2, USER_ID: 3, USER_NAME: 4, TYPE: 5, IMAGE: 6, LAT: 7, LNG: 8, MAP: 9, NOTE: 10, STATUS: 11, UPDATED_BY: 12, UPDATED_AT: 13, SOURCE: 14, ACCURACY: 15, PHOTO_HASH: 16, RECEIVED_AT: 17 };
-const R_HEADERS = ['Timestamp', 'วันที่', 'เวลา', 'รหัส', 'ชื่อ', 'ประเภทการขาย', 'รูปหลักฐาน', 'Latitude', 'Longitude', 'แผนที่', 'หมายเหตุ', 'สถานะ', 'แก้ไขโดย', 'แก้ไขล่าสุด', 'ที่มา', 'ความแม่นยำ GPS (ม.)', 'ลายนิ้วมือรูป', 'ระบบได้รับเมื่อ'];
+const R_HEADERS = ['timestamp', 'date', 'time', 'user_id', 'user_name', 'sales_type', 'evidence_photo', 'lat', 'lng', 'map_url', 'note', 'status', 'updated_by', 'updated_at', 'source', 'gps_accuracy_m', 'photo_hash', 'received_at'];
 
 // Staff: บัญชีเจ้าหน้าที่ (เข้าสู่ระบบด้วย Google / LINE)
 const SCOL = { ID: 0, PROVIDER: 1, SUB: 2, EMAIL: 3, NAME: 4, PICTURE: 5, ROLE: 6, PERMS: 7, STATUS: 8, TOKEN_VER: 9, CREATED_AT: 10, LAST_LOGIN: 11, APPROVED_BY: 12, APPROVED_AT: 13, NOTE: 14, ORG: 15, CUSTOM_PIC: 16 };
-const S_HEADERS = ['ID', 'ผู้ให้บริการ', 'Subject', 'อีเมล', 'ชื่อ', 'รูป', 'บทบาท', 'สิทธิ์', 'สถานะ', 'Token version', 'สร้างเมื่อ', 'เข้าใช้ล่าสุด', 'อนุมัติโดย', 'อนุมัติเมื่อ', 'หมายเหตุ', 'องค์กร', 'รูปโปรไฟล์ (อัปโหลดเอง)'];
+const S_HEADERS = ['staff_id', 'provider', 'subject', 'email', 'name', 'photo', 'role', 'permissions', 'status', 'token_version', 'created_at', 'last_login', 'approved_by', 'approved_at', 'note', 'org_id', 'custom_photo'];
 
 // องค์กร (บริษัทลูกค้า) ของเจ้าหน้าที่ที่ส่งคำขออยู่ — ตั้งใน handleStaffRequest_: เจ้าหน้าที่ขององค์กรเห็นเฉพาะผู้ใช้สิทธิ์/รายงานขององค์กรตัวเอง
 // null = ไม่จำกัด (Dev, บัญชีที่ไม่ได้ผูกองค์กร, งานเบื้องหลัง) · ล้างทุกคำขอใน doPost
@@ -36,7 +36,7 @@ function participantOrgMap_() {
 
 // Logs: บันทึกการใช้งาน
 const LCOL = { TS: 0, ACTOR_ID: 1, ACTOR_NAME: 2, ACTOR_ROLE: 3, ACTION: 4, TARGET: 5, DETAILS: 6, USER_AGENT: 7, ORG: 8 };
-const L_HEADERS = ['เวลา', 'ผู้กระทำ (ID)', 'ผู้กระทำ', 'บทบาท', 'การกระทำ', 'เป้าหมาย', 'รายละเอียด', 'อุปกรณ์', 'องค์กร'];
+const L_HEADERS = ['timestamp', 'actor_id', 'actor_name', 'actor_role', 'action', 'target', 'details', 'user_agent', 'org_id'];
 
 const AGENT_LIMIT_PER_MONTH = 10;   // ข้อ 1.3
 const DEFAULT_ANOMALY_RADIUS_M = 300; // ห่างจากจุดขายเกินนี้ถือว่าตำแหน่งผิดปกติ
@@ -72,6 +72,29 @@ function readRows_(name, width) {
 }
 
 // เตรียมแผ่นงาน/หัวตาราง และค่าตั้งค่าที่จำเป็น — รันครั้งแรก (และรันซ้ำได้ ไม่ลบข้อมูล)
+// หัวคอลัมน์ทุกแผ่นงานเป็นภาษาอังกฤษ (snake_case) — เขียนทับแถวที่ 1 ครั้งเดียวต่อรุ่น (โค้ดอ่านตามตำแหน่งคอลัมน์ ไม่ใช่ชื่อหัว)
+const HEADERS_VERSION = 'en1';
+function migrateHeadersEn_(force) {
+  const props = PropertiesService.getScriptProperties();
+  if (!force && props.getProperty('HEADERS_V') === HEADERS_VERSION) return 0;
+  const map = [
+    [SHEET.USERS, U_HEADERS], [SHEET.RECORDS, R_HEADERS], [SHEET.STAFF, S_HEADERS], [SHEET.LOGS, L_HEADERS],
+    ['Analytics', (typeof A_HEADERS !== 'undefined' ? A_HEADERS : null)], ['Orgs', (typeof BO_HEADERS !== 'undefined' ? BO_HEADERS : null)], ['Plans', (typeof BP_HEADERS !== 'undefined' ? BP_HEADERS : null)], ['PayAccounts', (typeof BA_HEADERS !== 'undefined' ? BA_HEADERS : null)], ['Invoices', (typeof BI_HEADERS !== 'undefined' ? BI_HEADERS : null)],
+    ['Problems', (typeof P_HEADERS !== 'undefined' ? P_HEADERS : null)], ['Surveys', (typeof V_HEADERS !== 'undefined' ? V_HEADERS : null)], ['SurveyResponses', (typeof SR_HEADERS !== 'undefined' ? SR_HEADERS : null)], ['Announcements', (typeof NW_HEADERS !== 'undefined' ? NW_HEADERS : null)], ['InboxState', (typeof ST_HEADERS !== 'undefined' ? ST_HEADERS : null)],
+    [(typeof NOTIFY_SHEET !== 'undefined' ? NOTIFY_SHEET : null) || 'Notify', (typeof N_HEADERS !== 'undefined' ? N_HEADERS : null)], [(typeof CONTACT_SHEET !== 'undefined' ? CONTACT_SHEET : null) || 'Contacts', (typeof C_HEADERS !== 'undefined' ? C_HEADERS : null)], [(typeof THREAT_SHEET !== 'undefined' ? THREAT_SHEET : null) || 'Threats', (typeof T_HEADERS !== 'undefined' ? T_HEADERS : null)]
+  ];
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let n = 0;
+  map.forEach(([name, headers]) => {
+    if (!headers) return;
+    const sh = ss.getSheetByName(name);
+    if (!sh) return;
+    try { sh.getRange(1, 1, 1, headers.length).setValues([headers]); n++; } catch (e) { console.warn('เปลี่ยนหัวคอลัมน์ ' + name + ' ไม่สำเร็จ: ' + e); }
+  });
+  props.setProperty('HEADERS_V', HEADERS_VERSION);
+  return n;
+}
+
 function setup() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const ensure = (name, headers) => {
@@ -87,6 +110,7 @@ function setup() {
   ensure(SHEET.RECORDS, R_HEADERS);
   ensure(SHEET.STAFF, S_HEADERS);
   ensure(SHEET.LOGS, L_HEADERS);
+  migrateHeadersEn_(true); // หัวคอลัมน์ภาษาอังกฤษทุกแผ่นงาน
 
   const props = PropertiesService.getScriptProperties();
   if (!props.getProperty('SESSION_SECRET')) props.setProperty('SESSION_SECRET', Utilities.getUuid() + Utilities.getUuid());

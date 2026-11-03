@@ -8,6 +8,7 @@ const PREF_DEFAULTS = {
     motion: false,     // true = ลดภาพเคลื่อนไหว
     snap: true,        // เลื่อนหน้าแล้วหยุดพอดีทีละส่วน
     analytics: true,   // ส่งสถิติการใช้งาน (js/analytics.js)
+    lang: 'th',        // th | en (ค่าเริ่มต้นตามแอป — ดู PREF_APP_DEFAULTS)
     haptic: true,      // สั่นเบาๆ เมื่อแตะเมนู
     header: 'classic', // classic = โลโก้+ชื่อแอป · glass = ปุ่มโลโก้กลมลอย + ชื่อหน้าตรงกลาง (มือถือ)
     navLabels: false,  // แสดงชื่อใต้ไอคอนเมนูล่าง (มือถือ)
@@ -18,22 +19,56 @@ const PREF_DEFAULTS = {
     startTab: 'auto',
     live: 20,          // วินาที, 0 = ปิด
     pageSize: 'auto',  // auto | 20 | 50 | 100
-    thumbs: true
+    thumbs: true,
+    sidebar: 'hidden'  // hidden = ซ่อนแถบเมนูด้านข้าง (ชี้/กดค้างขอบซ้ายเพื่อดู) · pinned = แสดงตลอด (หน้า Staff บนจอกว้าง)
 };
 
+// ค่าเริ่มต้นตามแอป: ผู้ใช้สิทธิ์ (ใช้ครั้งแรกต้องง่าย) = ภาษาไทย · หัวแอปแบบเดิม · ชื่อใต้ไอคอนเมนู
+// เจ้าหน้าที่ = ภาษาอังกฤษ · ซ่อนแถบเมนูด้านข้าง
+const PREF_APP = /staff(\.html)?$/.test(location.pathname.replace(/\/$/, '')) || /staff\.html/.test(location.pathname) ? 'staff' : 'user';
+const PREF_APP_DEFAULTS = {
+    user: { lang: 'th', header: 'classic', navLabels: true },
+    staff: { lang: 'en', sidebar: 'hidden' }
+};
+// จำการตั้งค่าแยกตามบัญชี (และแยกตามเครื่องโดยธรรมชาติ เพราะเก็บในเครื่อง)
+//   HRPM_PREFS@<แอป>:<บัญชี> = ของบัญชีนั้นบนเครื่องนี้ · HRPM_PREFS = ของเครื่อง (ก่อนเข้าสู่ระบบ / รุ่นเก่า)
+//   HRPM_PREFS_ACTIVE:<แอป> = บัญชีล่าสุด — ใช้ตอนเปิดหน้า (ก่อนเข้าสู่ระบบเสร็จ) ไม่ให้ธีมกะพริบ
+const PREFS_ACTIVE_KEY = 'HRPM_PREFS_ACTIVE:' + PREF_APP;
+const PREF_CARRY = ['theme', 'text', 'motion']; // บัญชีใหม่บนเครื่องนี้: ใช้ธีม/ขนาดตัวอักษรของเครื่องต่อ (การเข้าถึง)
+const prefsLs = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }, del(k) { try { localStorage.removeItem(k); } catch (e) {} } };
 const Prefs = {
+    account: prefsLs.get(PREFS_ACTIVE_KEY) || '',
+    key() { return this.account ? PREFS_KEY + '@' + PREF_APP + ':' + this.account : PREFS_KEY; },
+    defaults() { return Object.assign({}, PREF_DEFAULTS, PREF_APP_DEFAULTS[PREF_APP] || {}); },
     all() {
         let saved = {};
-        try { saved = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') || {}; } catch (e) {}
-        return Object.assign({}, PREF_DEFAULTS, saved);
+        try { saved = JSON.parse(prefsLs.get(this.key()) || '{}') || {}; } catch (e) {}
+        return Object.assign(this.defaults(), saved);
     },
     get(key) { return this.all()[key]; },
     set(key, value) {
-        const p = this.all();
-        p[key] = value;
-        try { localStorage.setItem(PREFS_KEY, JSON.stringify(p)); } catch (e) {}
+        let saved = {};
+        try { saved = JSON.parse(prefsLs.get(this.key()) || '{}') || {}; } catch (e) {}
+        saved[key] = value; // เก็บเฉพาะที่เปลี่ยนเอง — ค่าที่ไม่ได้แตะยังตามค่าเริ่มต้น
+        prefsLs.set(this.key(), JSON.stringify(saved));
         applyPrefs();
         document.dispatchEvent(new CustomEvent('prefchange', { detail: { key, value } }));
+    },
+    // เข้าสู่ระบบ/ออกจากระบบ: สลับไปใช้การตั้งค่าของบัญชีนั้น (null = ของเครื่อง)
+    useAccount(id) {
+        id = id ? String(id).toLowerCase().replace(/[^\w@.\-]/g, '').slice(0, 80) : '';
+        if (id === this.account) return;
+        if (id && !prefsLs.get(PREFS_KEY + '@' + PREF_APP + ':' + id)) {
+            let dev = {};
+            try { dev = JSON.parse(prefsLs.get(PREFS_KEY) || '{}') || {}; } catch (e) {}
+            const seed = {};
+            PREF_CARRY.forEach(k => { if (dev[k] !== undefined) seed[k] = dev[k]; });
+            prefsLs.set(PREFS_KEY + '@' + PREF_APP + ':' + id, JSON.stringify(seed));
+        }
+        this.account = id;
+        if (id) prefsLs.set(PREFS_ACTIVE_KEY, id); else prefsLs.del(PREFS_ACTIVE_KEY);
+        applyPrefs();
+        document.dispatchEvent(new CustomEvent('prefchange', { detail: { key: null } }));
     }
 };
 
@@ -45,6 +80,9 @@ function applyPrefs() {
     root.dataset.snap = p.snap ? 'on' : 'off';
     root.dataset.header = p.header === 'glass' ? 'glass' : 'classic';
     root.dataset.navlabels = p.navLabels ? 'on' : 'off';
+    root.dataset.side = p.sidebar === 'pinned' ? 'pinned' : 'hidden';
+    root.lang = p.lang === 'en' ? 'en' : 'th';
+    root.dataset.lang = p.lang === 'en' ? 'en' : 'th';
     const dark = p.theme === 'dark' || (p.theme === 'system' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.content = dark ? '#131314' : '#FFFFFF';
@@ -56,7 +94,7 @@ if (window.matchMedia) {
 }
 // เปลี่ยนการตั้งค่าในอีกแท็บ → แท็บนี้เปลี่ยนตาม
 window.addEventListener('storage', e => {
-    if (e.key !== PREFS_KEY) return;
+    if (e.key !== Prefs.key()) return;
     applyPrefs();
     document.dispatchEvent(new CustomEvent('prefchange', { detail: { key: null } }));
 });

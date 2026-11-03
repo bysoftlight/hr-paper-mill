@@ -40,6 +40,7 @@ function handleStaffRequest_(req) {
   }
   switch (req.action) {
     case 'staff.me':
+      try { migrateHeadersEn_(); } catch (e) { console.warn('migrateHeadersEn_', e); } // ครั้งเดียวหลังอัปเดต
       return { success: true, staff: staffDto_(staff), token: renewedToken_(staff), subscription: sub && typeof orgAccessDto_ === 'function' ? orgAccessDto_(sub) : null };
     case 'staff.profile.photo':
       return staffProfilePhoto_(req, staff, ua);
@@ -856,7 +857,7 @@ function staffLogoutEverywhere_(staff, ua) {
 
 // ---------- บันทึกการติดต่อผู้ใช้สิทธิ์ (แผ่น Contacts สร้างอัตโนมัติ) ----------
 const CONTACT_SHEET = 'Contacts';
-const C_HEADERS = ['เวลา', 'รหัสผู้ใช้สิทธิ์', 'ผลการติดต่อ', 'เหตุผล/รายละเอียด', 'เจ้าหน้าที่ (ID)', 'เจ้าหน้าที่'];
+const C_HEADERS = ['timestamp', 'user_id', 'result', 'details', 'staff_id', 'staff_name'];
 const CONTACT_RESULTS = { called: 'โทรแล้ว ติดต่อได้', no_answer: 'โทรแล้ว ไม่รับสาย', reason: 'แจ้งเหตุผล', visit: 'ลงพื้นที่/พบตัว', other: 'อื่นๆ' };
 function contactSheet_() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);

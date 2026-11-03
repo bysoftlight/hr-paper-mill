@@ -14,16 +14,16 @@
 
 const PROBLEM_SHEET = 'Problems';
 const PCOL = { ID: 0, TS: 1, ROLE: 2, REPORTER_ID: 3, REPORTER_NAME: 4, CONTACT: 5, CATEGORY: 6, TITLE: 7, DETAIL: 8, PAGE: 9, CLIENT: 10, VERSION: 11, STATUS: 12, HANDLED_BY: 13, HANDLED_AT: 14, ADMIN_NOTE: 15, IMAGE: 16, VERIFIED: 17, ORG: 18 };
-const P_HEADERS = ['ID', 'เวลา', 'บทบาท', 'รหัส/อีเมลผู้แจ้ง', 'ชื่อผู้แจ้ง', 'ติดต่อกลับ', 'หมวด', 'หัวข้อ', 'รายละเอียด', 'หน้า', 'อุปกรณ์', 'เวอร์ชัน', 'สถานะ', 'จัดการโดย', 'จัดการเมื่อ', 'หมายเหตุผู้ดูแล', 'ภาพหน้าจอ', 'ยืนยันตัวตน', 'องค์กร'];
+const P_HEADERS = ['problem_id', 'timestamp', 'role', 'reporter_id', 'reporter_name', 'contact', 'category', 'title', 'details', 'page', 'device', 'app_version', 'status', 'handled_by', 'handled_at', 'admin_note', 'screenshot', 'verified', 'org_id'];
 const PROBLEM_CATEGORIES = { login: 'เข้าสู่ระบบไม่ได้', gps: 'GPS / ตำแหน่ง', camera: 'กล้อง / รูปภาพ', submit: 'ส่งรายงานไม่ได้', data: 'ข้อมูลไม่ถูกต้อง', slow: 'ช้า / ค้าง', display: 'หน้าจอแสดงผลผิดปกติ', notify: 'การแจ้งเตือน', other: 'อื่นๆ' };
 const PROBLEM_STATUS = { new: 'ใหม่', doing: 'กำลังแก้ไข', done: 'แก้ไขแล้ว', wont: 'ไม่ดำเนินการ' };
 const PROBLEM_MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 
 const SURVEY_SHEET = 'Surveys', RESPONSE_SHEET = 'SurveyResponses';
 const VCOL = { ID: 0, TITLE: 1, INTRO: 2, QUESTIONS: 3, START_AT: 4, END_AT: 5, TARGET: 6, STATUS: 7, CREATED_BY: 8, CREATED_AT: 9, NOTIFIED_AT: 10, REMINDED_AT: 11, UPDATED_AT: 12, ORG: 13 };
-const V_HEADERS = ['ID', 'หัวข้อ', 'คำอธิบาย', 'คำถาม (JSON)', 'เริ่มส่ง', 'ปิดรับ', 'ผู้รับ', 'สถานะ', 'สร้างโดย', 'สร้างเมื่อ', 'แจ้งเตือนแล้ว', 'เตือนซ้ำแล้ว', 'แก้ไขล่าสุด', 'องค์กร'];
+const V_HEADERS = ['survey_id', 'title', 'intro', 'questions_json', 'start_at', 'end_at', 'target', 'status', 'created_by', 'created_at', 'notified_at', 'reminded_at', 'updated_at', 'org_id'];
 const SRCOL = { TS: 0, SURVEY: 1, USER_ID: 2, USER_NAME: 3, ANSWERS: 4, WHEN: 5, CLIENT: 6, READABLE: 7 };
-const SR_HEADERS = ['เวลา', 'แบบสอบถาม', 'รหัส', 'ชื่อ', 'คำตอบ (JSON)', 'ทำเมื่อ', 'อุปกรณ์', 'คำตอบ (อ่านง่าย)'];
+const SR_HEADERS = ['timestamp', 'survey_id', 'user_id', 'user_name', 'answers_json', 'answered_from', 'device', 'answers_text'];
 const SURVEY_WHEN = { after_submit: 'หลังส่งรายงาน', later: 'ทำภายหลัง', banner: 'จากแถบเตือน', push: 'จากการแจ้งเตือน' };
 const SURVEY_Q_TYPES = ['rating', 'choice', 'text'];
 

@@ -279,6 +279,7 @@ function endSession() {
     userStore.remove(USER_KEY);
     userStore.remove(CACHE_KEY);
     CURRENT_USER = {};
+    if (typeof Prefs !== 'undefined' && Prefs.useAccount) Prefs.useAccount(null);
     AVA_SRC = null; try { localStorage.removeItem(AVA_KEY); } catch (e) {}
     document.querySelectorAll('[data-user="avatar"]').forEach(el => { el.textContent = ''; delete el.dataset.pic; });
     if (typeof OrgMark !== 'undefined') OrgMark.set(null);
@@ -327,6 +328,7 @@ function setupApp(history, cachedAt) {
 }
 
 function renderUser() {
+    if (typeof Prefs !== 'undefined' && Prefs.useAccount && CURRENT_USER.id) Prefs.useAccount('u' + CURRENT_USER.id); // การตั้งค่าของผู้ใช้สิทธิ์คนนี้บนเครื่องนี้
     if (typeof OrgMark !== 'undefined') OrgMark.set(CURRENT_USER.orgInfo || null, { open: () => { haptic(); switchTab('account'); } }); // การ์ดองค์กรในเมนูด้านข้าง
     document.querySelectorAll('[data-user="name"]').forEach(el => el.textContent = CURRENT_USER.name || '-');
     document.querySelectorAll('[data-user="id"]').forEach(el => el.textContent = CURRENT_USER.id || '-');

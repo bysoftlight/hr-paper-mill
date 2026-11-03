@@ -11,15 +11,13 @@
 const BILL_SHEET = { ORGS: 'Orgs', PLANS: 'Plans', ACCOUNTS: 'PayAccounts', INVOICES: 'Invoices' };
 const BO = { ID: 0, NAME: 1, CONTACT: 2, EMAIL: 3, PHONE: 4, TAX_ID: 5, ADDRESS: 6, PLAN: 7, STATUS: 8, CYCLE: 9, TRIAL_START: 10, TRIAL_END: 11,
   PERIOD_START: 12, PERIOD_END: 13, MAX_USERS: 14, MAX_STAFF: 15, NOTE: 16, CREATED_AT: 17, UPDATED_AT: 18, UPDATED_BY: 19, LOGO: 20 };
-const BO_HEADERS = ['รหัส', 'ชื่อบริษัท/องค์กร', 'ผู้ติดต่อ', 'อีเมล', 'โทร', 'เลขผู้เสียภาษี', 'ที่อยู่', 'แพลน', 'สถานะ', 'รอบบิล', 'เริ่มทดลอง', 'สิ้นสุดทดลอง',
-  'เริ่มรอบบิล', 'สิ้นสุดรอบบิล', 'ผู้ใช้สิทธิ์สูงสุด (กำหนดเอง)', 'เจ้าหน้าที่สูงสุด (กำหนดเอง)', 'หมายเหตุ', 'สร้างเมื่อ', 'แก้ไขล่าสุด', 'แก้ไขโดย', 'โลโก้'];
+const BO_HEADERS = ['org_id', 'name', 'contact', 'email', 'phone', 'tax_id', 'address', 'plan', 'status', 'billing_cycle', 'trial_start', 'trial_end', 'period_start', 'period_end', 'max_users_override', 'max_staff_override', 'note', 'created_at', 'updated_at', 'updated_by', 'logo'];
 const BP = { ID: 0, NAME: 1, TAGLINE: 2, PRICE_M: 3, PRICE_Y: 4, MAX_USERS: 5, MAX_STAFF: 6, FEATURES: 7, HIGHLIGHT: 8, PUBLIC: 9, ORDER: 10, ACTIVE: 11, TRIAL_DAYS: 12, UPDATED_AT: 13, SETUP: 14, FROM: 15 };
-const BP_HEADERS = ['รหัส', 'ชื่อแพลน', 'คำโปรย', 'ราคา/เดือน (บาท)', 'ราคา/ปี (บาท)', 'ผู้ใช้สิทธิ์สูงสุด (0 = ไม่จำกัด)', 'เจ้าหน้าที่สูงสุด (0 = ไม่จำกัด)',
-  'ฟีเจอร์ (บรรทัดละข้อ)', 'แนะนำ', 'แสดงในหน้าแพ็กเกจ', 'ลำดับ', 'ใช้งาน', 'วันทดลองใช้', 'แก้ไขล่าสุด', 'ค่าติดตั้ง ครั้งเดียว (บาท)', 'แสดงเป็นราคาเริ่มต้น'];
+const BP_HEADERS = ['plan_id', 'name', 'tagline', 'price_monthly_thb', 'price_yearly_thb', 'max_users (0 = unlimited)', 'max_staff (0 = unlimited)', 'features (one per line)', 'highlight', 'public', 'sort_order', 'active', 'trial_days', 'updated_at', 'setup_fee_thb', 'show_as_from_price'];
 const BA = { ID: 0, TYPE: 1, BANK: 2, NAME: 3, NUMBER: 4, BRANCH: 5, DEFAULT: 6, ACTIVE: 7, NOTE: 8, UPDATED_AT: 9 };
-const BA_HEADERS = ['รหัส', 'ประเภท', 'ธนาคาร/ผู้ให้บริการ', 'ชื่อบัญชี', 'เลขบัญชี/พร้อมเพย์', 'สาขา', 'ค่าเริ่มต้น', 'ใช้งาน', 'หมายเหตุ', 'แก้ไขล่าสุด'];
+const BA_HEADERS = ['account_id', 'type', 'bank_provider', 'account_name', 'account_number', 'branch', 'is_default', 'active', 'note', 'updated_at'];
 const BI = { ID: 0, ORG: 1, PLAN: 2, CYCLE: 3, PERIOD_START: 4, PERIOD_END: 5, AMOUNT: 6, STATUS: 7, ISSUED: 8, DUE: 9, PAID_AT: 10, ACCOUNT: 11, METHOD: 12, REF: 13, NOTE: 14, BY: 15 };
-const BI_HEADERS = ['เลขที่', 'องค์กร', 'แพลน', 'รอบบิล', 'เริ่มรอบ', 'สิ้นสุดรอบ', 'จำนวนเงิน (บาท)', 'สถานะ', 'วันที่ออก', 'ครบกำหนด', 'ชำระเมื่อ', 'บัญชีรับเงิน', 'ช่องทาง', 'เลขอ้างอิง', 'หมายเหตุ', 'บันทึกโดย'];
+const BI_HEADERS = ['invoice_id', 'org_id', 'plan', 'billing_cycle', 'period_start', 'period_end', 'amount_thb', 'status', 'issued_at', 'due_at', 'paid_at', 'pay_account', 'method', 'reference', 'note', 'recorded_by'];
 
 const ORG_STATUSES = ['trial', 'active', 'past_due', 'suspended', 'cancelled'];
 const ORG_STATUS_TH = { trial: 'ทดลองใช้', active: 'ใช้งาน', past_due: 'ค้างชำระ', suspended: 'ระงับ', cancelled: 'ยกเลิก' };

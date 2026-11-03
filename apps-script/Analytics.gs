@@ -8,10 +8,7 @@
 
 const ANALYTICS_SHEET = 'Analytics';
 // คอลัมน์ใหม่ต่อท้ายเสมอ (แถวเก่ายังตรงคอลัมน์เดิม)
-const A_HEADERS = ['เวลา', 'วันที่', 'ชั่วโมง', 'แอป', 'กลุ่ม', 'ผู้เยี่ยมชม', 'เซสชัน', 'เหตุการณ์', 'หน้า', 'ป้าย', 'ค่า',
-  'อุปกรณ์', 'ระบบ', 'เบราว์เซอร์', 'แอปบนหน้าจอ', 'ความกว้างจอ', 'ที่มา', 'ผู้ใช้ใหม่',
-  'รหัสผู้ใช้', 'ชื่อ', 'รหัสเครื่อง', 'รุ่นอุปกรณ์', 'เวอร์ชันระบบ', 'เวอร์ชันเบราว์เซอร์', 'ภาษา', 'เขตเวลา',
-  'ละติจูด', 'ลองจิจูด', 'ความแม่นยำ (ม.)', 'พื้นที่', 'รายละเอียด'];
+const A_HEADERS = ['timestamp', 'date', 'hour', 'app', 'role', 'visitor_id', 'session_id', 'event', 'page', 'label', 'value', 'device', 'os', 'browser', 'standalone', 'screen_width', 'referrer', 'is_new', 'user_id', 'user_name', 'device_id', 'device_model', 'os_version', 'browser_version', 'language', 'timezone', 'lat', 'lng', 'accuracy_m', 'area', 'details'];
 const AC = { TS: 0, DATE: 1, HOUR: 2, APP: 3, ROLE: 4, VID: 5, SID: 6, EVENT: 7, PAGE: 8, LABEL: 9, VALUE: 10,
   DEVICE: 11, OS: 12, BROWSER: 13, PWA: 14, SCREEN: 15, REF: 16, NEW: 17,
   UID: 18, NAME: 19, DID: 20, MODEL: 21, OS_VER: 22, BR_VER: 23, LANG: 24, TZ: 25, LAT: 26, LNG: 27, ACC: 28, AREA: 29, DETAIL: 30 };
