@@ -327,18 +327,22 @@ function endSession(message) {
 
 // ---------- After sign in ----------
 // องค์กรหมดช่วงทดลอง/ค้างชำระเกินกำหนด/ถูกระงับ (Dev ใช้งานได้เสมอ)
+// หน้าแพ็กเกจและราคา (เว็บไซต์ softlight) — เห็นเฉพาะผู้ดูแลระบบ/Dev
+const PRODUCT_URL = 'https://bysoftlight.github.io/software/hr-paper-mill.html';
+const isOrgAdmin = me => !!me && (me.role === 'admin' || me.role === 'dev');
 function subLocked(sub, me) { return !!(sub && sub.ok === false && !(me && me.role === 'dev')); }
 const SUB_STATE_TH = { trial: 'ทดลองใช้ฟรี', active: 'ใช้งาน', past_due: 'ค้างชำระ', trial_expired: 'หมดช่วงทดลองใช้', expired: 'หมดอายุ', suspended: 'ถูกระงับ', cancelled: 'ยกเลิกแล้ว' };
 // แถบแจ้งสถานะการสมัครสมาชิกขององค์กร: ทดลองใช้ (เหลือกี่วัน) · ใกล้หมดรอบ · ค้างชำระ
+// แสดงเฉพาะผู้ดูแลระบบขององค์กร — เจ้าหน้าที่ทั่วไปใช้งานตามที่องค์กรจ่ายให้ ไม่ต้องเห็นเรื่องการชำระเงิน
 function renderSubBanner() {
     const el = $('subBanner'), s = ST.sub;
     if (!el) return;
-    const show = s && s.ok && (s.state === 'trial' || s.warn);
+    const show = s && s.ok && (s.state === 'trial' || s.warn) && isOrgAdmin(ST.me);
     el.hidden = !show;
     if (!show) return;
     const tone = s.state === 'past_due' ? 'is-bad' : s.warn ? 'is-warn' : 'is-accent';
     const left = s.daysLeft === null || s.daysLeft === undefined ? '' : s.daysLeft <= 0 ? 'วันนี้วันสุดท้าย' : `เหลือ ${fmtNum(s.daysLeft)} วัน`;
-    el.innerHTML = `<div class="sub-card ${tone}">${icon(s.state === 'past_due' ? 'alert' : 'calendar')}<span class="sub-text"><b>${esc(SUB_STATE_TH[s.state] || s.state)}${s.plan ? ' · แพลน ' + esc(s.plan.name) : ''}${left ? ' — ' + left : ''}</b><small>${esc(s.org ? s.org.name : '')}${s.endsAt ? ' · ถึง ' + thDate(s.endsAt, { day: 'numeric', month: 'short', year: 'numeric' }) : ''} · ${esc(s.message || '')}</small></span><a class="btn btn-sm ${s.state === 'past_due' ? 'btn-primary' : 'btn-tonal'}" href="packages.html" target="_blank" rel="noopener">ดูแพ็กเกจ</a></div>`;
+    el.innerHTML = `<div class="sub-card ${tone}">${icon(s.state === 'past_due' ? 'alert' : 'calendar')}<span class="sub-text"><b>${esc(SUB_STATE_TH[s.state] || s.state)}${s.plan ? ' · แพลน ' + esc(s.plan.name) : ''}${left ? ' — ' + left : ''}</b><small>${esc(s.org ? s.org.name : '')}${s.endsAt ? ' · ถึง ' + thDate(s.endsAt, { day: 'numeric', month: 'short', year: 'numeric' }) : ''} · ${esc(s.message || '')}</small></span><a class="btn btn-sm ${s.state === 'past_due' ? 'btn-primary' : 'btn-tonal'}" href="${PRODUCT_URL}#packages" target="_blank" rel="noopener">ดูแพ็กเกจ</a></div>`;
 }
 
 function enter(me, sub) {
@@ -366,7 +370,11 @@ function showPending(me) {
         active: ['ยังไม่ได้รับสิทธิ์ใดๆ', 'บัญชีของคุณใช้งานได้ แต่ยังไม่ได้รับสิทธิ์ดูข้อมูล กรุณาติดต่อผู้ดูแลระบบ']
     };
     let [title, text] = msgs[me.status] || msgs.pending;
-    if (me.status === 'active' && subLocked(ST.sub, me)) [title, text] = [`${ST.sub.org ? ST.sub.org.name + ' · ' : ''}${SUB_STATE_TH[ST.sub.state] || 'ใช้งานไม่ได้'}`, ST.sub.message + ' — ดูแพ็กเกจและช่องทางชำระเงินได้ที่หน้า "แพ็กเกจ" หน้านี้จะตรวจสอบสถานะให้อัตโนมัติเมื่อชำระแล้ว'];
+    if (me.status === 'active' && subLocked(ST.sub, me)) [title, text] = isOrgAdmin(me)
+        ? [`${ST.sub.org ? ST.sub.org.name + ' · ' : ''}${SUB_STATE_TH[ST.sub.state] || 'ใช้งานไม่ได้'}`, ST.sub.message + ' — ดูแพ็กเกจและช่องทางชำระเงินได้ที่เว็บไซต์ softlight หน้านี้จะตรวจสอบสถานะให้อัตโนมัติเมื่อชำระแล้ว']
+        : ['ระบบปิดใช้งานชั่วคราว', 'ระบบขององค์กรยังใช้งานไม่ได้ในขณะนี้ กรุณาติดต่อผู้ดูแลระบบขององค์กร หน้านี้จะตรวจสอบสถานะให้อัตโนมัติ'];
+    const pkg = $('pendPkg');
+    if (pkg) pkg.hidden = !(me.status === 'active' && subLocked(ST.sub, me) && isOrgAdmin(me));
     $('pendTitle').textContent = title;
     $('pendText').textContent = text;
     $('pendKv').innerHTML = `<div><dt>ชื่อ</dt><dd>${esc(me.name)}</dd></div><div><dt>บัญชี</dt><dd>${esc(me.provider === 'line' ? 'LINE' : 'Google')}${me.email ? ' · ' + esc(me.email) : ''}</dd></div><div><dt>สถานะ</dt><dd>${esc(STATUS_LABELS[me.status] || me.status)}</dd></div>`;

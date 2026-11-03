@@ -13,9 +13,9 @@ const BO = { ID: 0, NAME: 1, CONTACT: 2, EMAIL: 3, PHONE: 4, TAX_ID: 5, ADDRESS:
   PERIOD_START: 12, PERIOD_END: 13, MAX_USERS: 14, MAX_STAFF: 15, NOTE: 16, CREATED_AT: 17, UPDATED_AT: 18, UPDATED_BY: 19 };
 const BO_HEADERS = ['รหัส', 'ชื่อบริษัท/องค์กร', 'ผู้ติดต่อ', 'อีเมล', 'โทร', 'เลขผู้เสียภาษี', 'ที่อยู่', 'แพลน', 'สถานะ', 'รอบบิล', 'เริ่มทดลอง', 'สิ้นสุดทดลอง',
   'เริ่มรอบบิล', 'สิ้นสุดรอบบิล', 'ผู้ใช้สิทธิ์สูงสุด (กำหนดเอง)', 'เจ้าหน้าที่สูงสุด (กำหนดเอง)', 'หมายเหตุ', 'สร้างเมื่อ', 'แก้ไขล่าสุด', 'แก้ไขโดย'];
-const BP = { ID: 0, NAME: 1, TAGLINE: 2, PRICE_M: 3, PRICE_Y: 4, MAX_USERS: 5, MAX_STAFF: 6, FEATURES: 7, HIGHLIGHT: 8, PUBLIC: 9, ORDER: 10, ACTIVE: 11, TRIAL_DAYS: 12, UPDATED_AT: 13 };
+const BP = { ID: 0, NAME: 1, TAGLINE: 2, PRICE_M: 3, PRICE_Y: 4, MAX_USERS: 5, MAX_STAFF: 6, FEATURES: 7, HIGHLIGHT: 8, PUBLIC: 9, ORDER: 10, ACTIVE: 11, TRIAL_DAYS: 12, UPDATED_AT: 13, SETUP: 14, FROM: 15 };
 const BP_HEADERS = ['รหัส', 'ชื่อแพลน', 'คำโปรย', 'ราคา/เดือน (บาท)', 'ราคา/ปี (บาท)', 'ผู้ใช้สิทธิ์สูงสุด (0 = ไม่จำกัด)', 'เจ้าหน้าที่สูงสุด (0 = ไม่จำกัด)',
-  'ฟีเจอร์ (บรรทัดละข้อ)', 'แนะนำ', 'แสดงในหน้าแพ็กเกจ', 'ลำดับ', 'ใช้งาน', 'วันทดลองใช้', 'แก้ไขล่าสุด'];
+  'ฟีเจอร์ (บรรทัดละข้อ)', 'แนะนำ', 'แสดงในหน้าแพ็กเกจ', 'ลำดับ', 'ใช้งาน', 'วันทดลองใช้', 'แก้ไขล่าสุด', 'ค่าติดตั้ง ครั้งเดียว (บาท)', 'แสดงเป็นราคาเริ่มต้น'];
 const BA = { ID: 0, TYPE: 1, BANK: 2, NAME: 3, NUMBER: 4, BRANCH: 5, DEFAULT: 6, ACTIVE: 7, NOTE: 8, UPDATED_AT: 9 };
 const BA_HEADERS = ['รหัส', 'ประเภท', 'ธนาคาร/ผู้ให้บริการ', 'ชื่อบัญชี', 'เลขบัญชี/พร้อมเพย์', 'สาขา', 'ค่าเริ่มต้น', 'ใช้งาน', 'หมายเหตุ', 'แก้ไขล่าสุด'];
 const BI = { ID: 0, ORG: 1, PLAN: 2, CYCLE: 3, PERIOD_START: 4, PERIOD_END: 5, AMOUNT: 6, STATUS: 7, ISSUED: 8, DUE: 9, PAID_AT: 10, ACCOUNT: 11, METHOD: 12, REF: 13, NOTE: 14, BY: 15 };
@@ -30,15 +30,18 @@ const DEFAULT_TRIAL_DAYS = 30;
 const GRACE_DAYS = 7;
 const DAY_MS_ = 86400000;
 
-// แพลนตั้งต้น (สร้างเมื่อยังไม่มีชีต Plans) — แก้ได้ใน Dev console
+// แพลนตั้งต้น (สร้างเมื่อยังไม่มีชีต Plans) — แก้ได้ใน Dev console · ราคาอ้างอิงใบเสนอราคา QT-2569-001
+// คอลัมน์: รหัส ชื่อ คำโปรย ราคา/เดือน ราคา/ปี ผู้ใช้สิทธิ์ เจ้าหน้าที่ ฟีเจอร์ แนะนำ แสดง ลำดับ ใช้งาน วันทดลอง | (แก้ไขล่าสุด) ค่าติดตั้ง ราคาเริ่มต้น
 const DEFAULT_PLANS_ = [
-  ['starter', 'Starter', 'เริ่มต้นสำหรับโครงการขนาดเล็ก', 990, 9900, 50, 3,
-    'ผู้ใช้สิทธิ์สูงสุด 50 คน\nเจ้าหน้าที่ 3 บัญชี\nส่งรายงานพร้อมรูปและพิกัด GPS\nแดชบอร์ดภาพรวมและรายงาน\nส่งออก Excel / PDF', false, true, 1, true, 30],
-  ['pro', 'Pro', 'คุ้มที่สุดสำหรับองค์กรทั่วไป', 2490, 24900, 300, 10,
-    'ผู้ใช้สิทธิ์สูงสุด 300 คน\nเจ้าหน้าที่ 10 บัญชี\nทุกอย่างใน Starter\nตรวจจับพิกัดผิดปกติ / รูปซ้ำ\nแจ้งเตือนแบบ Push และอีเมลรายงานประจำเดือน\nสถิติการใช้งานแบบเรียลไทม์', true, true, 2, true, 30],
-  ['enterprise', 'Enterprise', 'สำหรับองค์กรขนาดใหญ่ ปรับแต่งได้', 0, 0, 0, 0,
-    'ผู้ใช้สิทธิ์ไม่จำกัด\nเจ้าหน้าที่ไม่จำกัด\nทุกอย่างใน Pro\nปรับแต่งรายงานและแบรนด์ขององค์กร\nผู้ดูแลเฉพาะ และ SLA', false, true, 3, true, 30]
+  ['lite', 'Lite', 'เริ่มต้นสำหรับโครงการไม่เกิน 50 คน', 1900, 19000, 50, 3,
+    'แอปส่งรายงาน: GPS · ประเภทการขาย · ถ่ายรูปหลักฐาน · ประวัติ\nกล้องพร้อมกรอบนำถ่าย + ประทับวันเวลา/พิกัด\nDashboard ภาพรวมวันนี้ + รายชื่อผู้ยังไม่ส่ง\nรายงานพร้อมตัวกรอง · ส่งออก Excel / PDF รายเดือน\nจัดการผู้ใช้สิทธิ์ · เจ้าหน้าที่เข้าสู่ระบบด้วย Google\nติดตั้ง + อบรมการใช้งาน 1 ชม.\nดูแลระบบ · อัปเดตฟังก์ชัน · สำรองข้อมูลรายสัปดาห์', false, true, 1, true, 30, 5000, false],
+  ['pro', 'Pro', 'คุ้มที่สุด รวมฟังก์ชันเสริมครบ', 3900, 39000, 200, 10,
+    'ทุกอย่างใน Lite\nแจ้งเตือนผู้ที่ยังไม่ส่งรายงานทาง LINE และ Push\nส่งรายงานได้แม้สัญญาณหลุด + ติดตั้งเป็นแอป\nโหมดตรวจรูปและอนุมัติรายงาน · ตรวจรูปซ้ำ / พิกัดผิดปกติ\nโหมดอ่านง่ายสำหรับผู้พิการ\nสถิติการใช้งานเรียลไทม์ · อีเมลรายงานประจำเดือน\nอบรม 2 ชม. · ช่วยเหลือในวันทำการ', true, true, 2, true, 30, 5000, false],
+  ['enterprise', 'Enterprise', 'สำหรับองค์กรหลายโครงการ ปรับแต่งได้', 7900, 79000, 0, 0,
+    'ทุกอย่างใน Pro\nผู้ใช้สิทธิ์และเจ้าหน้าที่ไม่จำกัด · แยกหลายโครงการ/สาขา\nแยกเก็บข้อมูลรายเดือน · ส่งออกข้อมูลทั้งหมดได้ทุกเมื่อ\nดูแลระบบรายปี (MA) รวมในแพ็กเกจ\nปรับแต่งรายงาน แบรนด์ และฟังก์ชันตามองค์กร\nผู้ดูแลเฉพาะ · ตอบกลับภายใน 4 ชม. ทำการ', false, true, 3, true, 30, 15000, true]
 ];
+const planRow_ = (p, now) => p.slice(0, 13).concat([now, p[13], p[14]]);
+const PLANS_VERSION = '2';
 
 // ---------- ชีต ----------
 function billSheet_(name, headers) {
@@ -50,10 +53,35 @@ function billSheet_(name, headers) {
     sh.setFrozenRows(1);
     if (name === BILL_SHEET.PLANS) {
       const now = new Date();
-      DEFAULT_PLANS_.forEach(p => sh.appendRow(p.concat([now])));
+      DEFAULT_PLANS_.forEach(p => sh.appendRow(planRow_(p, now)));
     }
-  }
+    if (name === BILL_SHEET.PLANS) PropertiesService.getScriptProperties().setProperty('PLANS_V', PLANS_VERSION);
+  } else if (name === BILL_SHEET.PLANS) migratePlans_(sh);
   return sh;
+}
+// แพลนรุ่นแรก (Starter 990 / Pro 2,490 / Enterprise) ที่ยังไม่ได้แก้ → เปลี่ยนเป็นชุดใหม่ (Lite / Pro / Enterprise) ครั้งเดียว
+//   ถ้า Dev แก้แพลนเองแล้ว ไม่เขียนทับ — เติมเฉพาะหัวคอลัมน์ใหม่ (ค่าติดตั้ง / ราคาเริ่มต้น)
+function migratePlans_(sh) {
+  const props = PropertiesService.getScriptProperties();
+  if (props.getProperty('PLANS_V') === PLANS_VERSION) return;
+  sh.getRange(1, 1, 1, BP_HEADERS.length).setValues([BP_HEADERS]);
+  const last = sh.getLastRow();
+  const rows = last >= 2 ? sh.getRange(2, 1, last - 1, 14).getValues() : [];
+  const sig = rows.map(r => String(r[BP.ID]) + ':' + money_(r[BP.PRICE_M]) + ':' + money_(r[BP.PRICE_Y])).sort().join('|');
+  if (!rows.length || sig === 'enterprise:0:0|pro:2490:24900|starter:990:9900') {
+    if (rows.length) sh.deleteRows(2, rows.length);
+    const now = new Date();
+    DEFAULT_PLANS_.forEach(p => sh.appendRow(planRow_(p, now)));
+    // องค์กร/ใบแจ้งหนี้ที่ใช้แพลน starter → lite
+    [[BILL_SHEET.ORGS, BO_HEADERS, BO.PLAN], [BILL_SHEET.INVOICES, BI_HEADERS, BI.PLAN]].forEach(([n, h, col]) => {
+      const s2 = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(n);
+      if (!s2 || s2.getLastRow() < 2) return;
+      const vals = s2.getRange(2, col + 1, s2.getLastRow() - 1, 1).getValues();
+      if (vals.some(v => v[0] === 'starter')) s2.getRange(2, col + 1, vals.length, 1).setValues(vals.map(v => [v[0] === 'starter' ? 'lite' : v[0]]));
+    });
+  }
+  props.setProperty('PLANS_V', PLANS_VERSION);
+  try { CacheService.getScriptCache().remove('bill:public'); } catch (e) {}
 }
 function billRows_(name, headers) {
   const sh = billSheet_(name, headers), last = sh.getLastRow();
@@ -84,7 +112,8 @@ function planFromRow_(x) {
     maxUsers: int_(r[BP.MAX_USERS]), maxStaff: int_(r[BP.MAX_STAFF]),
     features: plain_(r[BP.FEATURES]).split('\n').map(s => s.trim()).filter(Boolean),
     highlight: bool_(r[BP.HIGHLIGHT]), public: bool_(r[BP.PUBLIC]), order: Number(r[BP.ORDER]) || 0, active: r[BP.ACTIVE] === '' ? true : bool_(r[BP.ACTIVE]),
-    trialDays: r[BP.TRIAL_DAYS] === '' ? DEFAULT_TRIAL_DAYS : Math.max(0, Math.floor(Number(r[BP.TRIAL_DAYS]) || 0)), updatedAt: ts_(r[BP.UPDATED_AT])
+    trialDays: r[BP.TRIAL_DAYS] === '' ? DEFAULT_TRIAL_DAYS : Math.max(0, Math.floor(Number(r[BP.TRIAL_DAYS]) || 0)), updatedAt: ts_(r[BP.UPDATED_AT]),
+    setupFee: money_(r[BP.SETUP]), fromPrice: bool_(r[BP.FROM])
   };
 }
 function accountFromRow_(x) {
@@ -172,7 +201,7 @@ function billingPublic_(req) {
   const cache = CacheService.getScriptCache(), hit = cache.get('bill:public');
   if (hit) return JSON.parse(hit);
   const plans = readPlans_().filter(p => p.active && p.public).map(p => ({ id: p.id, name: p.name, tagline: p.tagline, priceMonthly: p.priceMonthly, priceYearly: p.priceYearly,
-    maxUsers: p.maxUsers, maxStaff: p.maxStaff, features: p.features, highlight: p.highlight, trialDays: p.trialDays }));
+    maxUsers: p.maxUsers, maxStaff: p.maxStaff, features: p.features, highlight: p.highlight, trialDays: p.trialDays, setupFee: p.setupFee, fromPrice: p.fromPrice }));
   const accounts = readAccounts_().filter(a => a.active).sort((a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0))
     .map(a => ({ type: a.type, bank: a.bank, name: a.name, number: a.number, branch: a.branch, isDefault: a.isDefault }));
   const out = { success: true, plans: plans, accounts: accounts, trialDays: DEFAULT_TRIAL_DAYS, contact: { email: prop_('SALES_EMAIL'), phone: prop_('SALES_PHONE'), line: prop_('SALES_LINE') } };
@@ -364,7 +393,8 @@ function devPlanSave_(req, staff, ua) {
   const features = (Array.isArray(p.features) ? p.features : String(p.features || '').split('\n')).map(s => String(s).trim().slice(0, 120)).filter(Boolean).slice(0, 20).join('\n');
   const v = [id, clean_(p.name, 60), clean_(p.tagline, 160), money_(p.priceMonthly), money_(p.priceYearly), int_(p.maxUsers), int_(p.maxStaff), clean_(features, 2600),
     !!p.highlight, p.public !== false, Number(p.order) || (existing ? existing.order : all.length + 1), p.active !== false,
-    p.trialDays === '' || p.trialDays === undefined ? DEFAULT_TRIAL_DAYS : Math.max(0, Math.min(365, Math.floor(Number(p.trialDays) || 0))), new Date()];
+    p.trialDays === '' || p.trialDays === undefined ? DEFAULT_TRIAL_DAYS : Math.max(0, Math.min(365, Math.floor(Number(p.trialDays) || 0))), new Date(),
+    money_(p.setupFee), !!p.fromPrice];
   if (existing) sh.getRange(existing.row, 1, 1, v.length).setValues([v]); else sh.appendRow(v);
   log_(staff, existing ? 'dev.plan.update' : 'dev.plan.create', id + ' ' + p.name, { monthly: v[BP.PRICE_M], yearly: v[BP.PRICE_Y], public: v[BP.PUBLIC], active: v[BP.ACTIVE] }, ua);
   return { success: true, id: id };
@@ -417,14 +447,15 @@ function devInvoiceCreate_(req, staff, ua) {
   const start = new Date(new Date(fmtDate_(new Date(startT)) + 'T00:00:00+07:00').getTime());
   const end = endOfDay_(new Date(addMonths_(start.getTime(), cycle === 'yearly' ? 12 : 1) - DAY_MS_));
   const auto = cycle === 'yearly' ? (plan.priceYearly || plan.priceMonthly * 12) : plan.priceMonthly;
-  const amount = req.amount !== undefined && req.amount !== '' ? money_(req.amount) : auto;
+  // รวมค่าติดตั้งครั้งเดียว (ใบแรกขององค์กร) ถ้าเลือก
+  const amount = req.amount !== undefined && req.amount !== '' ? money_(req.amount) : auto + (req.withSetup ? plan.setupFee || 0 : 0);
   if (!(amount > 0)) fail_('INVALID', 'กรุณาระบุจำนวนเงิน (แพลนนี้ไม่มีราคาตั้งไว้)');
   const due = dateArg_(req.due) || new Date(now + 7 * DAY_MS_);
   const sh = billSheet_(BILL_SHEET.INVOICES, BI_HEADERS);
   const ym = fmtDate_(new Date(now)).slice(0, 7).replace('-', '');
   const seq = readInvoices_().filter(i => i.id.indexOf('INV' + ym) === 0).length + 1;
   const id = 'INV' + ym + '-' + String(seq).padStart(3, '0');
-  sh.appendRow([id, o.id, plan.id, cycle, start, end, amount, 'pending', new Date(now), endOfDay_(due), '', '', '', '', clean_(req.note, 300), who_(staff)]);
+  sh.appendRow([id, o.id, plan.id, cycle, start, end, amount, 'pending', new Date(now), endOfDay_(due), '', '', '', '', clean_((req.withSetup && plan.setupFee && (req.amount === undefined || req.amount === '') ? 'รวมค่าติดตั้ง ' + plan.setupFee + ' บาท' + (req.note ? ' · ' : '') : '') + (req.note || ''), 300), who_(staff)]);
   log_(staff, 'dev.invoice.create', id + ' ' + o.name, { amount: amount, plan: plan.id, cycle: cycle }, ua);
   return { success: true, id: id };
 }
