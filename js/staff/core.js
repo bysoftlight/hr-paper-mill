@@ -13,8 +13,8 @@ const MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ
 const ROLE_LABELS = { pending: 'รออนุมัติ', viewer: 'ผู้ดูข้อมูล', editor: 'ผู้แก้ไข', admin: 'ผู้ดูแลระบบ', dev: 'Dev (ผู้พัฒนาระบบ)' };
 const STATUS_LABELS = { pending: 'รออนุมัติ', active: 'ใช้งาน', suspended: 'ระงับ', rejected: 'ปฏิเสธ' };
 const PERM_LABELS = {
-    'records.view': 'ดูรายงานการส่ง', 'records.edit': 'เพิ่ม / แก้ไข / ลบรายงาน', 'participants.view': 'ดูข้อมูลผู้ใช้สิทธิ์',
-    'participants.edit': 'เพิ่ม / แก้ไขผู้ใช้สิทธิ์', 'export': 'ส่งออกข้อมูล (Excel, PDF, Google Sheets)', 'admin': 'จัดการบัญชีเจ้าหน้าที่และดู Log',
+    'records.view': 'ดูรายงานการส่ง', 'records.edit': 'เพิ่ม / แก้ไขรายงาน', 'records.delete': 'ลบ / กู้คืนรายงาน', 'participants.view': 'ดูข้อมูลผู้ใช้สิทธิ์',
+    'participants.edit': 'เพิ่ม / แก้ไขผู้ใช้สิทธิ์', 'participants.delete': 'ลบ / กู้คืนผู้ใช้สิทธิ์ (ถังขยะ)', 'export': 'ส่งออกข้อมูล (Excel, PDF, Google Sheets)', 'admin': 'จัดการบัญชีเจ้าหน้าที่และดู Log',
     'dev': 'Dev Console: องค์กร แพลน การชำระเงิน ทุกองค์กร'
 };
 const VIEWS = {};      // โมดูลแต่ละหน้า: { show(), onLive?(count) }

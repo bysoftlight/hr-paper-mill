@@ -4,8 +4,10 @@
 const SHEET = { USERS: 'Users', RECORDS: 'Records', STAFF: 'Staff', LOGS: 'Logs' };
 
 // Users: ผู้ใช้สิทธิ์ (A–D เดิม)
-const UCOL = { ID: 0, NAME: 1, STATUS: 2, PIC: 3, SITE: 4, SITE_LAT: 5, SITE_LNG: 6, PHONE: 7, ACTIVE: 8, NOTE: 9, UPDATED_AT: 10, UPDATED_BY: 11, ORG: 12 };
-const U_HEADERS = ['รหัส', 'ชื่อ-สกุล', 'การใช้สิทธิ์', 'รูป', 'จุดขาย', 'ละติจูดจุดขาย', 'ลองจิจูดจุดขาย', 'เบอร์โทร', 'ใช้งาน', 'หมายเหตุ', 'แก้ไขล่าสุด', 'แก้ไขโดย', 'องค์กร'];
+// DELETED_AT…PREV_ACTIVE = ถังขยะ: ลบแล้วกู้คืนได้ภายใน PARTICIPANT_TRASH_DAYS วัน (ระหว่างนั้นเข้าสู่ระบบไม่ได้ · รหัสยังถูกจองไว้)
+const UCOL = { ID: 0, NAME: 1, STATUS: 2, PIC: 3, SITE: 4, SITE_LAT: 5, SITE_LNG: 6, PHONE: 7, ACTIVE: 8, NOTE: 9, UPDATED_AT: 10, UPDATED_BY: 11, ORG: 12, DELETED_AT: 13, DELETED_BY: 14, DELETE_REASON: 15, PREV_ACTIVE: 16 };
+const U_HEADERS = ['รหัส', 'ชื่อ-สกุล', 'การใช้สิทธิ์', 'รูป', 'จุดขาย', 'ละติจูดจุดขาย', 'ลองจิจูดจุดขาย', 'เบอร์โทร', 'ใช้งาน', 'หมายเหตุ', 'แก้ไขล่าสุด', 'แก้ไขโดย', 'องค์กร', 'ลบเมื่อ', 'ลบโดย', 'เหตุผลที่ลบ', 'สถานะก่อนลบ'];
+const PARTICIPANT_TRASH_DAYS = 30;
 
 // Records: รายงานการขาย (A–J เดิม)
 const RCOL = { TS: 0, DATE: 1, TIME: 2, USER_ID: 3, USER_NAME: 4, TYPE: 5, IMAGE: 6, LAT: 7, LNG: 8, MAP: 9, NOTE: 10, STATUS: 11, UPDATED_BY: 12, UPDATED_AT: 13, SOURCE: 14, ACCURACY: 15, PHOTO_HASH: 16, RECEIVED_AT: 17 };

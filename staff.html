@@ -24,9 +24,9 @@
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <!-- เปลี่ยนเลข ?v= ทุกครั้งที่แก้ CSS/JS -->
-  <script src="js/settings.js?v=3.42.0"></script>
-  <link rel="stylesheet" href="css/style.css?v=3.42.0">
-  <link rel="stylesheet" href="css/staff.css?v=3.42.0">
+  <script src="js/settings.js?v=3.42.1"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.42.1">
+  <link rel="stylesheet" href="css/staff.css?v=3.42.1">
 </head>
 <body class="staff">
 
@@ -296,6 +296,14 @@
     </div>
   </dialog>
 
+  <dialog id="trashSheet" class="sheet trash-sheet" aria-labelledby="trashTitle">
+    <div class="sheet-head">
+      <div><h2 id="trashTitle">ถังขยะ · ผู้ใช้สิทธิ์</h2><p id="trashSub">ลบแล้วกู้คืนได้ภายใน 30 วัน หลังจากนั้นระบบลบถาวร</p></div>
+      <button type="button" class="icon-btn" data-close aria-label="ปิด"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="sheet-body"><div class="trash-list" id="trashList"></div></div>
+  </dialog>
+
   <dialog id="reasonModal" class="alert" aria-labelledby="reasonTitle">
     <form id="reasonForm" novalidate>
       <div class="alert-icon is-bad"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg></div>
@@ -381,7 +389,7 @@
         <label class="field span-2"><span class="label">หมายเหตุ</span><textarea class="input textarea" id="pfNote" rows="2" maxlength="500"></textarea></label>
         <label class="check span-2"><input type="checkbox" id="pfActive" checked><span>เปิดใช้งาน (ปิดแล้วผู้ใช้สิทธิ์จะเข้าสู่ระบบไม่ได้)</span></label>
         <div class="field span-2 danger-zone" id="pfDangerZone" hidden>
-          <button type="button" class="btn-text btn-text-bad" id="pfDelete"><svg class="ic ic-16" aria-hidden="true"><use href="#i-trash"/></svg> ลบบัญชีผู้ใช้สิทธิ์</button>
+          <button type="button" class="btn-text btn-text-bad" id="pfDelete"><svg class="ic ic-16" aria-hidden="true"><use href="#i-trash"/></svg> ย้ายไปถังขยะ</button>
           <small class="muted-text">ถ้าหยุดใช้ชั่วคราว ให้เอาเครื่องหมาย "เปิดใช้งาน" ออกแทน</small>
         </div>
       </div>
@@ -559,7 +567,7 @@
   <!-- ===== Sign in ===== -->
   <div id="authView" class="login" hidden>
     <section class="login-intro" aria-labelledby="authTitle">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.42.0" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.42.1" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <p class="eyebrow">สำหรับเจ้าหน้าที่ HR และผู้ดูแลระบบ</p>
       <h1 id="authTitle">ติดตามรายงานการขาย<br>ของผู้ใช้สิทธิ์ทุกคนในที่เดียว</h1>
       <ol class="intro-steps">
@@ -619,12 +627,12 @@
   <!-- ===== App ===== -->
   <div id="appContainer" class="app" hidden>
     <header class="topbar">
-      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.42.0" alt="" width="36" height="36"><span>HR Staff</span></a>
+      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.42.1" alt="" width="36" height="36"><span>HR Staff</span></a>
       <div class="topbar-actions"><span class="live" data-live><span class="live-dot"></span><span data-live-text>อัปเดตสด</span></span></div>
     </header>
 
     <nav class="sidenav" aria-label="เมนูหลัก">
-      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.42.0" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></a>
+      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.42.1" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></a>
       <div class="nav-items">
         <button type="button" class="nav-item" data-tab="overview" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-grid"/></svg><span>ภาพรวม</span></button>
         <button type="button" class="nav-item" data-tab="records" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-list"/></svg><span>รายงาน</span></button>
@@ -782,6 +790,7 @@
       <div class="view-head view-head-row">
         <div><h2 id="partTitle">ผู้ใช้สิทธิ์</h2><p id="partSub">&nbsp;</p></div>
         <div class="head-actions">
+          <button type="button" class="btn-chip" id="partTrash" data-perm="participants.delete"><svg class="ic ic-16" aria-hidden="true"><use href="#i-trash"/></svg> ถังขยะ</button>
           <button type="button" class="btn-chip btn-chip-primary" id="partAdd" data-perm="participants.edit"><svg class="ic ic-16" aria-hidden="true"><use href="#i-plus"/></svg> เพิ่มผู้ใช้สิทธิ์</button>
         </div>
       </div>
@@ -1099,28 +1108,28 @@
 
   <div id="pdfStage" class="pdf-stage" aria-hidden="true"></div>
 
-  <script src="js/consent.js?v=3.42.0"></script>
-  <script src="js/config.js?v=3.42.0"></script>
-  <script src="js/utils.js?v=3.42.0"></script>
-  <script src="js/glass.js?v=3.42.0"></script>
-  <script src="js/analytics.js?v=3.42.0"></script>
-  <script src="js/api.js?v=3.42.0"></script>
-  <script src="js/charts.js?v=3.42.0"></script>
-  <script src="js/notify.js?v=3.42.0"></script>
-  <script src="js/staff/core.js?v=3.42.0"></script>
-  <script src="js/staff/mapkit.js?v=3.42.0"></script>
-  <script src="js/staff/overview.js?v=3.42.0"></script>
-  <script src="js/staff/records.js?v=3.42.0"></script>
-  <script src="js/staff/participants.js?v=3.42.0"></script>
-  <script src="js/staff/admin.js?v=3.42.0"></script>
-  <script src="js/staff/export.js?v=3.42.0"></script>
-  <script src="js/staff/reports.js?v=3.42.0"></script>
-  <script src="js/staff/analytics.js?v=3.42.0"></script>
-  <script src="js/staff/dev.js?v=3.42.0"></script>
-  <script src="js/feedback.js?v=3.42.0"></script>
-  <script src="js/staff/feedback.js?v=3.42.0"></script>
-  <script src="js/inbox.js?v=3.42.0"></script>
-  <script src="js/staff/inbox.js?v=3.42.0"></script>
-  <script src="js/reveal.js?v=3.42.0"></script>
+  <script src="js/consent.js?v=3.42.1"></script>
+  <script src="js/config.js?v=3.42.1"></script>
+  <script src="js/utils.js?v=3.42.1"></script>
+  <script src="js/glass.js?v=3.42.1"></script>
+  <script src="js/analytics.js?v=3.42.1"></script>
+  <script src="js/api.js?v=3.42.1"></script>
+  <script src="js/charts.js?v=3.42.1"></script>
+  <script src="js/notify.js?v=3.42.1"></script>
+  <script src="js/staff/core.js?v=3.42.1"></script>
+  <script src="js/staff/mapkit.js?v=3.42.1"></script>
+  <script src="js/staff/overview.js?v=3.42.1"></script>
+  <script src="js/staff/records.js?v=3.42.1"></script>
+  <script src="js/staff/participants.js?v=3.42.1"></script>
+  <script src="js/staff/admin.js?v=3.42.1"></script>
+  <script src="js/staff/export.js?v=3.42.1"></script>
+  <script src="js/staff/reports.js?v=3.42.1"></script>
+  <script src="js/staff/analytics.js?v=3.42.1"></script>
+  <script src="js/staff/dev.js?v=3.42.1"></script>
+  <script src="js/feedback.js?v=3.42.1"></script>
+  <script src="js/staff/feedback.js?v=3.42.1"></script>
+  <script src="js/inbox.js?v=3.42.1"></script>
+  <script src="js/staff/inbox.js?v=3.42.1"></script>
+  <script src="js/reveal.js?v=3.42.1"></script>
 </body>
 </html>
