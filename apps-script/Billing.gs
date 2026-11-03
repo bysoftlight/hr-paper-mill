@@ -94,6 +94,7 @@ const money_ = v => { const n = Number(String(v === null || v === undefined ? ''
 const int_ = v => { const n = Math.floor(Number(v)); return isFinite(n) && n > 0 ? n : 0; };
 function billGen_() { try { CacheService.getScriptCache().put('bill:gen', String(Date.now()) + Math.random().toString(36).slice(2, 5), 21600); } catch (e) {} }
 
+const LOGO_INLINE_MAX = 40000; // ตัวอักษร (1 ช่องในชีตเก็บได้ 50,000)
 function orgFromRow_(x) {
   const r = x.r;
   return {
@@ -103,7 +104,8 @@ function orgFromRow_(x) {
     trialStart: ts_(r[BO.TRIAL_START]), trialEnd: ts_(r[BO.TRIAL_END]), periodStart: ts_(r[BO.PERIOD_START]), periodEnd: ts_(r[BO.PERIOD_END]),
     maxUsers: int_(r[BO.MAX_USERS]), maxStaff: int_(r[BO.MAX_STAFF]), note: plain_(r[BO.NOTE]),
     createdAt: ts_(r[BO.CREATED_AT]), updatedAt: ts_(r[BO.UPDATED_AT]), updatedBy: String(r[BO.UPDATED_BY] || ''),
-    logo: r[BO.LOGO] ? toImageUrl_(String(r[BO.LOGO])).replace('sz=w1000', 'sz=w256') : ''
+    // โลโก้เก็บเป็นรูปเล็ก (data URL) ในชีต: รักษาพื้นโปร่งใสของ PNG — รูปย่อของ Drive ทำพื้นโปร่งใสเป็นสีดำ
+    logo: r[BO.LOGO] ? (/^data:image\//.test(String(r[BO.LOGO])) ? String(r[BO.LOGO]) : toImageUrl_(String(r[BO.LOGO])).replace('sz=w1000', 'sz=w256')) : ''
   };
 }
 function planFromRow_(x) {
@@ -327,7 +329,11 @@ function devOrgSave_(req, staff, ua) {
   v[BO.MAX_USERS] = int_(o.maxUsers) || ''; v[BO.MAX_STAFF] = int_(o.maxStaff) || ''; v[BO.NOTE] = clean_(o.note, 500);
   v[BO.UPDATED_AT] = now; v[BO.UPDATED_BY] = who_(staff);
   // โลโก้องค์กร (แสดงคู่กับชื่อแอปของผู้ใช้ในองค์กร) — อัปโหลดใหม่ / ลบ
-  if (o.logo && o.logo.data) v[BO.LOGO] = saveNamedImage_('LOGO_' + id, o.logo);
+  if (o.logo && o.logo.data) {
+    const drive = saveNamedImage_('LOGO_' + id, o.logo); // ไฟล์ต้นฉบับเก็บใน Drive
+    const small = String(o.logo.small || '');
+    v[BO.LOGO] = small && small.length <= LOGO_INLINE_MAX && /^[A-Za-z0-9+/=]+$/.test(small) ? 'data:image/png;base64,' + small : drive;
+  }
   else if (o.removeLogo) v[BO.LOGO] = '';
   if (!existing) {
     // องค์กรใหม่: เริ่มทดลองใช้ฟรีทันที (ตามวันทดลองของแพลน) หรือเริ่มใช้งานจริงถ้าเลือก
