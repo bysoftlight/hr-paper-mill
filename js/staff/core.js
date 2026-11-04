@@ -727,7 +727,17 @@ VIEWS.account = {
         };
         folds.forEach(card => {
             const head = card.querySelector('.fold-head');
-            const flip = () => { haptic(); const on = head.getAttribute('aria-expanded') !== 'true'; folds.forEach(c => setFold(c, c === card ? on : false)); };
+            const flip = () => {
+                haptic(); const on = head.getAttribute('aria-expanded') !== 'true';
+                folds.forEach(c => setFold(c, c === card ? on : false));
+                // เปิดแล้วเลื่อนให้หัวการ์ดอยู่บนสุด — อ่านรายการจากบนลงล่าง (การ์ดอื่นที่พับลงทำให้หน้ากระโดด)
+                if (on) requestAnimationFrame(() => {
+                    const bar = document.querySelector('.topbar'), bs = bar && getComputedStyle(bar);
+                    const off = bar && bs.display !== 'none' && /sticky|fixed/.test(bs.position) ? Math.max(0, bar.getBoundingClientRect().bottom) : 0;
+                    const top = card.getBoundingClientRect().top - off - 12;
+                    if (Math.abs(top) > 4) window.scrollTo({ top: window.scrollY + top, behavior: document.documentElement.dataset.motion === 'reduce' || matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+                });
+            };
             head.addEventListener('click', e => { if (e.target.closest('a, button:not(.fold-head)')) return; flip(); });
             head.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } });
         });

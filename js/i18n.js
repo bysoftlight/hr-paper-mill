@@ -101,7 +101,7 @@
     function side(n, prev) { // ข้อความที่อยู่ติดกัน (ข้ามขอบแท็ก inline เช่น <a>)
         for (let x = n; x; x = x.parentElement) {
             const s = prev ? x.previousSibling : x.nextSibling;
-            if (s) return s.textContent || '';
+            if (s) return s.nodeType === 3 || (s.nodeType === 1 && /^inline/.test(getComputedStyle(s).display)) ? s.textContent || '' : ''; // ข้างกันเป็นกล่อง (โลโก้ ปุ่ม) = ไม่ต้องเว้นวรรค
             if (!x.parentElement || !INL.test(x.parentElement.tagName)) return '';
         }
         return '';

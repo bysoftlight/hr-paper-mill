@@ -58,7 +58,7 @@ const Glass = (() => {
         // หัวแอปแบบกระจก: ชื่อหน้าปัจจุบันตรงกลาง
         const bar = document.querySelector('.topbar');
         let t = null;
-        if (bar) { t = document.createElement('span'); t.className = 'topbar-title'; t.setAttribute('aria-hidden', 'true'); const b = bar.querySelector('.brand'); b ? b.after(t) : bar.prepend(t); }
+        if (bar) { t = document.createElement('span'); t.className = 'topbar-title'; t.setAttribute('aria-hidden', 'true'); t.style.visibility = 'hidden'; const b = bar.querySelector('.brand'); b ? b.after(t) : bar.prepend(t); }
         const title = () => {
             if (!t) return;
             const cur = current(), lab = cur && [...cur.querySelectorAll(':scope > span')].find(x => !x.classList.contains('nav-badge') && !x.classList.contains('nav-bell-ic') && !x.classList.contains('nav-ava-wrap'));
@@ -72,13 +72,20 @@ const Glass = (() => {
             const l = b ? b.getBoundingClientRect().right - br.left : 0, r = a ? br.right - a.getBoundingClientRect().left : 0;
             const inset = Math.ceil(Math.max(l, r, 56)) + 8;
             t.style.left = t.style.right = inset + 'px';
-            t.style.visibility = br.width - inset * 2 < 56 ? 'hidden' : '';
+            // แสดงเฉพาะเมื่อชื่อหน้าพอดีทั้งคำ — ไม่ตัดเป็น "Accoun…" · ชิปยังไม่มีข้อความ (กำลังโหลด) = ยังไม่แสดง
+            const chip = a && a.querySelector('[data-today]');
+            const ready = !chip || chip.textContent.trim().length > 0;
+            t.style.visibility = ready && t.textContent && t.scrollWidth <= t.clientWidth + 1 ? '' : 'hidden';
         };
         new MutationObserver(() => { schedule(); title(); }).observe(nav, { subtree: true, attributes: true, attributeFilter: ['aria-current', 'hidden'] });
         document.addEventListener('prefchange', schedule);
         window.addEventListener('resize', () => { schedule(); fitTitle(); });
         document.addEventListener('prefchange', () => requestAnimationFrame(fitTitle));
         if (window.ResizeObserver) { new ResizeObserver(schedule).observe(nav); const a = bar && bar.querySelector(".topbar-actions"); if (a) { const ro = new ResizeObserver(fitTitle); ro.observe(a); [...a.children].forEach(c => ro.observe(c)); } }
+        // ข้อความในชิปเปลี่ยน (ส่งแล้ว/ยังไม่ส่ง) หรือฟอนต์โหลดเสร็จ → คำนวณที่ว่างใหม่ (ResizeObserver ไม่จับ inline ในบางเบราว์เซอร์)
+        if (bar) { const a = bar.querySelector('.topbar-actions'); if (a) new MutationObserver(() => requestAnimationFrame(fitTitle)).observe(a, { subtree: true, childList: true, characterData: true }); }
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTitle);
+        window.addEventListener('load', fitTitle);
         title();
         schedule();
 
