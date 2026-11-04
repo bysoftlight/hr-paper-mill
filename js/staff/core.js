@@ -540,6 +540,8 @@ function tabFromHash() {
 }
 
 function switchTab(tab, push = true) {
+    // ยังโหลดบัญชีไม่เสร็จ (แตะเมนูระหว่างหน้าโครงกำลังโหลด): จำหน้าไว้ใน hash แล้วเปิดให้เมื่อเข้าสู่ระบบเสร็จ (showApp อ่าน hash)
+    if (!ST.me) { if (push && tab && location.hash !== '#' + tab) setUrl('#' + tab, true); return; }
     if (!tabAllowed(tab)) tab = TAB_ORDER.find(tabAllowed);
     ST.view = tab;
     TAB_ORDER.forEach(t => { $(t + 'View').hidden = t !== tab; });
@@ -750,7 +752,7 @@ VIEWS.account = {
     init() {
         // รูปโปรไฟล์ของตัวเอง: บัญชี Google/LINE ที่ไม่ได้ตั้งรูปไว้ อัปโหลดเองได้ (ใช้แทนรูปจากผู้ให้บริการ)
         // กดที่รูป (หรือ "แก้ไขรูปโปรไฟล์") → แผ่นตัวเลือก: เลือกจากคลังภาพ · ถ่ายรูป · ลบรูปปัจจุบัน
-        const open = () => { haptic(); $('accPhotoResetRow').hidden = !ST.me.customPicture; showModal('photoSheet'); };
+        const open = () => { if (!ST.me) return; haptic(); $('accPhotoResetRow').hidden = !ST.me.customPicture; showModal('photoSheet'); };
         $('accAvaBtn').addEventListener('click', open);
         // การ์ดพับได้ (แพ็กเกจ / สิทธิ์): แตะหัวการ์ดเพื่อเปิด — เปิดอันหนึ่ง อันอื่นพับ
         const folds = [...document.querySelectorAll('#accountView .acc-fold')];
@@ -795,6 +797,7 @@ VIEWS.account = {
     },
     show() {
         const me = ST.me;
+        if (!me) return; // ยังไม่ได้เข้าสู่ระบบ / กำลังตรวจ session (เปิดลิงก์ #account ตรง ๆ) — แสดงเมื่อรู้ตัวตนแล้ว
         $('accPhotoResetRow').hidden = !me.customPicture;
         document.querySelectorAll('[data-me="roleChip"]').forEach(el => {
             el.textContent = ROLE_LABELS[me.role] || me.role;
