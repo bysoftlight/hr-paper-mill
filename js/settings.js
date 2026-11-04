@@ -81,8 +81,9 @@ function applyPrefs() {
     root.dataset.header = p.header === 'glass' ? 'glass' : 'classic';
     root.dataset.navlabels = p.navLabels ? 'on' : 'off';
     root.dataset.side = p.sidebar === 'pinned' ? 'pinned' : 'hidden';
-    root.lang = p.lang === 'en' ? 'en' : 'th';
-    root.dataset.lang = p.lang === 'en' ? 'en' : 'th';
+    const en = p.lang === 'en' && !root.hasAttribute('data-i18n-off');
+    root.lang = en ? 'en' : 'th';
+    root.dataset.lang = en ? 'en' : 'th';
     const dark = p.theme === 'dark' || (p.theme === 'system' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.content = dark ? '#131314' : '#FFFFFF';
@@ -91,8 +92,10 @@ applyPrefs();
 // ภาษาอังกฤษ: โหลดตัวแปล (js/i18n.js) เฉพาะเมื่อเลือก English — ผู้ใช้ภาษาไทยไม่ต้องโหลดเพิ่ม · เปลี่ยนภาษา = โหลดหน้าใหม่
 const PREF_VER = (document.currentScript && (document.currentScript.src.match(/\?v=[^&]+/) || [''])[0]) || '';
 let LANG_NOW = Prefs.get('lang') === 'en' ? 'en' : 'th';
+const NO_I18N = document.documentElement.hasAttribute('data-i18n-off');
 function loadI18n() {
-    if (LANG_NOW !== 'en' || window.I18N || document.getElementById('i18nJs')) return;
+    // หน้าเอกสาร (คำถามที่พบบ่อย ข้อกำหนด ความเป็นส่วนตัว) ใช้ภาษาไทยฉบับเดียว — ไม่แปลอัตโนมัติ กันความหมายทางกฎหมายคลาดเคลื่อน
+    if (LANG_NOW !== 'en' || NO_I18N || window.I18N || document.getElementById('i18nJs')) return;
     const sc = document.createElement('script');
     sc.id = 'i18nJs'; sc.src = 'js/i18n.js' + PREF_VER;
     (document.head || document.documentElement).appendChild(sc);

@@ -63,11 +63,22 @@ const Glass = (() => {
             if (!t) return;
             const cur = current(), lab = cur && [...cur.querySelectorAll(':scope > span')].find(x => !x.classList.contains('nav-badge') && !x.classList.contains('nav-bell-ic') && !x.classList.contains('nav-ava-wrap'));
             t.textContent = lab ? lab.textContent.trim() : '';
+            fitTitle();
+        };
+        // เว้นที่ให้โลโก้ (ซ้าย) และชิปสถานะ (ขวา) — ชิปภาษาอังกฤษยาวกว่า ชื่อหน้าต้องไม่ทับ · ที่ไม่พอ = ซ่อนชื่อ
+        const fitTitle = () => {
+            if (!t || getComputedStyle(t).display === 'none') return;
+            const br = bar.getBoundingClientRect(), b = bar.querySelector('.brand'), a = bar.querySelector('.topbar-actions');
+            const l = b ? b.getBoundingClientRect().right - br.left : 0, r = a ? br.right - a.getBoundingClientRect().left : 0;
+            const inset = Math.ceil(Math.max(l, r, 56)) + 8;
+            t.style.left = t.style.right = inset + 'px';
+            t.style.visibility = br.width - inset * 2 < 56 ? 'hidden' : '';
         };
         new MutationObserver(() => { schedule(); title(); }).observe(nav, { subtree: true, attributes: true, attributeFilter: ['aria-current', 'hidden'] });
         document.addEventListener('prefchange', schedule);
-        window.addEventListener('resize', schedule);
-        if (window.ResizeObserver) new ResizeObserver(schedule).observe(nav);
+        window.addEventListener('resize', () => { schedule(); fitTitle(); });
+        document.addEventListener('prefchange', () => requestAnimationFrame(fitTitle));
+        if (window.ResizeObserver) { new ResizeObserver(schedule).observe(nav); const a = bar && bar.querySelector(".topbar-actions"); if (a) { const ro = new ResizeObserver(fitTitle); ro.observe(a); [...a.children].forEach(c => ro.observe(c)); } }
         title();
         schedule();
 

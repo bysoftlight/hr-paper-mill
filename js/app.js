@@ -1456,7 +1456,7 @@ function openProblemReport() {
     Analytics.track('problem_open', { p: page });
     Feedback.openProblem({
         who: guest ? 'guest' : 'participant', page: page, userId: guest ? $('loginId').value : '',
-        urgent: 'เรื่องด่วน เช่น ส่งรายงานวันนี้ไม่ได้ โทร <a href="tel:0858354911">085-835-4911</a> (คุณศิวดลย์) หรือ <a href="tel:0858353663">085-835-3663</a> (คุณศักดิพัฒน์)',
+        urgent: 'เรื่องด่วน เช่น ส่งรายงานวันนี้ไม่ได้ โทร <a href="tel:0858354911">085-835-4911</a> <span data-no-i18n>(คุณศิวดลย์)</span> หรือ <a href="tel:0858353663">085-835-3663</a> <span data-no-i18n>(คุณศักดิพัฒน์)</span>',
         send: payload => callApi('problem.report', guest ? payload : Object.assign(payload, { userId: CURRENT_USER.id }))
     });
 }
