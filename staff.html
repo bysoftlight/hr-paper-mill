@@ -24,9 +24,9 @@
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <!-- เปลี่ยนเลข ?v= ทุกครั้งที่แก้ CSS/JS -->
-  <script src="js/settings.js?v=3.44.1"></script>
-  <link rel="stylesheet" href="css/style.css?v=3.44.1">
-  <link rel="stylesheet" href="css/staff.css?v=3.44.1">
+  <script src="js/settings.js?v=3.44.2"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.44.2">
+  <link rel="stylesheet" href="css/staff.css?v=3.44.2">
 </head>
 <body class="staff">
 
@@ -572,7 +572,7 @@
   <!-- ===== Sign in ===== -->
   <div id="authView" class="login" hidden>
     <section class="login-intro" aria-labelledby="authTitle">
-      <div class="brand"><img class="logo" src="img/logo.png?v=3.44.1" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
+      <div class="brand"><img class="logo" src="img/logo.png?v=3.44.2" alt="" width="36" height="36"><span>HR Paper Mill</span></div>
       <p class="eyebrow">สำหรับเจ้าหน้าที่ HR และผู้ดูแลระบบ</p>
       <h1 id="authTitle">ติดตามรายงานการขาย<br>ของผู้ใช้สิทธิ์ทุกคนในที่เดียว</h1>
       <ol class="intro-steps">
@@ -632,12 +632,12 @@
   <!-- ===== App ===== -->
   <div id="appContainer" class="app" hidden>
     <header class="topbar">
-      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.44.1" alt="" width="36" height="36"><span>HR Staff</span></a>
+      <a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.44.2" alt="" width="36" height="36"><span>HR Staff</span></a>
       <div class="topbar-actions"><span class="live" data-live><span class="live-dot"></span><span data-live-text>อัปเดตสด</span></span></div>
     </header>
 
     <nav class="sidenav" id="sideNav" aria-label="เมนูหลัก">
-      <div class="side-head"><a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.44.1" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></a><button type="button" class="icon-btn side-toggle" data-side-toggle aria-label="ย่อแถบเมนู" title="ย่อแถบเมนู (Ctrl/⌘ + B)"><svg class="ic" aria-hidden="true"><use href="#i-sidebar"/></svg></button></div>
+      <div class="side-head"><a class="brand" href="#overview" data-home aria-label="HR Staff — หน้าแรก"><img class="logo" src="img/logo.png?v=3.44.2" alt="" width="36" height="36"><span class="brand-text">HR Staff</span></a><button type="button" class="icon-btn side-toggle" data-side-toggle aria-label="ย่อแถบเมนู" title="ย่อแถบเมนู (Ctrl/⌘ + B)"><svg class="ic" aria-hidden="true"><use href="#i-sidebar"/></svg></button></div>
       <div class="nav-items">
         <button type="button" class="nav-item" data-tab="overview" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-grid"/></svg><span>ภาพรวม</span></button>
         <button type="button" class="nav-item" data-tab="records" data-perm="records.view"><svg class="ic ic-22" aria-hidden="true"><use href="#i-list"/></svg><span>รายงาน</span></button>
@@ -1098,14 +1098,23 @@
           <p class="footnote acc-o7">HR Paper Mill Staff v1.0<br>Copyright © 2026 <a class="credit" href="https://www.instagram.com/softlight.works/" target="_blank" rel="noopener">softlight</a>. All rights reserved.</p>
         </div>
         <div class="stack acc-col">
-          <section class="card acc-o2" id="accBilling" hidden aria-labelledby="accBillTitle">
-            <h3 class="card-title" id="accBillTitle">แพ็กเกจและการชำระเงิน</h3>
-            <div id="accBillBody"></div>
+          <!-- การ์ดพับได้: แตะหัว/สรุปเพื่อเปิดรายละเอียด · เปิดอันหนึ่ง อีกอันจะพับ -->
+          <section class="card acc-o2 acc-fold" id="accBilling" hidden aria-labelledby="accBillTitle">
+            <div class="fold-head" role="button" tabindex="0" aria-expanded="false" aria-controls="accBillMore">
+              <span class="fold-title"><h3 class="card-title" id="accBillTitle">แพ็กเกจและการชำระเงิน</h3><svg class="ic ic-16 fold-chev" aria-hidden="true"><use href="#i-chevron-down"/></svg></span>
+              <div id="accBillBody"></div>
+              <span class="fold-more" data-more>ดูใบแจ้งหนี้และช่องทางชำระเงิน</span>
+            </div>
+            <div class="fold-body" id="accBillMore" hidden></div>
           </section>
-          <section class="card acc-o3">
-            <h3 class="card-title">สิทธิ์ของคุณ</h3>
-            <ul class="perm-view" id="accPerms"></ul>
-            <p class="hint perm-note" id="accPermsNote"></p>
+          <section class="card acc-o3 acc-fold" id="accPermCard" aria-labelledby="accPermTitle">
+            <div class="fold-head" role="button" tabindex="0" aria-expanded="false" aria-controls="accPermMore">
+              <span class="fold-title"><h3 class="card-title" id="accPermTitle">สิทธิ์ของคุณ</h3><span class="fold-count" id="accPermCount"></span><svg class="ic ic-16 fold-chev" aria-hidden="true"><use href="#i-chevron-down"/></svg></span>
+            </div>
+            <div class="fold-body" id="accPermMore" hidden>
+              <ul class="perm-view" id="accPerms"></ul>
+              <p class="hint perm-note" id="accPermsNote"></p>
+            </div>
           </section>
         </div>
       </div>
@@ -1123,28 +1132,28 @@
 
   <div id="pdfStage" class="pdf-stage" aria-hidden="true"></div>
 
-  <script src="js/consent.js?v=3.44.1"></script>
-  <script src="js/config.js?v=3.44.1"></script>
-  <script src="js/utils.js?v=3.44.1"></script>
-  <script src="js/glass.js?v=3.44.1"></script>
-  <script src="js/analytics.js?v=3.44.1"></script>
-  <script src="js/api.js?v=3.44.1"></script>
-  <script src="js/charts.js?v=3.44.1"></script>
-  <script src="js/notify.js?v=3.44.1"></script>
-  <script src="js/staff/core.js?v=3.44.1"></script>
-  <script src="js/staff/mapkit.js?v=3.44.1"></script>
-  <script src="js/staff/overview.js?v=3.44.1"></script>
-  <script src="js/staff/records.js?v=3.44.1"></script>
-  <script src="js/staff/participants.js?v=3.44.1"></script>
-  <script src="js/staff/admin.js?v=3.44.1"></script>
-  <script src="js/staff/export.js?v=3.44.1"></script>
-  <script src="js/staff/reports.js?v=3.44.1"></script>
-  <script src="js/staff/analytics.js?v=3.44.1"></script>
-  <script src="js/staff/dev.js?v=3.44.1"></script>
-  <script src="js/feedback.js?v=3.44.1"></script>
-  <script src="js/staff/feedback.js?v=3.44.1"></script>
-  <script src="js/inbox.js?v=3.44.1"></script>
-  <script src="js/staff/inbox.js?v=3.44.1"></script>
-  <script src="js/reveal.js?v=3.44.1"></script>
+  <script src="js/consent.js?v=3.44.2"></script>
+  <script src="js/config.js?v=3.44.2"></script>
+  <script src="js/utils.js?v=3.44.2"></script>
+  <script src="js/glass.js?v=3.44.2"></script>
+  <script src="js/analytics.js?v=3.44.2"></script>
+  <script src="js/api.js?v=3.44.2"></script>
+  <script src="js/charts.js?v=3.44.2"></script>
+  <script src="js/notify.js?v=3.44.2"></script>
+  <script src="js/staff/core.js?v=3.44.2"></script>
+  <script src="js/staff/mapkit.js?v=3.44.2"></script>
+  <script src="js/staff/overview.js?v=3.44.2"></script>
+  <script src="js/staff/records.js?v=3.44.2"></script>
+  <script src="js/staff/participants.js?v=3.44.2"></script>
+  <script src="js/staff/admin.js?v=3.44.2"></script>
+  <script src="js/staff/export.js?v=3.44.2"></script>
+  <script src="js/staff/reports.js?v=3.44.2"></script>
+  <script src="js/staff/analytics.js?v=3.44.2"></script>
+  <script src="js/staff/dev.js?v=3.44.2"></script>
+  <script src="js/feedback.js?v=3.44.2"></script>
+  <script src="js/staff/feedback.js?v=3.44.2"></script>
+  <script src="js/inbox.js?v=3.44.2"></script>
+  <script src="js/staff/inbox.js?v=3.44.2"></script>
+  <script src="js/reveal.js?v=3.44.2"></script>
 </body>
 </html>
