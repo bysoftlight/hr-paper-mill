@@ -1333,6 +1333,9 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
     .bottomnav .nav-item[aria-current="page"] .ic { transform: none; } /* เมนูที่เลือก: เส้นเท่าเดิม — ทำเส้นหนาขึ้นแล้วไอคอนตัน ช่องในไอคอน (เช่น 4 ช่องของภาพรวม) ปิดหาย */
     [data-navlabels="off"] .bottomnav .nav-item > span:not(.nav-badge):not(.nav-bell-ic):not(.nav-ava-wrap) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     [data-navlabels="on"] .bottomnav .nav-item > span:not(.nav-badge):not(.nav-bell-ic):not(.nav-ava-wrap) { font-size: 11px; }
+    /* ชื่อเมนูบรรทัดเดียวเสมอ — ไม่ให้ความสูงของแถบเมนูเปลี่ยนตามความยาวคำ (เช่น ภาษาอังกฤษ) */
+    .bottomnav .nav-item > span:not(.nav-badge):not(.nav-bell-ic):not(.nav-ava-wrap) { display: block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bottomnav .nav-item { min-width: 0; }
     .bottomnav .nav-item[aria-current="page"] { color: var(--ink); }
     .nav-pill {
         height: var(--pill-h, 46px); border-radius: 999px;

@@ -403,7 +403,14 @@ function renderSubBanner() {
     if (!show) return;
     const tone = s.state === 'past_due' ? 'is-bad' : s.warn ? 'is-warn' : 'is-accent';
     const left = s.daysLeft === null || s.daysLeft === undefined ? '' : s.daysLeft <= 0 ? 'วันนี้วันสุดท้าย' : `เหลือ ${fmtNum(s.daysLeft)} วัน`;
-    el.innerHTML = `<div class="sub-card ${tone}">${icon(s.state === 'past_due' ? 'alert' : 'calendar')}<span class="sub-text"><b>${esc(SUB_STATE_TH[s.state] || s.state)}${s.plan ? ' · แพลน ' + esc(s.plan.name) : ''}${left ? ' — ' + left : ''}</b><small>${esc(s.org ? s.org.name : '')}${s.endsAt ? ' · ถึง ' + thDate(s.endsAt, { day: 'numeric', month: 'short', year: 'numeric' }) : ''} · ${esc(s.message || '')}</small>${admin ? '' : '<small class="sub-note">โปรดแจ้งผู้ดูแลระบบขององค์กรเพื่อต่ออายุการใช้งาน</small>'}</span>${admin ? `<a class="btn btn-sm ${s.state === 'past_due' ? 'btn-primary' : 'btn-tonal'}" href="${PRODUCT_URL}#packages" target="_blank" rel="noopener">ดูแพ็กเกจ</a>` : ''}</div>`;
+    // หัวเรื่อง + วันที่เหลือ (ป้าย) · องค์กร/วันสิ้นสุด · ข้อความเพิ่มเติมเฉพาะค้างชำระ/ใกล้หมดรอบ (ไม่ซ้ำกับหัวเรื่อง) · ปุ่มแพ็กเกจขึ้นบรรทัดใหม่บนมือถือ
+    const extra = s.state !== 'trial' && s.message && s.state !== 'active' ? s.message : '';
+    el.innerHTML = `<div class="sub-card ${tone}">
+      <span class="sub-ic">${icon(s.state === 'past_due' ? 'alert' : 'calendar')}</span>
+      <span class="sub-text"><span class="sub-title"><b>${esc(SUB_STATE_TH[s.state] || s.state)}${s.plan ? ' · แพลน ' + esc(s.plan.name) : ''}</b>${left ? `<span class="sub-left">${left}</span>` : ''}</span>
+        <small>${esc(s.org ? s.org.name : '')}${s.endsAt ? ' · ถึง ' + thDate(s.endsAt, { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</small>${extra ? `<small>${esc(extra)}</small>` : ''}${admin ? '' : '<small class="sub-note">โปรดแจ้งผู้ดูแลระบบขององค์กรเพื่อต่ออายุการใช้งาน</small>'}</span>
+      ${admin ? `<a class="btn btn-sm sub-btn ${s.state === 'past_due' ? 'btn-primary' : 'btn-tonal'}" href="${PRODUCT_URL}#packages" target="_blank" rel="noopener">ดูแพ็กเกจ ${icon('arrow-right', 'ic-16')}</a>` : ''}
+    </div>`;
 }
 
 function enter(me, sub) {
@@ -712,6 +719,18 @@ VIEWS.account = {
         // กดที่รูป (หรือ "แก้ไขรูปโปรไฟล์") → แผ่นตัวเลือก: เลือกจากคลังภาพ · ถ่ายรูป · ลบรูปปัจจุบัน
         const open = () => { haptic(); $('accPhotoResetRow').hidden = !ST.me.customPicture; showModal('photoSheet'); };
         $('accAvaBtn').addEventListener('click', open);
+        // การ์ดพับได้ (แพ็กเกจ / สิทธิ์): แตะหัวการ์ดเพื่อเปิด — เปิดอันหนึ่ง อันอื่นพับ
+        const folds = [...document.querySelectorAll('#accountView .acc-fold')];
+        const setFold = (card, on) => {
+            const head = card.querySelector('.fold-head'), body = card.querySelector('.fold-body');
+            head.setAttribute('aria-expanded', String(on)); body.hidden = !on; card.classList.toggle('is-open', on);
+        };
+        folds.forEach(card => {
+            const head = card.querySelector('.fold-head');
+            const flip = () => { haptic(); const on = head.getAttribute('aria-expanded') !== 'true'; folds.forEach(c => setFold(c, c === card ? on : false)); };
+            head.addEventListener('click', e => { if (e.target.closest('a, button:not(.fold-head)')) return; flip(); });
+            head.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } });
+        });
         $('accAvaLink').addEventListener('click', open);
         const pick = async e => {
             const f = e.target.files[0]; e.target.value = ''; if (!f) return;
@@ -751,6 +770,7 @@ VIEWS.account = {
         const perms = Object.keys(PERM_LABELS).filter(p => p !== 'dev' || can('dev'));
         $('accPerms').innerHTML = perms.filter(can).concat(perms.filter(p => !can(p))).map(p =>
             `<li class="${can(p) ? '' : 'is-off'}">${icon(can(p) ? 'check-circle' : 'x-circle')}<span class="perm-txt"><b>${PERM_LABELS[p]}</b>${PERM_DESC[p] ? `<small>${PERM_DESC[p]}</small>` : ''}</span></li>`).join('');
+        $('accPermCount').textContent = `${perms.filter(can).length}/${perms.length}`;
         $('accPermsNote').textContent = can('admin') ? 'ผู้ดูแลระบบได้ทุกสิทธิ์ขององค์กร' : 'ต้องการสิทธิ์เพิ่ม ติดต่อผู้ดูแลระบบขององค์กร';
         this.billing();
     },
@@ -762,13 +782,13 @@ VIEWS.account = {
         box.hidden = !show;
         // ไม่มีการ์ดแพ็กเกจ: ย้ายปุ่มท้ายหน้าไปคอลัมน์ขวา (ใต้สิทธิ์) ให้สองคอลัมน์สูงใกล้กัน · มือถือเรียงตาม order เหมือนเดิม
         const place = withBill => { const cols = $('accountView').querySelectorAll('.acc-col'); if (cols.length === 2) cols[withBill ? 0 : 1].append($('accountView').querySelector('.acc-btns'), $('accountView').querySelector('.acc-o7')); };
-        place(show);
+        place(false); // การ์ดพับอยู่ → คอลัมน์ขวาสั้น: ปุ่มท้ายหน้าอยู่ขวาเสมอ
         if (!show) return;
         if (!this.bill) $('accBillBody').innerHTML = '<div class="skel" style="height:120px;border-radius:16px"></div>';
         const r = await api('staff.billing.info');
         if (!r.success) { $('accBillBody').innerHTML = emptyState(r.message || 'โหลดไม่สำเร็จ', 'wifi-off'); return; }
         this.bill = r;
-        if (!r.org) { box.hidden = true; place(false); return; }
+        if (!r.org) { box.hidden = true; return; }
         const a = r.access || {}, st = SUB_STATE_TH[a.state] || a.state || '-';
         const tone = a.state === 'past_due' || a.ok === false ? 'is-bad' : a.warn ? 'is-warn' : a.state === 'trial' ? 'is-info' : 'is-ok';
         const meter = (label, n, max) => {
@@ -794,13 +814,16 @@ VIEWS.account = {
           </div>
           ${until ? `<p class="bill-until ${a.warn ? 'is-warn' : ''}">${icon('calendar', 'ic-16')}<span>${until}</span></p>` : ''}
           ${alert}
-          <div class="bill-meters">${meter('ผู้ใช้สิทธิ์', r.usage.users, r.limits.users)}${meter('เจ้าหน้าที่', r.usage.staff, r.limits.staff)}</div>
+          <div class="bill-meters">${meter('ผู้ใช้สิทธิ์', r.usage.users, r.limits.users)}${meter('เจ้าหน้าที่', r.usage.staff, r.limits.staff)}</div>`;
+        const phone = r.salesPhone ? String(r.salesPhone).trim() : '', mail = r.salesEmail ? String(r.salesEmail).replace(/[,\s]+$/, '') : '';
+        $('accBillMore').innerHTML = `
           <h4 class="bill-sub">ใบแจ้งหนี้</h4>
           ${inv ? `<ul class="bill-list">${inv}</ul>` : '<p class="bill-empty">ยังไม่มีใบแจ้งหนี้</p>'}
-          ${acc ? `<h4 class="bill-sub">ช่องทางชำระเงิน</h4><ul class="bill-list">${acc}</ul>
-            <p class="hint">โอนแล้วส่งหลักฐานให้ผู้ให้บริการ${r.salesPhone ? ` · โทร <a href="tel:${esc(r.salesPhone.replace(/[^0-9+]/g, ''))}">${esc(r.salesPhone)}</a>` : ''}${r.salesEmail ? ` · <a href="mailto:${esc(r.salesEmail.replace(/[,\s]+$/, ''))}">${esc(r.salesEmail.replace(/[,\s]+$/, ''))}</a>` : ''}</p>` : ''}
+          ${acc ? `<h4 class="bill-sub">ช่องทางชำระเงิน</h4><ul class="bill-list">${acc}</ul>` : ''}
+          ${acc && (phone || mail) ? `<div class="bill-contact"><p>${icon('info', 'ic-16')}<span>โอนแล้วส่งหลักฐานให้ผู้ให้บริการ</span></p>
+            <div class="bill-contact-links">${phone ? `<a href="tel:${esc(phone.replace(/[^0-9+]/g, ''))}">${icon('phone', 'ic-16')}<span>${esc(phone)}</span></a>` : ''}${mail ? `<a href="mailto:${esc(mail)}">${icon('mail', 'ic-16')}<span>${esc(mail)}</span></a>` : ''}</div></div>` : ''}
           <a class="btn btn-tonal btn-sm bill-pkg" href="${PRODUCT_URL}#packages" target="_blank" rel="noopener">${icon('external', 'ic-16')} ดูแพ็กเกจทั้งหมด</a>`;
-        $('accBillBody').querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => { navigator.clipboard && navigator.clipboard.writeText(b.dataset.copy).then(() => toast('คัดลอกเลขบัญชีแล้ว')).catch(() => {}); }));
+        $('accBillMore').querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => { navigator.clipboard && navigator.clipboard.writeText(b.dataset.copy).then(() => toast('คัดลอกเลขบัญชีแล้ว')).catch(() => {}); }));
     }
 };
 
