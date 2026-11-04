@@ -198,6 +198,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     Object.values(VIEWS).forEach(v => v.init && v.init());
 
     const params = new URLSearchParams(location.search);
+    if (params.has('openExternalBrowser')) { params.delete('openExternalBrowser'); setUrl(location.pathname + (params.toString() ? '?' + params : '') + location.hash); }
     if (params.get('code') && params.get('state')) return finishLineLogin(params);
     if (params.get('error')) {
         setUrl(location.pathname + location.hash);
@@ -263,8 +264,40 @@ function setAuthHint(text, isError) {
     h.classList.toggle('is-error', !!isError);
 }
 
+// เบราว์เซอร์ในแอป (LINE, Facebook, Instagram…): Google ไม่อนุญาตให้เข้าสู่ระบบในนี้ (disallowed_useragent → "มีข้อผิดพลาดเกิดขึ้น")
+// จึงพาไปเปิดหน้าเดิมใน Safari/Chrome ก่อน แล้วค่อยกดเข้าสู่ระบบด้วย Google ที่นั่น
+const GOOGLE_BTN = '<button type="button" class="btn btn-google" id="googleSignIn"><svg class="g-logo" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.6 12.23c0-.71-.06-1.4-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.5h3.24c1.9-1.75 2.98-4.32 2.98-7.35Z"/><path fill="currentColor" d="M12 22c2.7 0 4.97-.9 6.62-2.42l-3.24-2.5c-.9.6-2.04.96-3.38.96-2.6 0-4.8-1.76-5.59-4.12H3.07v2.58A10 10 0 0 0 12 22Z"/><path fill="currentColor" d="M6.41 13.92a6 6 0 0 1 0-3.84V7.5H3.07a10 10 0 0 0 0 9z"/><path fill="currentColor" d="M12 5.96c1.47 0 2.79.5 3.83 1.5l2.87-2.87A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.93 5.5l3.34 2.58C7.2 7.72 9.4 5.96 12 5.96Z"/></svg>เข้าสู่ระบบด้วย Google</button>';
+const IN_APP = (() => {
+    const ua = navigator.userAgent || '';
+    if (/\bLine\//i.test(ua)) return 'LINE';
+    if (/FBAN|FBAV|FB_IAB|FBIOS|Messenger/i.test(ua)) return 'Facebook';
+    if (/Instagram/i.test(ua)) return 'Instagram';
+    if (/musical_ly|BytedanceWebview|TikTok/i.test(ua)) return 'TikTok';
+    if (/MicroMessenger/i.test(ua)) return 'WeChat';
+    if (/Android/i.test(ua) && /; wv\)/.test(ua)) return 'แอปนี้';
+    return '';
+})();
+const IS_IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+async function openOutside() {
+    const url = new URL(location.href);
+    url.hash = '';
+    if (IN_APP === 'LINE') { url.searchParams.set('openExternalBrowser', '1'); location.href = url.toString(); return; } // LINE เปิดลิงก์นี้ใน Safari/Chrome ให้เอง
+    if (!IS_IOS && /Android/i.test(navigator.userAgent)) { location.href = 'intent://' + url.host + url.pathname + url.search + '#Intent;scheme=https;S.browser_fallback_url=' + encodeURIComponent(url.toString()) + ';end'; return; }
+    const copy = await showMessage({ title: `เปิดใน ${IS_IOS ? 'Safari' : 'เบราว์เซอร์'} เพื่อใช้ Google`, tone: 'info',
+        text: `Google ไม่อนุญาตให้เข้าสู่ระบบในเบราว์เซอร์ของ ${IN_APP} · แตะ ⋯ แล้วเลือก "เปิดในเบราว์เซอร์" หรือคัดลอกลิงก์ไปวางใน ${IS_IOS ? 'Safari' : 'Chrome'}`,
+        okText: 'คัดลอกลิงก์', cancelText: 'ปิด' });
+    if (!copy) return;
+    try { await navigator.clipboard.writeText(url.toString()); toast('คัดลอกลิงก์แล้ว'); } catch (e) { setAuthHint(url.toString()); }
+}
+
 function setupGoogle(config) {
     const slot = $('googleBtn');
+    if (IN_APP && config.googleClientId) {
+        slot.innerHTML = GOOGLE_BTN;
+        $('googleSignIn').addEventListener('click', () => { setAuthHint(''); openOutside(); });
+        setAuthHint(IN_APP === 'LINE' ? 'เปิดอยู่ในแอป LINE: ใช้ปุ่ม LINE ได้ทันที · ปุ่ม Google จะเปิดหน้านี้ใน Safari/Chrome ก่อน' : `เปิดอยู่ในแอป ${IN_APP}: ปุ่ม Google จะพาไปเปิดในเบราว์เซอร์ก่อน (Google ไม่ให้เข้าสู่ระบบในแอป)`);
+        return;
+    }
     if (!config.googleClientId) {
         slot.innerHTML = '<button type="button" class="btn btn-outline" disabled>เข้าสู่ระบบด้วย Google (ยังไม่ได้ตั้งค่า)</button>';
         return;
@@ -278,7 +311,7 @@ function setupGoogle(config) {
                 callback: r => { if (r && r.access_token) handleGoogleAccess(r.access_token); else if (r && r.error) setAuthHint('เข้าสู่ระบบด้วย Google ไม่สำเร็จ (' + r.error + ')', true); },
                 error_callback: e => { if (e && e.type !== 'popup_closed') setAuthHint('เปิดหน้าต่าง Google ไม่ได้ — อนุญาต pop-up แล้วลองใหม่', true); }
             });
-            slot.innerHTML = '<button type="button" class="btn btn-google" id="googleSignIn"><svg class="g-logo" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.6 12.23c0-.71-.06-1.4-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.5h3.24c1.9-1.75 2.98-4.32 2.98-7.35Z"/><path fill="currentColor" d="M12 22c2.7 0 4.97-.9 6.62-2.42l-3.24-2.5c-.9.6-2.04.96-3.38.96-2.6 0-4.8-1.76-5.59-4.12H3.07v2.58A10 10 0 0 0 12 22Z"/><path fill="currentColor" d="M6.41 13.92a6 6 0 0 1 0-3.84V7.5H3.07a10 10 0 0 0 0 9z"/><path fill="currentColor" d="M12 5.96c1.47 0 2.79.5 3.83 1.5l2.87-2.87A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.93 5.5l3.34 2.58C7.2 7.72 9.4 5.96 12 5.96Z"/></svg>เข้าสู่ระบบด้วย Google</button>';
+            slot.innerHTML = GOOGLE_BTN;
             $('googleSignIn').addEventListener('click', () => { setAuthHint(''); client.requestAccessToken(); });
             return;
         }
