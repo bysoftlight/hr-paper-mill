@@ -377,9 +377,12 @@ function renderAvatar(el) {
     const shown = el.querySelector('img');
     if (!pic) { el.textContent = initial; delete el.dataset.pic; return; }
     if (shown && el.dataset.pic === pic) return; // รูปเดิมแสดงอยู่แล้ว
-    if (!shown) el.textContent = initial;
     const img = document.createElement('img');
     img.alt = '';
+    // มีรูปที่จำไว้ในเครื่อง: ใส่รูปทันที ไม่แสดงตัวอักษรแวบก่อน (เปิดแอปใหม่/โหลดหน้าใหม่)
+    const cached = AVA_SRC && AVA_SRC.pic === pic;
+    if (!shown && cached) { img.decoding = 'sync'; el.textContent = ''; el.appendChild(img); el.dataset.pic = pic; }
+    else if (!shown) el.textContent = initial;
     img.onload = () => {
         el.textContent = ''; el.appendChild(img); el.dataset.pic = pic;
         if (CURRENT_USER.pic === pic && !(AVA_SRC && AVA_SRC.pic === pic && AVA_SRC.src === img.src)) rememberAvatar(pic, img.src);
@@ -391,7 +394,8 @@ function renderAvatar(el) {
         if (!triedDirect) { triedDirect = true; img.src = direct; return; } // ที่จำไว้ใช้ไม่ได้แล้ว
         img.onerror = null;
         const m = pic.match(/[?&]id=([\w-]{20,})/);
-        if (m) callApi('image', { userId: CURRENT_USER.id, fileId: m[1], thumb: true }).then(r => { if (r.success && r.dataUrl) img.src = r.dataUrl; }).catch(() => {});
+        const fail = () => { if (img.parentNode === el) { el.textContent = initial; delete el.dataset.pic; } }; // รูปที่จำไว้ใช้ไม่ได้ = กลับเป็นตัวอักษร
+        if (m) callApi('image', { userId: CURRENT_USER.id, fileId: m[1], thumb: true }).then(r => { if (r.success && r.dataUrl) img.src = r.dataUrl; else fail(); }).catch(fail); else fail();
     };
     img.src = AVA_SRC && AVA_SRC.pic === pic ? AVA_SRC.src : direct;
 }

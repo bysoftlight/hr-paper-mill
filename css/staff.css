@@ -1244,6 +1244,16 @@ dialog:focus-visible { outline: none; } /* กรอบโฟกัสของ�
 .fold-more { display: inline-flex; align-items: center; gap: 4px; margin-top: 14px; font-size: 13px; font-weight: 600; color: var(--accent); }
 .acc-fold.is-open .fold-more { display: none; }
 .fold-body { margin-top: 12px; }
+/* เปิดการ์ด: เนื้อหาค่อย ๆ คลี่ลงจากบนลงล่าง */
+.fold-body:not([hidden]) { animation: fold-in .32s cubic-bezier(.2, .8, .2, 1) both; }
+.fold-body:not([hidden]) > * { animation: fold-in .32s cubic-bezier(.2, .8, .2, 1) both; }
+.fold-body:not([hidden]) .perm-view > *:nth-child(n) { animation: fold-in .3s cubic-bezier(.2, .8, .2, 1) both; }
+.fold-body:not([hidden]) .perm-view > *:nth-child(2) { animation-delay: .03s; } .fold-body:not([hidden]) .perm-view > *:nth-child(3) { animation-delay: .06s; }
+.fold-body:not([hidden]) .perm-view > *:nth-child(4) { animation-delay: .09s; } .fold-body:not([hidden]) .perm-view > *:nth-child(5) { animation-delay: .12s; }
+.fold-body:not([hidden]) .perm-view > *:nth-child(n+6) { animation-delay: .15s; }
+@keyframes fold-in { from { opacity: 0; transform: translateY(-8px); } }
+[data-motion="reduce"] .fold-body, [data-motion="reduce"] .fold-body * { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .fold-body, .fold-body * { animation: none !important; } }
 #accPermMore .perm-view { margin-top: 4px; }
 /* ติดต่อหลังโอน */
 .bill-contact { margin: 4px 0 6px; padding: 12px; border-radius: 12px; background: var(--container); display: flex; flex-direction: column; gap: 10px; }
