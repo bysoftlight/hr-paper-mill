@@ -54,12 +54,36 @@ const Charts = (() => {
         el.appendChild(t);
         return t;
     }
+    // วางกล่องข้อมูลให้อยู่ในกรอบกราฟเสมอ และไม่บังจุดที่เลือก: เหนือจุด → ถ้าไม่พอ ข้างจุด → ถ้าไม่พอ ใต้จุด
+    // พิกัดใน viewBox → พิกเซลในกรอบกราฟ (สเกลแกน x และ y แยกกัน: ความสูงของ svg ไม่ได้ย่อตามความกว้างเสมอ)
+    function toBox(el, s, x, y) {
+        const r = s.getBoundingClientRect(), e = el.getBoundingClientRect(), vb = s.viewBox.baseVal;
+        return [r.left - e.left + x * (r.width / (vb.width || r.width || 1)), r.top - e.top + y * (r.height / (vb.height || r.height || 1))];
+    }
     function placeTip(el, tip, x, y, html) {
         tip.innerHTML = html;
+        // โหมดภาษาอังกฤษ: แปลข้อความก่อนวัดขนาด (ถ้ารอให้ตัวแปลทำทีหลัง กล่องจะเปลี่ยนขนาดหลังวางตำแหน่งแล้ว)
+        if (window.I18N && document.documentElement.lang === 'en') {
+            const it = document.createTreeWalker(tip, NodeFilter.SHOW_TEXT); let t;
+            while ((t = it.nextNode())) { const v = I18N.tr(t.nodeValue); if (v) t.nodeValue = v; }
+        }
         tip.hidden = false;
-        const w = tip.offsetWidth, W = el.clientWidth;
-        tip.style.left = Math.max(0, Math.min(W - w, x - w / 2)) + 'px';
-        tip.style.top = Math.max(0, y - tip.offsetHeight - 10) + 'px';
+        // วัดขนาดจริงตอนมีที่เต็มความกว้าง (ที่ตำแหน่งเดิมกล่องอาจตัดบรรทัดต่างไป) แล้วค่อยเลื่อนไปที่ใหม่แบบนุ่มนวล
+        const pl = tip.style.left, pt = tip.style.top;
+        tip.style.transition = 'none'; tip.style.left = '0px'; tip.style.top = '0px'; tip.style.width = '';
+        const W = el.clientWidth, H = el.clientHeight, gap = 12;
+        const w = Math.min(W, Math.ceil(tip.getBoundingClientRect().width) + 1), h = tip.offsetHeight;
+        tip.style.width = w + 'px'; // ล็อกความกว้าง: ย้ายตำแหน่งแล้วไม่ตัดบรรทัดเพิ่ม (ความสูงตรงกับที่วัด)
+        tip.style.left = pl; tip.style.top = pt; void tip.offsetWidth; tip.style.transition = '';
+        let left = Math.max(0, Math.min(W - w, x - w / 2)), top = y - h - gap;
+        if (top < 0) {
+            const right = x + gap, leftSide = x - gap - w;
+            if (right + w <= W) { left = right; top = Math.max(0, Math.min(H - h, y - h / 2)); }
+            else if (leftSide >= 0) { left = leftSide; top = Math.max(0, Math.min(H - h, y - h / 2)); }
+            else top = Math.min(Math.max(0, H - h), y + gap);
+        }
+        tip.style.left = left + 'px';
+        tip.style.top = top + 'px';
     }
     // ชี้/แตะ/ลากบนกราฟ → index ที่ใกล้ที่สุด
     function track(el, area, count, xOf, onPick, onLeave) {
@@ -72,6 +96,16 @@ const Charts = (() => {
         };
         area.addEventListener('pointermove', pick);
         area.addEventListener('pointerdown', pick);
+        // ลากนิ้วแนวนอนบนกราฟ = เลื่อนดูค่า ไม่ให้หน้าเลื่อน/กระตุกตาม · ลากแนวตั้ง = เลื่อนหน้าตามปกติ
+        let t0 = null, lock = '';
+        area.addEventListener('touchstart', e => { const t = e.touches[0]; t0 = t && e.touches.length === 1 ? { x: t.clientX, y: t.clientY } : null; lock = ''; }, { passive: true });
+        area.addEventListener('touchmove', e => {
+            if (!t0 || e.touches.length !== 1) return;
+            const t = e.touches[0], dx = Math.abs(t.clientX - t0.x), dy = Math.abs(t.clientY - t0.y);
+            if (!lock && (dx > 6 || dy > 6)) lock = dx >= dy ? 'x' : 'y';
+            if (lock === 'x') { if (e.cancelable) e.preventDefault(); pick(t); }
+        }, { passive: false });
+        area.addEventListener('touchend', () => { t0 = null; lock = ''; }, { passive: true });
         area.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') onLeave(); });
         el.tabIndex = 0;
         let kb = -1;
@@ -140,8 +174,8 @@ const Charts = (() => {
             guide.style.display = '';
             guide.setAttribute('x1', xs(i)); guide.setAttribute('x2', xs(i)); guide.setAttribute('y1', padT); guide.setAttribute('y2', top);
             dot.setAttribute('cx', xs(i)); dot.setAttribute('cy', top); dot.style.display = '';
-            const scale = el.clientWidth / W;
-            placeTip(el, tip, xs(i) * scale, Math.max(28, padT + 6) * scale, o.tooltip ? o.tooltip(i) : `<small>${esc(o.labels[i])}</small><b>${fmt(totals[i])}</b>`);
+            const [px, py] = toBox(el, s, xs(i), Math.max(28, padT + 6));
+            placeTip(el, tip, px, py, o.tooltip ? o.tooltip(i) : `<small>${esc(o.labels[i])}</small><b>${fmt(totals[i])}</b>`);
         };
         const hide = () => {
             if (o.active != null) return show(o.active);
@@ -230,8 +264,8 @@ const Charts = (() => {
                 dots[k].setAttribute('cx', xs(i)); dots[k].setAttribute('cy', ys(v)); dots[k].style.display = '';
                 topY = Math.min(topY, ys(v));
             });
-            const scale = el.clientWidth / W;
-            placeTip(el, tip, xs(i) * scale, topY * scale, o.tooltip ? o.tooltip(i) : `<small>${esc(o.labels[i])}</small>` + lines.map(l => `<b>${l.ser.values[i] == null ? '-' : fmt(l.ser.values[i])}</b>`).join(' '));
+            const [px, py] = toBox(el, s, xs(i), topY);
+            placeTip(el, tip, px, py, o.tooltip ? o.tooltip(i) : `<small>${esc(o.labels[i])}</small>` + lines.map(l => `<b>${l.ser.values[i] == null ? '-' : fmt(l.ser.values[i])}</b>`).join(' '));
         };
         const hide = () => { guide.style.display = 'none'; dots.forEach(d => { d.style.display = 'none'; }); tip.hidden = true; };
         track(el, s, n, xs, show, hide);
