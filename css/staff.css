@@ -1157,6 +1157,34 @@ dialog:focus-visible { outline: none; } /* กรอบโฟกัสของ�
 .bill-row-main .mono { color: var(--ink); font-size: 13px; }
 .bill-amt { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
 .bill-amt b { font-size: 15px; }
+/* ใบแจ้งหนี้ในหน้าบัญชี: สถานะสลิป + ปุ่ม (แนบสลิป · ดูสลิป · PDF) อยู่บรรทัดใต้ ไม่บีบเลขที่/ยอด */
+.bill-inv { flex-wrap: wrap; row-gap: 8px; }
+.bill-slip { flex: 1 1 100%; display: flex; align-items: flex-start; gap: 6px; margin: 0; padding: 8px 10px; border-radius: 10px; font-size: 12px; line-height: 1.45; }
+.bill-slip .ic { flex: none; margin-top: 1px; }
+.bill-slip.is-info { background: var(--accent-soft); color: var(--on-accent-soft); }
+.bill-slip.is-bad { background: var(--bad-soft); color: var(--bad); }
+.bill-acts { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 6px; }
+.bill-acts .btn { width: auto; min-height: 36px; padding: 0 12px; font-size: 13px; white-space: nowrap; }
+.bill-slip-btn { cursor: pointer; }
+.bill-slip-btn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* สลิปใน Dev Console */
+.slip-fig { margin: 0; display: grid; gap: 8px; justify-items: center; }
+.slip-fig img { max-width: 100%; max-height: 62vh; width: auto; border-radius: 12px; border: 1px solid var(--line); background: #fff; object-fit: contain; }
+.slip-fig figcaption { font-size: 12px; color: var(--muted); text-align: center; }
+/* ใบแจ้งหนี้ PDF (วาดใน .pdf-stage แล้วแปลงเป็นไฟล์) */
+.inv-page { font-family: 'Noto Sans Thai', var(--font); font-size: 14px; gap: 18px; }
+.inv-top { display: flex; justify-content: space-between; gap: 24px; padding-bottom: 16px; border-bottom: 2px solid #0b57d0; }
+.inv-top h1 { margin: 0; font-size: 28px; font-weight: 700; }
+.inv-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; line-height: 1.5; }
+.inv-muted { margin: 0; color: #5f6368; }
+.inv-stamp { display: inline-block; height: 30px; padding: 0 12px 6px; border: 2px solid #b3261e; border-radius: 6px; color: #b3261e; font-weight: 700; line-height: 20px; box-sizing: border-box; white-space: nowrap; } /* ปรับให้ตัวอักษรอยู่กลางกรอบในไฟล์ PDF (html2canvas วาดอักษรไทยต่ำกว่าเบราว์เซอร์) */
+.inv-stamp.is-paid { border-color: #188038; color: #188038; }
+.inv-table { width: 100%; border-collapse: collapse; }
+.inv-table th, .inv-table td { text-align: left; padding: 9px 10px; border-bottom: 1px solid #e0e3e7; vertical-align: top; }
+.inv-table th { width: 34%; color: #5f6368; font-weight: 400; }
+.inv-page h3 { margin: 6px 0 0; font-size: 15px; }
+.inv-total { font-size: 22px; font-weight: 700; color: #0b57d0; }
+.inv-page .pdf-foot { margin-top: auto; }
 .bill-pkg { margin-top: 14px; }
 @media (max-width: 359px) { .bill-meters { grid-template-columns: minmax(0, 1fr); } }
 

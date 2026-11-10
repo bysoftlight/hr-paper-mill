@@ -16,8 +16,11 @@ const BP = { ID: 0, NAME: 1, TAGLINE: 2, PRICE_M: 3, PRICE_Y: 4, MAX_USERS: 5, M
 const BP_HEADERS = ['plan_id', 'name', 'tagline', 'price_monthly_thb', 'price_yearly_thb', 'max_users (0 = unlimited)', 'max_staff (0 = unlimited)', 'features (one per line)', 'highlight', 'public', 'sort_order', 'active', 'trial_days', 'updated_at', 'setup_fee_thb', 'show_as_from_price'];
 const BA = { ID: 0, TYPE: 1, BANK: 2, NAME: 3, NUMBER: 4, BRANCH: 5, DEFAULT: 6, ACTIVE: 7, NOTE: 8, UPDATED_AT: 9 };
 const BA_HEADERS = ['account_id', 'type', 'bank_provider', 'account_name', 'account_number', 'branch', 'is_default', 'active', 'note', 'updated_at'];
-const BI = { ID: 0, ORG: 1, PLAN: 2, CYCLE: 3, PERIOD_START: 4, PERIOD_END: 5, AMOUNT: 6, STATUS: 7, ISSUED: 8, DUE: 9, PAID_AT: 10, ACCOUNT: 11, METHOD: 12, REF: 13, NOTE: 14, BY: 15 };
-const BI_HEADERS = ['invoice_id', 'org_id', 'plan', 'billing_cycle', 'period_start', 'period_end', 'amount_thb', 'status', 'issued_at', 'due_at', 'paid_at', 'pay_account', 'method', 'reference', 'note', 'recorded_by'];
+const BI = { ID: 0, ORG: 1, PLAN: 2, CYCLE: 3, PERIOD_START: 4, PERIOD_END: 5, AMOUNT: 6, STATUS: 7, ISSUED: 8, DUE: 9, PAID_AT: 10, ACCOUNT: 11, METHOD: 12, REF: 13, NOTE: 14, BY: 15,
+  SLIP: 16, SLIP_AT: 17, SLIP_BY: 18, SLIP_NOTE: 19 };
+const BI_HEADERS = ['invoice_id', 'org_id', 'plan', 'billing_cycle', 'period_start', 'period_end', 'amount_thb', 'status', 'issued_at', 'due_at', 'paid_at', 'pay_account', 'method', 'reference', 'note', 'recorded_by',
+  'slip_file', 'slip_uploaded_at', 'slip_uploaded_by', 'slip_note'];
+const MAX_SLIP_BYTES = 4 * 1024 * 1024;
 
 const ORG_STATUSES = ['trial', 'active', 'past_due', 'suspended', 'cancelled'];
 const ORG_STATUS_TH = { trial: 'ทดลองใช้', active: 'ใช้งาน', past_due: 'ค้างชำระ', suspended: 'ระงับ', cancelled: 'ยกเลิก' };
@@ -55,6 +58,7 @@ function billSheet_(name, headers) {
     }
     if (name === BILL_SHEET.PLANS) PropertiesService.getScriptProperties().setProperty('PLANS_V', PLANS_VERSION);
   } else if (name === BILL_SHEET.PLANS) migratePlans_(sh);
+  else if (sh.getLastColumn() < headers.length) sh.getRange(1, 1, 1, headers.length).setValues([headers]); // เพิ่มหัวคอลัมน์ใหม่ (เช่น สลิป) ให้ชีตเดิม
   return sh;
 }
 // แพลนรุ่นแรก (Starter 990 / Pro 2,490 / Enterprise) ที่ยังไม่ได้แก้ → เปลี่ยนเป็นชุดใหม่ (Lite / Pro / Enterprise) ครั้งเดียว
@@ -127,7 +131,8 @@ function invoiceFromRow_(x) {
   return { row: x.row, id: String(r[BI.ID]).trim(), org: String(r[BI.ORG] || ''), plan: String(r[BI.PLAN] || ''), cycle: String(r[BI.CYCLE] || 'monthly'),
     periodStart: ts_(r[BI.PERIOD_START]), periodEnd: ts_(r[BI.PERIOD_END]), amount: money_(r[BI.AMOUNT]),
     status: INVOICE_STATUSES.indexOf(r[BI.STATUS]) === -1 ? 'pending' : r[BI.STATUS], issued: ts_(r[BI.ISSUED]), due: ts_(r[BI.DUE]), paidAt: ts_(r[BI.PAID_AT]),
-    account: String(r[BI.ACCOUNT] || ''), method: plain_(r[BI.METHOD]), ref: plain_(r[BI.REF]), note: plain_(r[BI.NOTE]), by: String(r[BI.BY] || '') };
+    account: String(r[BI.ACCOUNT] || ''), method: plain_(r[BI.METHOD]), ref: plain_(r[BI.REF]), note: plain_(r[BI.NOTE]), by: String(r[BI.BY] || ''),
+    slip: String(r[BI.SLIP] || ''), slipAt: ts_(r[BI.SLIP_AT]), slipBy: plain_(r[BI.SLIP_BY]), slipNote: plain_(r[BI.SLIP_NOTE]) };
 }
 const readOrgs_ = () => billRows_(BILL_SHEET.ORGS, BO_HEADERS).map(orgFromRow_);
 const readPlans_ = () => billRows_(BILL_SHEET.PLANS, BP_HEADERS).map(planFromRow_).sort((a, b) => a.order - b.order);
@@ -194,11 +199,12 @@ function orgBillingInfo_(staff) {
   const plan = readPlans_().filter(p => p.id === o.plan)[0] || null;
   const counts = orgCounts_(), lim = orgLimits_(o, plan);
   const invoices = readInvoices_().filter(i => i.org === o.id && i.status !== 'void').sort((a, b) => (b.issued || 0) - (a.issued || 0)).slice(0, 24)
-    .map(i => ({ id: i.id, plan: i.plan, cycle: i.cycle, periodStart: i.periodStart, periodEnd: i.periodEnd, amount: i.amount, status: i.status, issued: i.issued, due: i.due, paidAt: i.paidAt, method: i.method, ref: i.ref }));
+    .map(i => ({ id: i.id, plan: i.plan, planName: (readPlans_().filter(p => p.id === i.plan)[0] || {}).name || i.plan, cycle: i.cycle, periodStart: i.periodStart, periodEnd: i.periodEnd, amount: i.amount, status: i.status,
+      issued: i.issued, due: i.due, paidAt: i.paidAt, method: i.method, ref: i.ref, note: i.note, hasSlip: !!i.slip, slipAt: i.slipAt, slipNote: i.slipNote }));
   const accounts = readAccounts_().filter(a => a.active).sort((a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0))
     .map(a => ({ type: a.type, bank: a.bank, name: a.name, number: a.number, branch: a.branch, isDefault: a.isDefault, note: a.note }));
   return {
-    success: true, org: { id: o.id, name: o.name, logo: o.logo || '', cycle: o.cycle, status: o.status },
+    success: true, org: { id: o.id, name: o.name, logo: o.logo || '', cycle: o.cycle, status: o.status, contact: o.contact, phone: o.phone, email: o.email, address: o.address, taxId: o.taxId },
     plan: plan ? { id: plan.id, name: plan.name, priceMonthly: plan.priceMonthly, priceYearly: plan.priceYearly } : null,
     access: orgAccessDto_(orgAccess_(o.id)), limits: lim, usage: { users: counts.users[o.id] || 0, staff: counts.staff[o.id] || 0 },
     invoices: invoices, accounts: accounts, salesPhone: prop_('SALES_PHONE'), salesEmail: prop_('SALES_EMAIL')
@@ -251,6 +257,8 @@ function handleDev_(req, staff, ua) {
     case 'dev.invoices.create': return devLocked_(() => devInvoiceCreate_(req, staff, ua));
     case 'dev.invoices.pay': return devLocked_(() => devInvoicePay_(req, staff, ua));
     case 'dev.invoices.void': return devLocked_(() => devInvoiceVoid_(req, staff, ua));
+    case 'dev.invoices.slip': return invoiceSlipImage_(req, staff);
+    case 'dev.invoices.slipReject': return devLocked_(() => devInvoiceSlipReject_(req, staff, ua));
     case 'dev.users.list': return devUsersList_();
     case 'dev.users.assign': return devLocked_(() => devUsersAssign_(req, staff, ua));
     case 'dev.staff.role': return devLocked_(() => devStaffRole_(req, staff, ua));
@@ -521,6 +529,67 @@ function devInvoiceVoid_(req, staff, ua) {
   sh.getRange(inv.row, BI.STATUS + 1).setValue('void');
   if (req.reason) sh.getRange(inv.row, BI.NOTE + 1).setValue(clean_((inv.note ? inv.note + ' · ' : '') + 'ยกเลิก: ' + req.reason, 300));
   log_(staff, 'dev.invoice.void', inv.id, { reason: clean_(req.reason, 200) }, ua);
+  return { success: true };
+}
+
+// ---------- สลิปโอนเงิน: ผู้ดูแลการเงินขององค์กรแนบ → Dev/ผู้ให้บริการตรวจแล้วบันทึกชำระ ----------
+// ไฟล์สลิปเก็บแบบส่วนตัว (ไม่แชร์ลิงก์) — เปิดดูได้ผ่านคำสั่งนี้เท่านั้น
+function orgInvoiceSlip_(req, staff, ua) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    const inv = readInvoices_().filter(i => i.id === String(req.id || ''))[0];
+    if (!inv || (!isDev_(staff) && inv.org !== staff.org)) fail_('INVALID', 'ไม่พบใบแจ้งหนี้');
+    if (inv.status !== 'pending') fail_('INVALID', 'ใบแจ้งหนี้นี้' + (inv.status === 'paid' ? 'ชำระแล้ว' : 'ถูกยกเลิกแล้ว'));
+    const photo = req.photo || {};
+    const mime = /^image\/(jpeg|png|webp)$/.test(String(photo.mimeType)) ? photo.mimeType : 'image/jpeg';
+    let bytes;
+    try { bytes = Utilities.base64Decode(String(photo.data || '')); } catch (e) { fail_('INVALID', 'ไฟล์รูปไม่ถูกต้อง'); }
+    if (!bytes || !bytes.length) fail_('INVALID', 'กรุณาเลือกรูปสลิป');
+    if (bytes.length > MAX_SLIP_BYTES) fail_('INVALID', 'รูปสลิปใหญ่เกิน 4 MB');
+    let folder;
+    try { folder = DriveApp.getFolderById(prop_('PROFILE_FOLDER_ID') || PROFILE_FOLDER_ID); }
+    catch (e) { fail_('ERROR', 'เปิดโฟลเดอร์เก็บไฟล์ไม่ได้ กรุณาตรวจสอบสิทธิ์ของบัญชีที่ Deploy'); }
+    const now = new Date();
+    const file = folder.createFile(Utilities.newBlob(bytes, mime, 'SLIP_' + inv.id + '_' + fmtDate_(now, 'yyyyMMdd_HHmmss')));
+    const sh = billSheet_(BILL_SHEET.INVOICES, BI_HEADERS);
+    sh.getRange(inv.row, BI.SLIP + 1, 1, 4).setValues([[file.getId(), now, who_(staff), clean_(req.note, 200)]]);
+    billGen_();
+    const o = readOrgs_().filter(x => x.id === inv.org)[0];
+    log_(staff, 'billing.slip', inv.id + (o ? ' ' + o.name : ''), { amount: inv.amount, replaced: !!inv.slip }, ua);
+    notifySlip_(inv, o, staff, req.note);
+    return { success: true, slipAt: now.getTime() };
+  } finally { lock.releaseLock(); }
+}
+// แจ้ง Dev ทางอีเมล (กล่องแจ้งเตือนในแอปแสดงเองจากรายการที่รอตรวจ)
+function notifySlip_(inv, o, staff, note) {
+  try {
+    const to = {};
+    devEmails_().forEach(e => { to[e] = true; });
+    readStaff_().forEach(s => { if (s.role === 'dev' && s.status === 'active' && s.email) to[String(s.email).toLowerCase()] = true; });
+    const list = Object.keys(to);
+    if (!list.length) return;
+    MailApp.sendEmail(list.join(','), 'HR Paper Mill — สลิปรอตรวจสอบ ' + inv.id,
+      [(o ? o.name : inv.org) + ' แนบสลิปโอนเงินสำหรับใบแจ้งหนี้ ' + inv.id, 'ยอด ' + inv.amount.toLocaleString('th-TH') + ' บาท', 'ผู้แนบ: ' + who_(staff),
+        note ? 'หมายเหตุ: ' + clean_(note, 200) : '', '', 'ตรวจสอบและบันทึกชำระได้ที่ Dev Console → ใบแจ้งหนี้'].filter(x => x !== '').join('\n'));
+  } catch (e) { console.warn('แจ้ง Dev เรื่องสลิปไม่สำเร็จ: ' + e); }
+}
+function invoiceSlipImage_(req, staff) {
+  const inv = readInvoices_().filter(i => i.id === String(req.id || ''))[0];
+  if (!inv || (!isDev_(staff) && inv.org !== staff.org)) fail_('INVALID', 'ไม่พบใบแจ้งหนี้');
+  if (!inv.slip) fail_('INVALID', 'ยังไม่มีสลิป');
+  let blob;
+  try { blob = DriveApp.getFileById(inv.slip).getBlob(); } catch (e) { fail_('ERROR', 'เปิดไฟล์สลิปไม่ได้'); }
+  return { success: true, dataUrl: 'data:' + blob.getContentType() + ';base64,' + Utilities.base64Encode(blob.getBytes()), slipAt: inv.slipAt, slipBy: inv.slipBy, slipNote: inv.slipNote };
+}
+// สลิปไม่ถูกต้อง: ล้างสลิป (ไฟล์ยังอยู่ใน Drive) แล้วบันทึกเหตุผลให้องค์กรเห็นและแนบใหม่
+function devInvoiceSlipReject_(req, staff, ua) {
+  const inv = readInvoices_().filter(i => i.id === req.id)[0];
+  if (!inv) fail_('INVALID', 'ไม่พบใบแจ้งหนี้');
+  if (!inv.slip) fail_('INVALID', 'ใบแจ้งหนี้นี้ยังไม่มีสลิป');
+  const sh = billSheet_(BILL_SHEET.INVOICES, BI_HEADERS);
+  sh.getRange(inv.row, BI.SLIP + 1, 1, 4).setValues([['', '', '', clean_('สลิปไม่ผ่าน: ' + (req.reason || '-'), 200)]]);
+  log_(staff, 'dev.invoice.slip_reject', inv.id, { reason: clean_(req.reason, 200) }, ua);
   return { success: true };
 }
 

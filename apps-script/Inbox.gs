@@ -118,6 +118,18 @@ function inboxForStaff_(staff) {
       }
     } catch (e) { console.warn(e); }
   }
+  // Dev: สลิปโอนเงินที่รอตรวจสอบ
+  if (typeof isDev_ === 'function' && isDev_(staff) && typeof readInvoices_ === 'function') {
+    try {
+      const orgs = {};
+      readOrgs_().forEach(o => { orgs[o.id] = o.name; });
+      readInvoices_().filter(i => i.status === 'pending' && i.slip).forEach(i => {
+        out.push({ id: 'slip-' + i.id + '-' + (i.slipAt || 0), ts: i.slipAt || Date.now(), cat: 'usage', icon: 'file', tone: 'warn',
+          title: 'สลิปรอตรวจสอบ ' + i.id, body: (orgs[i.org] || i.org) + ' · ' + i.amount.toLocaleString('th-TH') + ' บาท' + (i.slipBy ? ' · ' + i.slipBy : ''),
+          action: { kind: 'dev', value: 'invoices', label: 'ตรวจสอบ' } });
+      });
+    } catch (e) { console.warn(e); }
+  }
   return out.sort((a, b) => b.ts - a.ts).slice(0, 60);
 }
 

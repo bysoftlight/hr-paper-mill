@@ -353,12 +353,22 @@ const DateField = (() => {
         input.addEventListener('click', () => { try { if (input.showPicker) input.showPicker(); } catch (e) { /* บางเบราว์เซอร์ไม่อนุญาต: ใช้ตัวเลือกปกติ */ } });
         sync();
     }
+    const SEL = 'input[type="date"], input[type="datetime-local"], input[type="month"]';
     function enhanceAll(root) {
-        (root || document).querySelectorAll('input[type="date"].input, input[type="datetime-local"].input, input[type="month"].input').forEach(enhance);
+        root = root || document;
+        if (root.matches && root.matches(SEL)) enhance(root);
+        if (root.querySelectorAll) root.querySelectorAll(SEL).forEach(enhance);
     }
-    return { enhance, enhanceAll, format };
+    // ทุกช่องวันที่ที่เกิดขึ้นภายหลัง (ฟอร์มที่สร้างด้วยโค้ด เช่น Dev Console) ถูกห่ออัตโนมัติ
+    // — กันไม่ให้ช่องวันที่แบบของ iPhone (ตัวหนังสือชิดบน/รูปแบบอังกฤษ) หลุดมาอีก
+    function watch() {
+        enhanceAll(document);
+        new MutationObserver(list => list.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType === 1 && !n.classList.contains('datefield')) enhanceAll(n); })))
+            .observe(document.body, { childList: true, subtree: true });
+    }
+    return { enhance, enhanceAll, format, watch };
 })();
-document.addEventListener('DOMContentLoaded', () => DateField.enhanceAll());
+if (document.body) DateField.watch(); else document.addEventListener('DOMContentLoaded', () => DateField.watch());
 
 // ---------- ขอบจางของแถบที่เลื่อนแนวนอนได้ ([data-scrollfade]) ----------
 // ซ้าย/ขวาที่ยังมีเนื้อหาซ่อนอยู่ = จางลง (บอกว่าเลื่อนได้) · เลื่อนสุดแล้วขอบนั้นคมตามปกติ
