@@ -845,8 +845,17 @@ VIEWS.account = {
         const INV = { pending: ['รอชำระ', 'is-warn'], paid: ['ชำระแล้ว', 'is-ok'] };
         const inv = (r.invoices || []).map(i => {
             const [t, c] = INV[i.status] || [i.status, ''], late = i.status === 'pending' && i.due && i.due < Date.now();
-            return `<li class="bill-row"><span class="bill-row-main"><b class="mono">${esc(i.id)}</b><small>${i.periodStart ? thDate(i.periodStart) : ''}${i.periodEnd ? ' – ' + thDate(i.periodEnd) : ''}</small><small>${i.status === 'paid' && i.paidAt ? 'ชำระ ' + thDate(i.paidAt) : i.due ? 'ครบกำหนด ' + thDate(i.due) : ''}</small></span>
-              <span class="bill-amt"><b>${thb(i.amount)}</b><span class="badge ${late ? 'is-bad' : c}">${late ? 'เลยกำหนด' : t}</span></span></li>`;
+            const review = i.status === 'pending' && i.hasSlip;
+            // รอชำระ: แนบสลิปให้ผู้ให้บริการตรวจ · แนบแล้ว = รอตรวจสอบ (ดู/ส่งใหม่ได้) · สลิปไม่ผ่าน = แสดงเหตุผล
+            const slip = i.status !== 'pending' ? '' : review
+                ? `<p class="bill-slip is-info">${icon('check-circle', 'ic-16')}<span>ส่งสลิปแล้ว ${thDateTime(i.slipAt)} · รอผู้ให้บริการตรวจสอบ</span></p>`
+                : i.slipNote ? `<p class="bill-slip is-bad">${icon('alert', 'ic-16')}<span>${esc(i.slipNote)} · กรุณาแนบสลิปใหม่</span></p>` : '';
+            const acts = `<span class="bill-acts">
+                ${i.status === 'pending' ? `<label class="btn ${review ? 'btn-tonal' : 'btn-primary'} btn-sm bill-slip-btn">${icon('image', 'ic-16')}${review ? 'ส่งสลิปใหม่' : 'แนบสลิป'}<input type="file" accept="image/*" data-slip="${esc(i.id)}" hidden></label>` : ''}
+                ${review ? `<button type="button" class="btn btn-ghost btn-sm" data-slip-view="${esc(i.id)}">ดูสลิป</button>` : ''}
+                <button type="button" class="btn btn-ghost btn-sm" data-inv-pdf="${esc(i.id)}">${icon('download', 'ic-16')}PDF</button></span>`;
+            return `<li class="bill-row bill-inv"><span class="bill-row-main"><b class="mono">${esc(i.id)}</b><small>${i.periodStart ? thDate(i.periodStart) : ''}${i.periodEnd ? ' – ' + thDate(i.periodEnd) : ''}</small><small>${i.status === 'paid' && i.paidAt ? 'ชำระ ' + thDate(i.paidAt) : i.due ? 'ครบกำหนด ' + thDate(i.due) : ''}</small></span>
+              <span class="bill-amt"><b>${thb(i.amount)}</b><span class="badge ${review ? 'is-info' : late ? 'is-bad' : c}">${review ? 'รอตรวจสอบ' : late ? 'เลยกำหนด' : t}</span></span>${slip}${acts}</li>`;
         }).join('');
         const acc = (r.accounts || []).map(x => `<li class="bill-row"><span class="icon-box">${icon(x.type === 'promptpay' ? 'phone' : 'database')}</span>
             <span class="bill-row-main"><b>${esc(x.bank || (x.type === 'promptpay' ? 'พร้อมเพย์' : 'บัญชี'))}${x.isDefault ? ' <span class="badge is-info">หลัก</span>' : ''}</b><small><span class="mono">${esc(x.number)}</span></small><small>${esc(x.name)}${x.branch ? ' · สาขา' + esc(x.branch) : ''}${x.note ? ' · ' + esc(x.note) : ''}</small></span>
@@ -870,6 +879,39 @@ VIEWS.account = {
             <div class="bill-contact-links">${phone ? `<a href="tel:${esc(phone.replace(/[^0-9+]/g, ''))}">${icon('phone', 'ic-16')}<span>${esc(phone)}</span></a>` : ''}${mail ? `<a href="mailto:${esc(mail)}">${icon('mail', 'ic-16')}<span>${esc(mail)}</span></a>` : ''}</div></div>` : ''}
           <a class="btn btn-tonal btn-sm bill-pkg" href="${PRODUCT_URL}#packages" target="_blank" rel="noopener">${icon('external', 'ic-16')} ดูแพ็กเกจทั้งหมด</a>`;
         $('accBillMore').querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => { navigator.clipboard && navigator.clipboard.writeText(b.dataset.copy).then(() => toast('คัดลอกเลขบัญชีแล้ว')).catch(() => {}); }));
+        const more = $('accBillMore');
+        more.querySelectorAll('[data-slip]').forEach(inp => inp.addEventListener('change', e => this.sendSlip(e.target)));
+        more.querySelectorAll('[data-slip-view]').forEach(b => b.addEventListener('click', () => this.viewSlip(b.dataset.slipView)));
+        more.querySelectorAll('[data-inv-pdf]').forEach(b => b.addEventListener('click', () => {
+            const i = (this.bill.invoices || []).find(x => x.id === b.dataset.invPdf);
+            if (i) Invoice.pdf(i, this.bill.org || {}, this.bill.accounts || []);
+        }));
+    },
+    // แนบสลิปโอนเงิน → ส่งให้ Dev/ผู้ให้บริการตรวจสอบและบันทึกชำระ
+    async sendSlip(input) {
+        const f = input.files && input.files[0], id = input.dataset.slip;
+        input.value = '';
+        if (!f) return;
+        if (!/^image\//.test(f.type || 'image/')) return showMessage({ title: 'ใช้ไฟล์นี้ไม่ได้', text: 'กรุณาเลือกรูปสลิป (ภาพหน้าจอหรือรูปถ่าย)', tone: 'warn' });
+        const inv = (this.bill && this.bill.invoices || []).find(x => x.id === id);
+        const ok = await showMessage({ title: `ส่งสลิปสำหรับ ${id}?`, text: `ยอด ${inv ? thb(inv.amount) : ''} · ผู้ให้บริการจะตรวจสอบแล้วบันทึกการชำระให้`, tone: 'info', okText: 'ส่งสลิป', cancelText: 'ยกเลิก' });
+        if (!ok) return;
+        let img;
+        try { img = await shrinkImage(f, 1800, false); } catch (err) { return showMessage({ title: 'ใช้รูปนี้ไม่ได้', text: err.message, tone: 'bad' }); }
+        showLoading(true, 'กำลังส่งสลิป…');
+        const r = await api('staff.billing.slip', { id, photo: { data: img.data, mimeType: img.mimeType } });
+        showLoading(false);
+        if (!r.success) return showMessage({ title: 'ส่งสลิปไม่สำเร็จ', text: r.message, tone: 'bad' });
+        toast('ส่งสลิปแล้ว · รอผู้ให้บริการตรวจสอบ');
+        this.bill = null;
+        this.billing(true);
+    },
+    async viewSlip(id) {
+        showLoading(true, 'กำลังเปิดสลิป…');
+        const r = await api('staff.billing.slipImage', { id });
+        showLoading(false);
+        if (!r.success) return showMessage({ title: 'เปิดสลิปไม่สำเร็จ', text: r.message, tone: 'bad' });
+        PhotoViewer.open(r.dataUrl, 'สลิป ' + id);
     }
 };
 

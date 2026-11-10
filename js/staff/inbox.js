@@ -170,6 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!it.action) return;
             if (it.action.kind === 'admin' && can('admin')) { VIEWS.admin.tab = it.action.value; switchTab('admin'); }
             else if (it.action.kind === 'tab') switchTab(it.action.value);
+            else if (it.action.kind === 'dev' && can('dev') && VIEWS.dev) { VIEWS.dev.sec = it.action.value; VIEWS.dev.filt.invSt = 'pending'; delete VIEWS.dev.cache.invoices; switchTab('dev'); }
         }
     });
     // เข้าสู่ระบบ/สลับบัญชี/ออกจากระบบ: โหลดกล่องของบัญชีนั้นใหม่

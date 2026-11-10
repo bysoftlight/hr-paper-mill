@@ -380,11 +380,11 @@ VIEWS.dev = {
             <td data-label="องค์กร">${esc(i.orgName)}</td>
             <td data-label="แพลน">${esc(i.planName)}<div class="cell-sub">${CYCLE_TH[i.cycle] || i.cycle} · ${dShort(i.periodStart)} – ${dShort(i.periodEnd)}</div></td>
             <td data-label="จำนวนเงิน" class="mono"><b>${baht(i.amount)}</b></td>
-            <td data-label="สถานะ"><span class="badge ${INV_ST[i.status][1]}">${INV_ST[i.status][0]}</span>${i.overdue ? ' <span class="badge is-bad">เกินกำหนด</span>' : ''}${i.status === 'paid' ? `<div class="cell-sub">${dShort(i.paidAt)}${i.ref ? ' · ' + esc(i.ref) : ''}</div>` : ''}</td>
+            <td data-label="สถานะ"><span class="badge ${INV_ST[i.status][1]}">${INV_ST[i.status][0]}</span>${i.overdue ? ' <span class="badge is-bad">เกินกำหนด</span>' : ''}${i.status === 'pending' && i.slip ? ` <span class="badge is-info">มีสลิป · รอตรวจ</span><div class="cell-sub">แนบ ${dShort(i.slipAt)}</div>` : i.status === 'pending' && i.slipNote ? `<div class="cell-sub">${esc(i.slipNote)}</div>` : ''}${i.status === 'paid' ? `<div class="cell-sub">${dShort(i.paidAt)}${i.ref ? ' · ' + esc(i.ref) : ''}</div>` : ''}</td>
             <td data-label="ครบกำหนด">${dShort(i.due)}</td>
             <td class="td-actions"><div class="row-btns">
-              <button type="button" class="icon-btn" data-act="inv-print" data-id="${esc(i.id)}" aria-label="พิมพ์ใบแจ้งหนี้ ${esc(i.id)}" title="พิมพ์ / PDF">${icon('download')}</button>
-              ${i.status === 'pending' ? `<button type="button" class="btn btn-sm btn-tonal" data-act="inv-pay" data-id="${esc(i.id)}">บันทึกชำระ</button><button type="button" class="icon-btn" data-act="inv-void" data-id="${esc(i.id)}" aria-label="ยกเลิกใบแจ้งหนี้ ${esc(i.id)}" title="ยกเลิก">${icon('x')}</button>` : ''}
+              <button type="button" class="icon-btn" data-act="inv-print" data-id="${esc(i.id)}" aria-label="ดาวน์โหลดใบแจ้งหนี้ ${esc(i.id)} (PDF)" title="ดาวน์โหลด PDF">${icon('download')}</button>
+              ${i.status === 'pending' && i.slip ? `<button type="button" class="btn btn-sm btn-primary" data-act="inv-slip" data-id="${esc(i.id)}">ดูสลิป</button>` : ''}${i.status === 'pending' ? `<button type="button" class="btn btn-sm btn-tonal" data-act="inv-pay" data-id="${esc(i.id)}">บันทึกชำระ</button><button type="button" class="icon-btn" data-act="inv-void" data-id="${esc(i.id)}" aria-label="ยกเลิกใบแจ้งหนี้ ${esc(i.id)}" title="ยกเลิก">${icon('x')}</button>` : ''}
             </div></td></tr>`).join('')}</tbody></table>` : emptyState('ยังไม่มีใบแจ้งหนี้', 'file');
     },
     async invoiceForm(orgId) {
@@ -409,12 +409,12 @@ VIEWS.dev = {
         });
         $('devF_org').addEventListener('change', e => { const x = o.orgs.find(y => y.id === e.target.value); if (x) { $('devF_plan').value = x.plan; $('devF_cycle').value = x.cycle; } });
     },
-    async payForm(id) {
+    async payForm(id, pre) {
         const r = this.cache.invoices, inv = r && r.invoices.find(i => i.id === id);
         if (!inv) return;
         this.form({
             title: `บันทึกการชำระ ${inv.id}`, sub: `${inv.orgName} · ${baht(inv.amount)}`, save: 'ยืนยันรับชำระ',
-            values: { paidAt: todayIso(), account: (r.accounts.find(a => a.isDefault) || r.accounts[0] || {}).id || '' },
+            values: Object.assign({ paidAt: todayIso(), account: (r.accounts.find(a => a.isDefault) || r.accounts[0] || {}).id || '' }, pre || {}),
             fields: [
                 { k: 'paidAt', label: 'วันที่ชำระ', type: 'date', req: true },
                 { k: 'account', label: 'เข้าบัญชี', type: 'select', options: [['', '— ไม่ระบุ —']].concat(r.accounts.map(a => [a.id, `${a.bank || ACC_TYPE_TH[a.type]} ${a.number}`])) },
@@ -428,32 +428,34 @@ VIEWS.dev = {
         const reason = await VIEWS.records.askReason({ title: `ยกเลิก ${id}?`, text: 'ใบแจ้งหนี้จะไม่ถูกนับเป็นยอดค้างชำระ (ยังเห็นในประวัติ)', okText: 'ยกเลิกใบแจ้งหนี้' });
         if (reason) this.run('dev.invoices.void', { id, reason }, 'ยกเลิกใบแจ้งหนี้แล้ว', ['invoices']);
     },
+    // ใบแจ้งหนี้เป็นไฟล์ PDF (แอปบนหน้าจอโฮมของ iPhone/iPad สั่งพิมพ์จากหน้าต่างใหม่ไม่ได้)
     async printInvoice(id) {
         const r = this.cache.invoices, inv = r && r.invoices.find(i => i.id === id);
+        if (!inv) return;
         const orgs = await this.get('dev.orgs.list', 'orgs');
         const o = orgs.success && orgs.orgs.find(x => x.id === inv.org) || {};
-        const acc = inv.status === 'paid' ? r.accounts.filter(a => a.id === inv.account) : r.accounts;
-        const w = window.open('', '_blank');
-        if (!w) return showMessage({ title: 'เปิดหน้าต่างไม่ได้', text: 'กรุณาอนุญาตป๊อปอัปสำหรับเว็บไซต์นี้', tone: 'warn' });
-        const row = (k, v) => `<tr><th>${k}</th><td>${v}</td></tr>`;
-        w.document.write(`<!doctype html><html lang="th"><head><meta charset="utf-8"><title>${esc(inv.id)} — ใบแจ้งหนี้</title>
-          <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&display=swap" rel="stylesheet">
-          <style>body{font-family:'Noto Sans Thai',sans-serif;color:#1f1f1f;margin:0;padding:40px;font-size:14px}h1{font-size:26px;margin:0}.top{display:flex;justify-content:space-between;gap:24px;border-bottom:2px solid #0b57d0;padding-bottom:16px;margin-bottom:20px}
-          .muted{color:#5f6368}table{width:100%;border-collapse:collapse;margin:16px 0}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #e0e3e7;vertical-align:top}th{width:34%;color:#5f6368;font-weight:400}
-          .total{font-size:22px;font-weight:700;color:#0b57d0}.stamp{display:inline-block;border:2px solid ${inv.status === 'paid' ? '#188038' : '#b3261e'};color:${inv.status === 'paid' ? '#188038' : '#b3261e'};padding:4px 12px;border-radius:6px;font-weight:700}
-          @media print{body{padding:0}button{display:none}}</style></head><body>
-          <div class="top"><div><h1>ใบแจ้งหนี้</h1><div class="muted">HR Paper Mill · พัฒนาและให้บริการโดย softlight</div></div><div style="text-align:right"><b>${esc(inv.id)}</b><div class="muted">ออกเมื่อ ${dShort(inv.issued)}</div><div class="stamp">${INV_ST[inv.status][0]}</div></div></div>
-          <table>${row('ลูกค้า', `<b>${esc(o.name || inv.orgName)}</b>${o.address ? '<br>' + esc(o.address) : ''}${o.taxId ? '<br>เลขผู้เสียภาษี ' + esc(o.taxId) : ''}`)}
-            ${row('ผู้ติดต่อ', esc([o.contact, o.phone, o.email].filter(Boolean).join(' · ') || '-'))}
-            ${row('รายการ', `ค่าบริการ HR Paper Mill แพลน ${esc(inv.planName)} (${CYCLE_TH[inv.cycle] || inv.cycle})<br><span class="muted">รอบ ${dShort(inv.periodStart)} – ${dShort(inv.periodEnd)}</span>`)}
-            ${row('ครบกำหนดชำระ', dShort(inv.due))}
-            ${inv.status === 'paid' ? row('ชำระเมื่อ', `${dShort(inv.paidAt)}${inv.ref ? ' · อ้างอิง ' + esc(inv.ref) : ''}`) : ''}
-            ${row('ยอดชำระ', `<span class="total">${baht(inv.amount)}</span>`)}</table>
-          ${acc.length ? `<h3>${inv.status === 'paid' ? 'รับชำระเข้าบัญชี' : 'ช่องทางชำระเงิน'}</h3><table>${acc.map(a => row(esc(a.bank || ACC_TYPE_TH[a.type]), `<b>${esc(a.number)}</b> · ${esc(a.name)}${a.branch ? ' · สาขา' + esc(a.branch) : ''}`)).join('')}</table>` : ''}
-          ${inv.note ? `<p class="muted">หมายเหตุ: ${esc(inv.note)}</p>` : ''}
-          <button onclick="print()" style="margin-top:12px;padding:10px 18px;border-radius:20px;border:0;background:#0b57d0;color:#fff;font:inherit;cursor:pointer">พิมพ์ / บันทึกเป็น PDF</button>
-          </body></html>`);
-        w.document.close();
+        await Invoice.pdf(inv, o, r.accounts || []);
+    },
+    // สลิปที่องค์กรแนบ: ดูรูป → ยืนยันรับชำระ หรือ แจ้งว่าสลิปไม่ถูกต้อง
+    async slipReview(id) {
+        const r = this.cache.invoices, inv = r && r.invoices.find(i => i.id === id);
+        if (!inv) return;
+        showLoading(true, 'กำลังเปิดสลิป…');
+        const s = await api('dev.invoices.slip', { id });
+        showLoading(false);
+        if (!s.success) return showMessage({ title: 'เปิดสลิปไม่สำเร็จ', text: s.message, tone: 'bad' });
+        $('devMTitle').textContent = `สลิป ${inv.id}`;
+        $('devMSub').textContent = `${inv.orgName} · ${baht(inv.amount)}`;
+        $('devMBody').innerHTML = `<figure class="slip-fig"><img src="${s.dataUrl}" alt="สลิปโอนเงิน ${esc(inv.id)}"><figcaption>แนบเมื่อ ${thDateTime(s.slipAt)}${s.slipBy ? ' · ' + esc(s.slipBy) : ''}${s.slipNote ? '<br>หมายเหตุ: ' + esc(s.slipNote) : ''}</figcaption></figure>`;
+        $('devMFoot').innerHTML = `<button type="button" class="btn btn-ghost btn-bad-text" id="devSlipBad">สลิปไม่ถูกต้อง</button><button type="button" class="btn btn-primary" id="devSlipOk">ยืนยันรับชำระ</button>`;
+        $('devSlipOk').addEventListener('click', () => { $('devModal').close(); this.payForm(id, { method: 'โอนเงิน (สลิป)', paidAt: isoDate(new Date(s.slipAt || Date.now())) }); });
+        $('devSlipBad').addEventListener('click', async () => {
+            $('devModal').close();
+            const reason = await VIEWS.records.askReason({ title: 'สลิปไม่ถูกต้อง?', text: 'องค์กรจะเห็นเหตุผลและแนบสลิปใหม่ได้', okText: 'แจ้งองค์กร' });
+            if (reason) this.run('dev.invoices.slipReject', { id, reason }, 'แจ้งองค์กรแล้ว', ['invoices']);
+        });
+        this.onSubmit = null;
+        showModal('devModal');
     },
 
     // ---------- บัญชีรับเงิน ----------
@@ -595,6 +597,7 @@ VIEWS.dev = {
             if (act === 'inv-pay') return this.payForm(id);
             if (act === 'inv-void') return this.voidInvoice(id);
             if (act === 'inv-print') return this.printInvoice(id);
+            if (act === 'inv-slip') return this.slipReview(id);
             if (act === 'acc-new') return this.accountForm(null);
             if (act === 'acc-edit') return this.accountForm(this.cache.accounts.accounts.find(x => x.id === id));
             if (act === 'bulk-move') return this.bulkMove();

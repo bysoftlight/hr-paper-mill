@@ -32,7 +32,7 @@ function handleStaffRequest_(req) {
   const sub = staff.org && typeof orgAccess_ === 'function' ? orgAccess_(staff.org) : null;
   // หมดช่วงทดลอง / ค้างชำระเกินกำหนด / ถูกระงับ: ใช้งานไม่ได้ (ยกเว้นดูบัญชีตัวเอง ออกจากระบบ และ Dev)
   // ผู้ดูแลการเงินยังเปิดข้อมูลการชำระเงินได้ (เพื่อชำระแล้วกลับมาใช้งาน)
-  if (sub && !sub.ok && !isDev_(staff) && !/^staff\.(me|logout|inbox\.)/.test(req.action) && !(req.action === 'staff.billing.info' && can_(staff, 'billing'))) fail_('SUBSCRIPTION', sub.message);
+  if (sub && !sub.ok && !isDev_(staff) && !/^staff\.(me|logout|inbox\.)/.test(req.action) && !(/^staff\.billing\.(info|slip|slipImage)$/.test(req.action) && can_(staff, 'billing'))) fail_('SUBSCRIPTION', sub.message);
   if (/^dev\./.test(req.action)) {
     if (!isDev_(staff)) fail_('FORBIDDEN', 'เฉพาะบัญชี Dev เท่านั้น');
     if (typeof handleDev_ !== 'function') return { success: false, message: 'ต้องเพิ่มไฟล์ Billing.gs ใน Apps Script ก่อน' };
@@ -163,6 +163,12 @@ function handleStaffRequest_(req) {
       requirePerm_(staff, 'billing');
       if (typeof orgBillingInfo_ !== 'function') return { success: false, message: 'ต้องเพิ่มไฟล์ Billing.gs ใน Apps Script ก่อน' };
       return orgBillingInfo_(staff);
+    case 'staff.billing.slip':
+      requirePerm_(staff, 'billing');
+      return orgInvoiceSlip_(req, staff, ua);
+    case 'staff.billing.slipImage':
+      requirePerm_(staff, 'billing');
+      return invoiceSlipImage_(req, staff);
     default:
       // แจ้งปัญหา / แบบสอบถาม (Feedback.gs)
       // กล่องการแจ้งเตือน / ประกาศ (Inbox.gs)
