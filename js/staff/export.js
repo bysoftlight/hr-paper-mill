@@ -35,7 +35,7 @@ VIEWS.exporter = {
 
     fileBase() {
         const r = VIEWS.records.range();
-        return `HR-PaperMill_รายงาน_${r.from || 'เริ่มต้น'}_${r.to || 'ล่าสุด'}`;
+        return `HR-PaperMill_report_${r.from || 'start'}_${r.to || 'latest'}`; // ชื่อไฟล์ภาษาอังกฤษ: บางเบราว์เซอร์เปลี่ยนชื่อไทยเป็น "download"
     },
 
     async run(kind) {
@@ -79,9 +79,10 @@ VIEWS.exporter = {
         XLSX.utils.book_append_sheet(wb, sheet([['วันที่', 'จำนวนรายงาน']].concat(Object.keys(a.byDay).sort().map(d => [parseIso(d), a.byDay[d]])), [14, 14]), 'สรุปรายวัน');
         XLSX.utils.book_append_sheet(wb, sheet([['จุดขาย', 'จำนวนรายงาน']].concat(Object.keys(a.bySite).sort((x, y) => a.bySite[y] - a.bySite[x]).map(s => [s, a.bySite[s]])), [28, 14]), 'ตามจุดขาย');
 
-        XLSX.writeFile(wb, this.fileBase() + '.xlsx', { compression: true });
+        const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array', compression: true });
+        showLoading(false);
+        await FileOffer.offer(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), this.fileBase() + '.xlsx', 'HR Paper Mill — รายงาน');
         api('staff.log.client', { logAction: 'export.xlsx', target: VIEWS.records.rangeLabel(), details: { rows: r.rows.length, filters: VIEWS.records.filters() } });
-        toast('ดาวน์โหลดไฟล์ Excel แล้ว');
     },
 
     // ---------- Google Sheets ----------
@@ -124,10 +125,11 @@ VIEWS.exporter = {
             });
         }
         pdf.setProperties({ title: 'HR Paper Mill — รายงาน ' + VIEWS.records.rangeLabel(), author: ST.me.name });
-        pdf.save(this.fileBase() + '.pdf');
+        const blob = pdf.output('blob');
         stage.replaceChildren();
+        showLoading(false);
+        await FileOffer.offer(blob, this.fileBase() + '.pdf', 'HR Paper Mill — รายงาน');
         api('staff.log.client', { logAction: 'export.pdf', target: VIEWS.records.rangeLabel(), details: { rows: r.rows.length, filters: VIEWS.records.filters() } });
-        toast('ดาวน์โหลดไฟล์ PDF แล้ว');
     },
 
     buildPages(r) {

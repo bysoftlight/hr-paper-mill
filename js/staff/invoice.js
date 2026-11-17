@@ -1,34 +1,6 @@
 // ใบแจ้งหนี้เป็นไฟล์ PDF (ใช้ได้ทั้ง Dev Console และหน้าบัญชีของผู้ดูแลการเงิน)
 // เดิมเปิดหน้าต่างใหม่แล้วสั่งพิมพ์ — แอปบนหน้าจอโฮมของ iPhone/iPad เปิดหน้าต่างใหม่/พิมพ์ไม่ได้ จึงสร้างไฟล์ PDF ในหน้าเดิมแทน
-// แล้วให้ผู้ใช้แตะ "บันทึก / แชร์" (การแชร์ไฟล์ต้องเกิดจากการแตะโดยตรง)
-
-// ส่งไฟล์ให้ผู้ใช้: มือถือ/แท็บเล็ต = แผ่นแชร์ของระบบ (บันทึกลงไฟล์/ส่งต่อได้) · คอมพิวเตอร์ = ดาวน์โหลดทันที
-const FileOffer = (() => {
-    const touch = () => window.matchMedia && matchMedia('(pointer: coarse)').matches;
-    function download(blob, name) {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = name; a.rel = 'noopener';
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 60000);
-    }
-    async function share(blob, name, title) {
-        const file = new File([blob], name, { type: blob.type || 'application/pdf' });
-        if (navigator.canShare && navigator.share && navigator.canShare({ files: [file] })) {
-            try { await navigator.share({ files: [file], title }); return true; }
-            catch (e) { if (e && e.name === 'AbortError') return true; }
-        }
-        download(blob, name);
-        return true;
-    }
-    // ไฟล์พร้อมแล้ว → ถามก่อนบนมือถือ (ได้การแตะใหม่ให้ใช้แผ่นแชร์) · คอมพิวเตอร์ดาวน์โหลดเลย
-    async function offer(blob, name, title) {
-        if (!touch()) { download(blob, name); toast('ดาวน์โหลด ' + name + ' แล้ว'); return; }
-        const go = await showMessage({ title: 'ไฟล์พร้อมแล้ว', text: name, tone: 'ok', okText: 'บันทึก / แชร์', cancelText: 'ปิด' });
-        if (go) await share(blob, name, title);
-    }
-    return { offer, download, share };
-})();
+// แล้วส่งไฟล์ผ่าน FileOffer (utils.js)
 
 const Invoice = (() => {
     const CYCLE = { monthly: 'รายเดือน', yearly: 'รายปี' };

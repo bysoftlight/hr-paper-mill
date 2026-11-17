@@ -380,11 +380,7 @@ const FeedbackAdmin = {
         const rows = [['เวลา', 'รหัส', 'ชื่อ', 'ทำเมื่อ', 'อุปกรณ์'].concat(q.map((x, i) => `${i + 1}. ${x.text}`))]
             .concat(data.responses.map(r => [new Date(r.ts).toLocaleString('th-TH', { timeZone: TZ }), r.userId, r.name, r.when, r.client].concat(q.map(x => r.answers[x.id] == null ? '' : r.answers[x.id]))));
         const blob = new Blob(['﻿' + rows.map(r => r.map(cell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `HRPM-survey-${s.id}.csv`; // ชื่อไฟล์ภาษาอังกฤษ: บางเบราว์เซอร์เปลี่ยนชื่อไทยเป็น "download" (ไม่มีนามสกุล)
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+        FileOffer.offer(blob, `HRPM-survey-${s.id}.csv`, 'ผลแบบสอบถาม'); // ชื่อไฟล์ภาษาอังกฤษ: บางเบราว์เซอร์เปลี่ยนชื่อไฟล์ภาษาไทยเป็นตัวอักษรแปลก
     }
 };
 

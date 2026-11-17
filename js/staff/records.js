@@ -443,11 +443,7 @@ VIEWS.records = {
         const url = await imageData(rec.fileId);
         if (!url) return showMessage({ title: 'ดาวน์โหลดไม่สำเร็จ', text: 'ไม่พบไฟล์รูปของรายการนี้', tone: 'bad' });
         const blob = await (await fetch(url)).blob();
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `${rec.userId}_${rec.date}_${rec.time.replace(':', '')}.jpg`;
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+        await FileOffer.offer(blob, `${rec.userId}_${rec.date}_${rec.time.replace(':', '')}.jpg`, 'รูปหลักฐาน');
     },
 
     askReason({ title, text, okText }) {

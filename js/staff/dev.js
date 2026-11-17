@@ -452,7 +452,7 @@ VIEWS.dev = {
         $('devSlipBad').addEventListener('click', async () => {
             $('devModal').close();
             const reason = await VIEWS.records.askReason({ title: 'สลิปไม่ถูกต้อง?', text: 'องค์กรจะเห็นเหตุผลและแนบสลิปใหม่ได้', okText: 'แจ้งองค์กร' });
-            if (reason) this.run('dev.invoices.slipReject', { id, reason }, 'แจ้งองค์กรแล้ว', ['invoices']);
+            if (reason) this.run('dev.invoices.slipReject', { id, reason, slipAt: s.slipAt }, 'แจ้งองค์กรแล้ว', ['invoices']);
         });
         this.onSubmit = null;
         showModal('devModal');
