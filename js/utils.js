@@ -382,7 +382,7 @@ const FileOffer = (() => {
         setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
     async function share(blob, name, title) {
-        const file = new File([blob], name, { type: blob.type || 'application/pdf' });
+        const file = new File([blob], name, { type: String(blob.type || '').split(';')[0].trim() || 'application/octet-stream' }); // iOS ไม่รับชนิดไฟล์ที่มีพารามิเตอร์
         if (navigator.canShare && navigator.share && navigator.canShare({ files: [file] })) {
             try { await navigator.share({ files: [file], title }); return true; }
             catch (e) { if (e && e.name === 'AbortError') return true; }
