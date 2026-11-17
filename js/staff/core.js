@@ -851,7 +851,7 @@ VIEWS.account = {
                 ? `<p class="bill-slip is-info">${icon('check-circle', 'ic-16')}<span>ส่งสลิปแล้ว ${thDateTime(i.slipAt)} · รอผู้ให้บริการตรวจสอบ</span></p>`
                 : i.slipNote ? `<p class="bill-slip is-bad">${icon('alert', 'ic-16')}<span>${esc(i.slipNote)} · กรุณาแนบสลิปใหม่</span></p>` : '';
             const acts = `<span class="bill-acts">
-                ${i.status === 'pending' ? `<label class="btn ${review ? 'btn-tonal' : 'btn-primary'} btn-sm bill-slip-btn">${icon('image', 'ic-16')}${review ? 'ส่งสลิปใหม่' : 'แนบสลิป'}<input type="file" accept="image/*" data-slip="${esc(i.id)}" hidden></label>` : ''}
+                ${i.status === 'pending' ? `<label class="btn ${review ? 'btn-tonal' : 'btn-primary'} btn-sm bill-slip-btn">${icon('image', 'ic-16')}${review ? 'ส่งสลิปใหม่' : 'แนบสลิป'}<input type="file" accept="image/*" class="sr-only" data-slip="${esc(i.id)}"></label>` : ''}
                 ${review ? `<button type="button" class="btn btn-ghost btn-sm" data-slip-view="${esc(i.id)}">ดูสลิป</button>` : ''}
                 <button type="button" class="btn btn-ghost btn-sm" data-inv-pdf="${esc(i.id)}">${icon('download', 'ic-16')}PDF</button></span>`;
             return `<li class="bill-row bill-inv"><span class="bill-row-main"><b class="mono">${esc(i.id)}</b><small>${i.periodStart ? thDate(i.periodStart) : ''}${i.periodEnd ? ' – ' + thDate(i.periodEnd) : ''}</small><small>${i.status === 'paid' && i.paidAt ? 'ชำระ ' + thDate(i.paidAt) : i.due ? 'ครบกำหนด ' + thDate(i.due) : ''}</small></span>

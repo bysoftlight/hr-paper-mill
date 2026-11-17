@@ -796,13 +796,18 @@ function staffProfilePhoto_(req, staff, ua) {
 
 function saveProfilePhoto_(id, photo) { return saveNamedImage_('IMG_' + id, photo); }
 // บันทึกรูปลงโฟลเดอร์รูป (PROFILE_FOLDER_ID) ชื่อ name — ใช้กับรูปโปรไฟล์ · โลโก้องค์กร (LOGO_<รหัส>) · รูปประกาศ (NEWS_<รหัส>)
-function saveNamedImage_(name, photo) {
+// ตรวจรูปที่ส่งมา (base64): ชนิดไฟล์ที่อนุญาต · ไม่ว่าง · ไม่เกินขนาด — ใช้ร่วมกับรูปโปรไฟล์ โลโก้ และสลิปโอนเงิน
+function decodeImage_(photo, maxBytes, emptyMsg) {
   photo = photo || {};
   const mime = /^image\/(jpeg|png|webp)$/.test(String(photo.mimeType)) ? photo.mimeType : 'image/jpeg';
   let bytes;
   try { bytes = Utilities.base64Decode(String(photo.data || '')); } catch (e) { fail_('INVALID', 'ไฟล์รูปไม่ถูกต้อง'); }
-  if (!bytes.length) fail_('INVALID', 'ไฟล์รูปไม่ถูกต้อง');
-  if (bytes.length > MAX_PROFILE_BYTES) fail_('INVALID', 'รูปมีขนาดใหญ่เกิน 2 MB');
+  if (!bytes || !bytes.length) fail_('INVALID', emptyMsg || 'ไฟล์รูปไม่ถูกต้อง');
+  if (bytes.length > maxBytes) fail_('INVALID', 'รูปมีขนาดใหญ่เกิน ' + Math.round(maxBytes / 1048576) + ' MB');
+  return { bytes: bytes, mime: mime };
+}
+function saveNamedImage_(name, photo) {
+  const img = decodeImage_(photo, MAX_PROFILE_BYTES), bytes = img.bytes, mime = img.mime;
   let folder;
   try { folder = DriveApp.getFolderById(prop_('PROFILE_FOLDER_ID') || PROFILE_FOLDER_ID); }
   catch (e) { fail_('ERROR', 'เปิดโฟลเดอร์รูปโปรไฟล์ไม่ได้ กรุณาตรวจสอบสิทธิ์ของบัญชีที่ Deploy'); }

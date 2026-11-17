@@ -196,13 +196,15 @@ function orgPublic_(orgId) {
 function orgBillingInfo_(staff) {
   const o = staff.org ? readOrgs_().filter(x => x.id === staff.org)[0] : null;
   if (!o) return { success: true, org: null };
-  const plan = readPlans_().filter(p => p.id === o.plan)[0] || null;
+  const plans = readPlans_(), planName = {};
+  plans.forEach(p => { planName[p.id] = p.name; });
+  const plan = plans.filter(p => p.id === o.plan)[0] || null;
   const counts = orgCounts_(), lim = orgLimits_(o, plan);
   const invoices = readInvoices_().filter(i => i.org === o.id && i.status !== 'void').sort((a, b) => (b.issued || 0) - (a.issued || 0)).slice(0, 24)
-    .map(i => ({ id: i.id, plan: i.plan, planName: (readPlans_().filter(p => p.id === i.plan)[0] || {}).name || i.plan, cycle: i.cycle, periodStart: i.periodStart, periodEnd: i.periodEnd, amount: i.amount, status: i.status,
-      issued: i.issued, due: i.due, paidAt: i.paidAt, method: i.method, ref: i.ref, note: i.note, hasSlip: !!i.slip, slipAt: i.slipAt, slipNote: i.slipNote }));
+    .map(i => ({ id: i.id, plan: i.plan, planName: planName[i.plan] || i.plan, cycle: i.cycle, periodStart: i.periodStart, periodEnd: i.periodEnd, amount: i.amount, status: i.status,
+      issued: i.issued, due: i.due, paidAt: i.paidAt, account: i.account, method: i.method, ref: i.ref, note: i.note, hasSlip: !!i.slip, slipAt: i.slipAt, slipNote: i.slipNote }));
   const accounts = readAccounts_().filter(a => a.active).sort((a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0))
-    .map(a => ({ type: a.type, bank: a.bank, name: a.name, number: a.number, branch: a.branch, isDefault: a.isDefault, note: a.note }));
+    .map(a => ({ id: a.id, type: a.type, bank: a.bank, name: a.name, number: a.number, branch: a.branch, isDefault: a.isDefault, note: a.note }));
   return {
     success: true, org: { id: o.id, name: o.name, logo: o.logo || '', cycle: o.cycle, status: o.status, contact: o.contact, phone: o.phone, email: o.email, address: o.address, taxId: o.taxId },
     plan: plan ? { id: plan.id, name: plan.name, priceMonthly: plan.priceMonthly, priceYearly: plan.priceYearly } : null,
@@ -534,32 +536,47 @@ function devInvoiceVoid_(req, staff, ua) {
 
 // ---------- สลิปโอนเงิน: ผู้ดูแลการเงินขององค์กรแนบ → Dev/ผู้ให้บริการตรวจแล้วบันทึกชำระ ----------
 // ไฟล์สลิปเก็บแบบส่วนตัว (ไม่แชร์ลิงก์) — เปิดดูได้ผ่านคำสั่งนี้เท่านั้น
+const SLIP_MAX_PER_HOUR = 6;   // ส่งสลิปต่อใบแจ้งหนี้ได้ไม่เกิน 6 ครั้ง/ชั่วโมง (กันส่งวน)
+const SLIP_MAIL_GAP_S = 600;   // อีเมลแจ้ง Dev ไม่เกิน 1 ฉบับ/ใบ/10 นาที (โควตาอีเมลรายวันใช้ร่วมกับการแจ้งเตือนความปลอดภัย)
+// โฟลเดอร์สลิปแยกต่างหาก (ส่วนตัว ไม่แชร์) — สร้างครั้งแรกที่ใช้ แล้วจำไว้ใน Script Property SLIP_FOLDER_ID
+function slipFolder_() {
+  const id = prop_('SLIP_FOLDER_ID');
+  if (id) { try { return DriveApp.getFolderById(id); } catch (e) { console.warn('เปิดโฟลเดอร์สลิปไม่ได้ สร้างใหม่: ' + e); } }
+  const f = DriveApp.createFolder('HR Paper Mill — สลิปโอนเงิน (ส่วนตัว)');
+  PropertiesService.getScriptProperties().setProperty('SLIP_FOLDER_ID', f.getId());
+  return f;
+}
 function orgInvoiceSlip_(req, staff, ua) {
+  const img = decodeImage_(req.photo, MAX_SLIP_BYTES, 'กรุณาเลือกรูปสลิป');
+  const cache = CacheService.getScriptCache(), nKey = 'slipn:' + String(req.id || '');
+  const n = Number(cache.get(nKey) || 0);
+  if (n >= SLIP_MAX_PER_HOUR) fail_('RATE', 'ส่งสลิปใบนี้บ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่');
+  let inv, o, now, oldSlip;
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
   try {
-    const inv = readInvoices_().filter(i => i.id === String(req.id || ''))[0];
+    inv = readInvoices_().filter(i => i.id === String(req.id || ''))[0];
     if (!inv || (!isDev_(staff) && inv.org !== staff.org)) fail_('INVALID', 'ไม่พบใบแจ้งหนี้');
     if (inv.status !== 'pending') fail_('INVALID', 'ใบแจ้งหนี้นี้' + (inv.status === 'paid' ? 'ชำระแล้ว' : 'ถูกยกเลิกแล้ว'));
-    const photo = req.photo || {};
-    const mime = /^image\/(jpeg|png|webp)$/.test(String(photo.mimeType)) ? photo.mimeType : 'image/jpeg';
-    let bytes;
-    try { bytes = Utilities.base64Decode(String(photo.data || '')); } catch (e) { fail_('INVALID', 'ไฟล์รูปไม่ถูกต้อง'); }
-    if (!bytes || !bytes.length) fail_('INVALID', 'กรุณาเลือกรูปสลิป');
-    if (bytes.length > MAX_SLIP_BYTES) fail_('INVALID', 'รูปสลิปใหญ่เกิน 4 MB');
     let folder;
-    try { folder = DriveApp.getFolderById(prop_('PROFILE_FOLDER_ID') || PROFILE_FOLDER_ID); }
-    catch (e) { fail_('ERROR', 'เปิดโฟลเดอร์เก็บไฟล์ไม่ได้ กรุณาตรวจสอบสิทธิ์ของบัญชีที่ Deploy'); }
-    const now = new Date();
-    const file = folder.createFile(Utilities.newBlob(bytes, mime, 'SLIP_' + inv.id + '_' + fmtDate_(now, 'yyyyMMdd_HHmmss')));
+    try { folder = slipFolder_(); } catch (e) { fail_('ERROR', 'เปิดโฟลเดอร์เก็บสลิปไม่ได้ กรุณาตรวจสอบสิทธิ์ของบัญชีที่ Deploy'); }
+    now = new Date();
+    const file = folder.createFile(Utilities.newBlob(img.bytes, img.mime, 'SLIP_' + inv.id + '_' + fmtDate_(now, 'yyyyMMdd_HHmmss')));
     const sh = billSheet_(BILL_SHEET.INVOICES, BI_HEADERS);
     sh.getRange(inv.row, BI.SLIP + 1, 1, 4).setValues([[file.getId(), now, who_(staff), clean_(req.note, 200)]]);
+    oldSlip = inv.slip;
     billGen_();
-    const o = readOrgs_().filter(x => x.id === inv.org)[0];
-    log_(staff, 'billing.slip', inv.id + (o ? ' ' + o.name : ''), { amount: inv.amount, replaced: !!inv.slip }, ua);
-    notifySlip_(inv, o, staff, req.note);
-    return { success: true, slipAt: now.getTime() };
   } finally { lock.releaseLock(); }
+  try { cache.put(nKey, String(n + 1), 3600); } catch (e) {}
+  // สลิปเดิมที่ยังไม่ได้ตรวจ (ส่งใหม่แทน) → ถังขยะ (กู้คืนได้ 30 วัน) ไม่ให้สะสม
+  if (oldSlip) { try { DriveApp.getFileById(oldSlip).setTrashed(true); } catch (e) { console.warn('ย้ายสลิปเก่าไปถังขยะไม่สำเร็จ: ' + e); } }
+  o = readOrgs_().filter(x => x.id === inv.org)[0];
+  log_(staff, 'billing.slip', inv.id + (o ? ' ' + o.name : ''), { amount: inv.amount, replaced: !!oldSlip }, ua);
+  if (!cache.get('slipmail:' + inv.id)) {
+    notifySlip_(inv, o, staff, req.note);
+    try { cache.put('slipmail:' + inv.id, '1', SLIP_MAIL_GAP_S); } catch (e) {}
+  }
+  return { success: true, slipAt: now.getTime() };
 }
 // แจ้ง Dev ทางอีเมล (กล่องแจ้งเตือนในแอปแสดงเองจากรายการที่รอตรวจ)
 function notifySlip_(inv, o, staff, note) {
@@ -582,13 +599,16 @@ function invoiceSlipImage_(req, staff) {
   try { blob = DriveApp.getFileById(inv.slip).getBlob(); } catch (e) { fail_('ERROR', 'เปิดไฟล์สลิปไม่ได้'); }
   return { success: true, dataUrl: 'data:' + blob.getContentType() + ';base64,' + Utilities.base64Encode(blob.getBytes()), slipAt: inv.slipAt, slipBy: inv.slipBy, slipNote: inv.slipNote };
 }
-// สลิปไม่ถูกต้อง: ล้างสลิป (ไฟล์ยังอยู่ใน Drive) แล้วบันทึกเหตุผลให้องค์กรเห็นและแนบใหม่
+// สลิปไม่ถูกต้อง: ล้างสลิป (ไฟล์ไปถังขยะ กู้คืนได้ 30 วัน) แล้วบันทึกเหตุผลให้องค์กรเห็นและแนบใหม่
 function devInvoiceSlipReject_(req, staff, ua) {
   const inv = readInvoices_().filter(i => i.id === req.id)[0];
   if (!inv) fail_('INVALID', 'ไม่พบใบแจ้งหนี้');
+  if (inv.status !== 'pending') fail_('INVALID', 'ใบแจ้งหนี้นี้' + (inv.status === 'paid' ? 'ชำระแล้ว' : 'ถูกยกเลิกแล้ว'));
   if (!inv.slip) fail_('INVALID', 'ใบแจ้งหนี้นี้ยังไม่มีสลิป');
+  if (Number(req.slipAt) !== inv.slipAt) fail_('CONFLICT', 'องค์กรส่งสลิปใหม่แล้ว กรุณาเปิดดูสลิปล่าสุดอีกครั้ง');
   const sh = billSheet_(BILL_SHEET.INVOICES, BI_HEADERS);
   sh.getRange(inv.row, BI.SLIP + 1, 1, 4).setValues([['', '', '', clean_('สลิปไม่ผ่าน: ' + (req.reason || '-'), 200)]]);
+  try { DriveApp.getFileById(inv.slip).setTrashed(true); } catch (e) { console.warn('ย้ายสลิปที่ไม่ผ่านไปถังขยะไม่สำเร็จ: ' + e); } // กู้คืนได้ 30 วัน
   log_(staff, 'dev.invoice.slip_reject', inv.id, { reason: clean_(req.reason, 200) }, ua);
   return { success: true };
 }

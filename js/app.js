@@ -1272,13 +1272,7 @@ async function downloadPhoto() {
         const name = `${CURRENT_USER.id}_${new Date(item.timestamp).toISOString().slice(0, 10)}_${String(item.time).replace(':', '')}.jpg`;
         if (dataUrl) {
             const blob = await (await fetch(dataUrl)).blob();
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = name;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+            await FileOffer.offer(blob, name, 'รูปหลักฐาน');
         } else if (item.image) {
             // ดึงไฟล์ผ่าน API ไม่ได้: เปิดรูปในแท็บใหม่ให้บันทึกเอง
             window.open(item.image, '_blank', 'noopener');

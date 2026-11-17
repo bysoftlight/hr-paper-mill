@@ -370,6 +370,35 @@ const DateField = (() => {
 })();
 if (document.body) DateField.watch(); else document.addEventListener('DOMContentLoaded', () => DateField.watch());
 
+// ---------- ส่งไฟล์ให้ผู้ใช้ (PDF, Excel, CSV, รูป) ----------
+// แอปบนหน้าจอโฮมของ iPhone/iPad ดาวน์โหลดผ่านลิงก์/pdf.save ไม่ได้ → มือถือ/แท็บเล็ต = แผ่นแชร์ของระบบ (บันทึกลงไฟล์/ส่งต่อได้) · คอมพิวเตอร์ = ดาวน์โหลดทันที
+const FileOffer = (() => {
+    const touch = () => window.matchMedia && matchMedia('(pointer: coarse)').matches;
+    function download(blob, name) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = name; a.rel = 'noopener';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }
+    async function share(blob, name, title) {
+        const file = new File([blob], name, { type: blob.type || 'application/pdf' });
+        if (navigator.canShare && navigator.share && navigator.canShare({ files: [file] })) {
+            try { await navigator.share({ files: [file], title }); return true; }
+            catch (e) { if (e && e.name === 'AbortError') return true; }
+        }
+        download(blob, name);
+        return true;
+    }
+    // ไฟล์พร้อมแล้ว → ถามก่อนบนมือถือ (ได้การแตะใหม่ให้ใช้แผ่นแชร์) · คอมพิวเตอร์ดาวน์โหลดเลย
+    async function offer(blob, name, title) {
+        if (!touch()) { download(blob, name); if (typeof toast === 'function') toast('ดาวน์โหลด ' + name + ' แล้ว'); return; }
+        const go = await showMessage({ title: 'ไฟล์พร้อมแล้ว', text: name, tone: 'ok', okText: 'บันทึก / แชร์', cancelText: 'ปิด' });
+        if (go) await share(blob, name, title);
+    }
+    return { offer, download, share };
+})();
+
 // ---------- ขอบจางของแถบที่เลื่อนแนวนอนได้ ([data-scrollfade]) ----------
 // ซ้าย/ขวาที่ยังมีเนื้อหาซ่อนอยู่ = จางลง (บอกว่าเลื่อนได้) · เลื่อนสุดแล้วขอบนั้นคมตามปกติ
 const ScrollFade = (() => {

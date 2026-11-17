@@ -74,7 +74,9 @@ const Glass = (() => {
             t.style.left = t.style.right = inset + 'px';
             // แสดงเฉพาะเมื่อชื่อหน้าพอดีทั้งคำ — ไม่ตัดเป็น "Accoun…" · ชิปยังไม่มีข้อความ (กำลังโหลด) = ยังไม่แสดง
             const chip = a && a.querySelector('[data-today]');
-            const ready = !chip || chip.textContent.trim().length > 0;
+            // โหมดอังกฤษ: รอให้ตัวแปลแปลชิปและชื่อหน้าก่อน (ข้อความไทยสั้นกว่า → แสดงแล้วซ่อน = กะพริบ)
+            const th = /[\u0e00-\u0e7f]/, en = document.documentElement.lang === 'en';
+            const ready = (!chip || chip.textContent.trim().length > 0) && !(en && (th.test(chip ? chip.textContent : '') || th.test(t.textContent)));
             t.style.visibility = ready && t.textContent && t.scrollWidth <= t.clientWidth + 1 ? '' : 'hidden';
         };
         new MutationObserver(() => { schedule(); title(); }).observe(nav, { subtree: true, attributes: true, attributeFilter: ['aria-current', 'hidden'] });
@@ -83,7 +85,7 @@ const Glass = (() => {
         document.addEventListener('prefchange', () => requestAnimationFrame(fitTitle));
         if (window.ResizeObserver) { new ResizeObserver(schedule).observe(nav); const a = bar && bar.querySelector(".topbar-actions"); if (a) { const ro = new ResizeObserver(fitTitle); ro.observe(a); [...a.children].forEach(c => ro.observe(c)); } }
         // ข้อความในชิปเปลี่ยน (ส่งแล้ว/ยังไม่ส่ง) หรือฟอนต์โหลดเสร็จ → คำนวณที่ว่างใหม่ (ResizeObserver ไม่จับ inline ในบางเบราว์เซอร์)
-        if (bar) { const a = bar.querySelector('.topbar-actions'); if (a) new MutationObserver(() => requestAnimationFrame(fitTitle)).observe(a, { subtree: true, childList: true, characterData: true }); }
+        if (bar) { const a = bar.querySelector('.topbar-actions'); if (a) new MutationObserver(() => requestAnimationFrame(fitTitle)).observe(a, { subtree: true, childList: true, characterData: true }); if (t) new MutationObserver(() => requestAnimationFrame(fitTitle)).observe(t, { subtree: true, characterData: true }); }
         if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTitle);
         window.addEventListener('load', fitTitle);
         title();

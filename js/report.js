@@ -81,8 +81,10 @@ async function runExport() {
             addLinks(pdf, pages[i]);
         }
         pdf.setProperties({ title: `รายงานการขาย ${MONTHS[month]} ${year + 543} — ${CURRENT_USER.name}`, author: 'HR Paper Mill' });
-        pdf.save(`HR-PaperMill_${CURRENT_USER.id}_${year + 543}-${String(month + 1).padStart(2, '0')}.pdf`);
+        const blob = pdf.output('blob');
         stage.replaceChildren();
+        showLoading(false);
+        await FileOffer.offer(blob, `HR-PaperMill_${CURRENT_USER.id}_${year + 543}-${String(month + 1).padStart(2, '0')}.pdf`, 'รายงานการขาย');
     } catch (err) {
         showMessage({ title: 'ส่งออก PDF ไม่สำเร็จ', text: String(err && err.message || err), tone: 'bad' });
     } finally {
