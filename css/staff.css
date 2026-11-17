@@ -1292,3 +1292,47 @@ dialog:focus-visible { outline: none; } /* กรอบโฟกัสของ�
 .bill-contact-links a { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 6px 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--ink); font-size: 13px; font-weight: 500; text-decoration: none; max-width: 100%; }
 .bill-contact-links a span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .bill-contact-links a .ic { flex: none; color: var(--accent); }
+
+/* ===== ผู้ดูแล › ประกาศ: กลุ่มผู้รับ · ตัวเลือก · ตัวอย่าง · ยอดอ่าน · รายชื่อ ===== */
+.news-target-seg { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.news-target-seg button { white-space: nowrap; padding: 0 6px; }
+@media (max-width: 479px) { .news-target-seg { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.news-target-pick:empty { display: none; }
+.news-target-pick { display: grid; gap: 8px; margin-top: 10px; }
+.news-site-chips { flex-wrap: wrap; }
+.news-people { list-style: none; margin: 0; padding: 4px; max-height: 260px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--r-md); }
+.news-people li + li { border-top: 1px solid var(--line-soft); }
+.news-people .check { padding: 8px 6px; }
+.news-people .check small { display: block; }
+.news-opts { display: grid; gap: 12px; }
+.news-opts .check small { display: block; margin-top: 2px; }
+.news-preview { display: grid; gap: 10px; padding: 14px; border-radius: var(--r-lg); background: var(--field); box-shadow: inset 0 0 0 1px var(--line); }
+.news-preview .inbox-item { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); cursor: default; }
+.news-preview .btn, .news-preview .btn-chip { pointer-events: none; }
+.news-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-top: 4px; }
+.news-stat-top { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); }
+.news-stat-top b { color: var(--ink); font-size: 13px; font-variant-numeric: tabular-nums; }
+.news-stat-top small { color: var(--muted); font-weight: 400; }
+.news-bar { display: block; height: 6px; margin-top: 4px; border-radius: 999px; background: var(--line-soft); overflow: hidden; }
+.news-bar i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+.news-bar.is-ok i { background: var(--ok); }
+.news-readers-seg { padding: 0 0 10px; border-bottom: 0; }
+.news-readers-seg button { flex: none; white-space: nowrap; }
+.seg-count { font-variant-numeric: tabular-nums; opacity: .8; }
+.news-readers { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.news-readers li { display: flex; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--line-soft); min-width: 0; }
+.news-readers .avatar { width: 32px; height: 32px; font-size: 14px; }
+.news-reader-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.news-reader-main b { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.news-reader-main small, .news-reader-at { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.news-reader-at { flex: none; }
+.news-readers-empty { justify-content: center; gap: 8px; color: var(--muted); border: 0 !important; padding: 24px 0 !important; }
+
+/* v3.45: ปุ่มท้ายฟอร์มประกาศบนมือถือ — ดูตัวอย่าง/บันทึกร่างคู่กันในแถวเดียว ปุ่มประกาศเต็มแถว (ไม่กินพื้นที่ฟอร์ม) */
+@media (max-width: 599px) {
+  #newsModal .sv-foot { gap: 8px; }
+  #newsModal .sv-foot #newsPreviewBtn, #newsModal .sv-foot #newsDraft { flex: 1 1 calc(50% - 4px); min-width: 0; padding: 0 10px; }
+  #newsModal .sv-foot #newsSave { flex: 1 1 100%; }
+}
+/* แท็บรายชื่อผู้อ่าน: ตัดขึ้นแถวใหม่ให้เห็นครบทุกแท็บ ไม่ต้องเลื่อนข้าง */
+.news-readers-seg { flex-wrap: wrap; overflow: visible; }
