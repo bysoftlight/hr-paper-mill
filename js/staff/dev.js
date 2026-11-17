@@ -421,7 +421,8 @@ VIEWS.dev = {
                 { k: 'method', label: 'ช่องทาง', ph: 'เช่น โอนเงิน, พร้อมเพย์, เช็ค' },
                 { k: 'ref', label: 'เลขอ้างอิง / หมายเลขสลิป' }
             ],
-            onSubmit: d => this.run('dev.invoices.pay', Object.assign({ id }, d), 'บันทึกการชำระแล้ว · ต่ออายุองค์กรแล้ว', ['invoices', 'orgs'])
+            // ยืนยันจากหน้าตรวจสลิป: ส่งเวลาของสลิปที่เปิดดู เซิร์ฟเวอร์ตรวจว่ายังเป็นสลิปเดียวกัน
+            onSubmit: d => this.run('dev.invoices.pay', Object.assign({ id }, d, pre && pre.slipAt !== undefined ? { fromSlip: true, slipAt: pre.slipAt } : {}), 'บันทึกการชำระแล้ว · ต่ออายุองค์กรแล้ว', ['invoices', 'orgs'])
         });
     },
     async voidInvoice(id) {
@@ -448,11 +449,11 @@ VIEWS.dev = {
         $('devMSub').textContent = `${inv.orgName} · ${baht(inv.amount)}`;
         $('devMBody').innerHTML = `<figure class="slip-fig"><img src="${s.dataUrl}" alt="สลิปโอนเงิน ${esc(inv.id)}"><figcaption>แนบเมื่อ ${thDateTime(s.slipAt)}${s.slipBy ? ' · ' + esc(s.slipBy) : ''}${s.slipNote ? '<br>หมายเหตุ: ' + esc(s.slipNote) : ''}</figcaption></figure>`;
         $('devMFoot').innerHTML = `<button type="button" class="btn btn-ghost btn-bad-text" id="devSlipBad">สลิปไม่ถูกต้อง</button><button type="button" class="btn btn-primary" id="devSlipOk">ยืนยันรับชำระ</button>`;
-        $('devSlipOk').addEventListener('click', () => { $('devModal').close(); this.payForm(id, { method: 'โอนเงิน (สลิป)', paidAt: isoDate(new Date(s.slipAt || Date.now())) }); });
+        $('devSlipOk').addEventListener('click', () => { $('devModal').close(); this.payForm(id, { method: 'โอนเงิน (สลิป)', paidAt: isoDate(new Date(s.slipAt || Date.now())), slipAt: s.slipAt || 0 }); });
         $('devSlipBad').addEventListener('click', async () => {
             $('devModal').close();
             const reason = await VIEWS.records.askReason({ title: 'สลิปไม่ถูกต้อง?', text: 'องค์กรจะเห็นเหตุผลและแนบสลิปใหม่ได้', okText: 'แจ้งองค์กร' });
-            if (reason) this.run('dev.invoices.slipReject', { id, reason, slipAt: s.slipAt }, 'แจ้งองค์กรแล้ว', ['invoices']);
+            if (reason) this.run('dev.invoices.slipReject', { id, reason, slipAt: s.slipAt || 0 }, 'แจ้งองค์กรแล้ว', ['invoices']);
         });
         this.onSubmit = null;
         showModal('devModal');

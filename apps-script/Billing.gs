@@ -505,6 +505,7 @@ function devInvoicePay_(req, staff, ua) {
   const inv = readInvoices_().filter(i => i.id === req.id)[0];
   if (!inv) fail_('INVALID', 'ไม่พบใบแจ้งหนี้');
   if (inv.status !== 'pending') fail_('INVALID', 'ใบแจ้งหนี้นี้' + (inv.status === 'paid' ? 'ชำระแล้ว' : 'ถูกยกเลิกแล้ว'));
+  if (req.fromSlip) { if (!inv.slip) fail_('CONFLICT', 'สลิปถูกถอน/ปัดตกแล้ว กรุณาเปิดใบนี้อีกครั้ง'); slipSeen_(req, inv); } // ยืนยันจากหน้าตรวจสลิป
   const acc = req.account ? readAccounts_().filter(a => a.id === req.account)[0] : null;
   const paidAt = dateArg_(req.paidAt) || new Date();
   const sh = billSheet_(BILL_SHEET.INVOICES, BI_HEADERS);
@@ -541,25 +542,32 @@ const SLIP_MAIL_GAP_S = 600;   // อีเมลแจ้ง Dev ไม่เ�
 // โฟลเดอร์สลิปแยกต่างหาก (ส่วนตัว ไม่แชร์) — สร้างครั้งแรกที่ใช้ แล้วจำไว้ใน Script Property SLIP_FOLDER_ID
 function slipFolder_() {
   const id = prop_('SLIP_FOLDER_ID');
-  if (id) { try { return DriveApp.getFolderById(id); } catch (e) { console.warn('เปิดโฟลเดอร์สลิปไม่ได้ สร้างใหม่: ' + e); } }
-  const f = DriveApp.createFolder('HR Paper Mill — สลิปโอนเงิน (ส่วนตัว)');
+  // มีโฟลเดอร์แล้วแต่เปิดไม่ได้ (Drive ขัดข้องชั่วคราว) → แจ้งให้ลองใหม่ ไม่สร้างโฟลเดอร์ใหม่ (สลิปจะกระจายหลายที่)
+  if (id) {
+    try { return DriveApp.getFolderById(id); }
+    catch (e) { fail_('ERROR', 'เปิดโฟลเดอร์สลิปไม่ได้ชั่วคราว กรุณาลองใหม่ (ถ้าลบโฟลเดอร์ไปแล้ว ให้ลบ Script Property SLIP_FOLDER_ID)'); }
+  }
+  let f;
+  try { f = DriveApp.createFolder('HR Paper Mill — สลิปโอนเงิน (ส่วนตัว)'); }
+  catch (e) { fail_('ERROR', 'สร้างโฟลเดอร์เก็บสลิปไม่ได้ กรุณาตรวจสอบสิทธิ์ Drive ของบัญชีที่ Deploy'); }
   PropertiesService.getScriptProperties().setProperty('SLIP_FOLDER_ID', f.getId());
   return f;
 }
 function orgInvoiceSlip_(req, staff, ua) {
   const img = decodeImage_(req.photo, MAX_SLIP_BYTES, 'กรุณาเลือกรูปสลิป');
   const cache = CacheService.getScriptCache(), nKey = 'slipn:' + String(req.id || '');
-  const n = Number(cache.get(nKey) || 0);
-  if (n >= SLIP_MAX_PER_HOUR) fail_('RATE', 'ส่งสลิปใบนี้บ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่');
   let inv, o, now, oldSlip;
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
   try {
+    // นับใน lock: ส่งพร้อมกันหลายคำขอก็นับครบทุกครั้ง
+    const n = Number(cache.get(nKey) || 0);
+    if (n >= SLIP_MAX_PER_HOUR) fail_('RATE', 'ส่งสลิปใบนี้บ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่');
+    try { cache.put(nKey, String(n + 1), 3600); } catch (e) {}
     inv = readInvoices_().filter(i => i.id === String(req.id || ''))[0];
     if (!inv || (!isDev_(staff) && inv.org !== staff.org)) fail_('INVALID', 'ไม่พบใบแจ้งหนี้');
     if (inv.status !== 'pending') fail_('INVALID', 'ใบแจ้งหนี้นี้' + (inv.status === 'paid' ? 'ชำระแล้ว' : 'ถูกยกเลิกแล้ว'));
-    let folder;
-    try { folder = slipFolder_(); } catch (e) { fail_('ERROR', 'เปิดโฟลเดอร์เก็บสลิปไม่ได้ กรุณาตรวจสอบสิทธิ์ของบัญชีที่ Deploy'); }
+    const folder = slipFolder_();
     now = new Date();
     const file = folder.createFile(Utilities.newBlob(img.bytes, img.mime, 'SLIP_' + inv.id + '_' + fmtDate_(now, 'yyyyMMdd_HHmmss')));
     const sh = billSheet_(BILL_SHEET.INVOICES, BI_HEADERS);
@@ -567,14 +575,12 @@ function orgInvoiceSlip_(req, staff, ua) {
     oldSlip = inv.slip;
     billGen_();
   } finally { lock.releaseLock(); }
-  try { cache.put(nKey, String(n + 1), 3600); } catch (e) {}
   // สลิปเดิมที่ยังไม่ได้ตรวจ (ส่งใหม่แทน) → ถังขยะ (กู้คืนได้ 30 วัน) ไม่ให้สะสม
   if (oldSlip) { try { DriveApp.getFileById(oldSlip).setTrashed(true); } catch (e) { console.warn('ย้ายสลิปเก่าไปถังขยะไม่สำเร็จ: ' + e); } }
   o = readOrgs_().filter(x => x.id === inv.org)[0];
   log_(staff, 'billing.slip', inv.id + (o ? ' ' + o.name : ''), { amount: inv.amount, replaced: !!oldSlip }, ua);
-  if (!cache.get('slipmail:' + inv.id)) {
-    notifySlip_(inv, o, staff, req.note);
-    try { cache.put('slipmail:' + inv.id, '1', SLIP_MAIL_GAP_S); } catch (e) {}
+  if (!cache.get('slipmail:' + inv.id) && notifySlip_(inv, o, staff, req.note)) {
+    try { cache.put('slipmail:' + inv.id, '1', SLIP_MAIL_GAP_S); } catch (e) {} // ส่งไม่สำเร็จ (เช่น โควตาหมด) = ไม่พัก ครั้งหน้าลองส่งใหม่
   }
   return { success: true, slipAt: now.getTime() };
 }
@@ -585,11 +591,12 @@ function notifySlip_(inv, o, staff, note) {
     devEmails_().forEach(e => { to[e] = true; });
     readStaff_().forEach(s => { if (s.role === 'dev' && s.status === 'active' && s.email) to[String(s.email).toLowerCase()] = true; });
     const list = Object.keys(to);
-    if (!list.length) return;
+    if (!list.length) return false;
     MailApp.sendEmail(list.join(','), 'HR Paper Mill — สลิปรอตรวจสอบ ' + inv.id,
       [(o ? o.name : inv.org) + ' แนบสลิปโอนเงินสำหรับใบแจ้งหนี้ ' + inv.id, 'ยอด ' + inv.amount.toLocaleString('th-TH') + ' บาท', 'ผู้แนบ: ' + who_(staff),
         note ? 'หมายเหตุ: ' + clean_(note, 200) : '', '', 'ตรวจสอบและบันทึกชำระได้ที่ Dev Console → ใบแจ้งหนี้'].filter(x => x !== '').join('\n'));
-  } catch (e) { console.warn('แจ้ง Dev เรื่องสลิปไม่สำเร็จ: ' + e); }
+    return true;
+  } catch (e) { console.warn('แจ้ง Dev เรื่องสลิปไม่สำเร็จ: ' + e); return false; }
 }
 function invoiceSlipImage_(req, staff) {
   const inv = readInvoices_().filter(i => i.id === String(req.id || ''))[0];
@@ -599,13 +606,18 @@ function invoiceSlipImage_(req, staff) {
   try { blob = DriveApp.getFileById(inv.slip).getBlob(); } catch (e) { fail_('ERROR', 'เปิดไฟล์สลิปไม่ได้'); }
   return { success: true, dataUrl: 'data:' + blob.getContentType() + ';base64,' + Utilities.base64Encode(blob.getBytes()), slipAt: inv.slipAt, slipBy: inv.slipBy, slipNote: inv.slipNote };
 }
+// Dev ต้องตัดสินจากสลิปที่เปิดดูจริง: slipAt ที่ส่งมาต้องตรงกับสลิปปัจจุบัน (แถวเก่าไม่มีเวลา = 0)
+function slipSeen_(req, inv) {
+  if (req.slipAt === undefined || req.slipAt === null || req.slipAt === '') fail_('INVALID', 'หน้านี้เป็นเวอร์ชันเก่า กรุณารีเฟรชหน้าแล้วเปิดสลิปอีกครั้ง');
+  if (Number(req.slipAt) !== Number(inv.slipAt || 0)) fail_('CONFLICT', 'องค์กรส่งสลิปใหม่แล้ว กรุณาเปิดดูสลิปล่าสุดอีกครั้ง');
+}
 // สลิปไม่ถูกต้อง: ล้างสลิป (ไฟล์ไปถังขยะ กู้คืนได้ 30 วัน) แล้วบันทึกเหตุผลให้องค์กรเห็นและแนบใหม่
 function devInvoiceSlipReject_(req, staff, ua) {
   const inv = readInvoices_().filter(i => i.id === req.id)[0];
   if (!inv) fail_('INVALID', 'ไม่พบใบแจ้งหนี้');
   if (inv.status !== 'pending') fail_('INVALID', 'ใบแจ้งหนี้นี้' + (inv.status === 'paid' ? 'ชำระแล้ว' : 'ถูกยกเลิกแล้ว'));
   if (!inv.slip) fail_('INVALID', 'ใบแจ้งหนี้นี้ยังไม่มีสลิป');
-  if (Number(req.slipAt) !== inv.slipAt) fail_('CONFLICT', 'องค์กรส่งสลิปใหม่แล้ว กรุณาเปิดดูสลิปล่าสุดอีกครั้ง');
+  slipSeen_(req, inv);
   const sh = billSheet_(BILL_SHEET.INVOICES, BI_HEADERS);
   sh.getRange(inv.row, BI.SLIP + 1, 1, 4).setValues([['', '', '', clean_('สลิปไม่ผ่าน: ' + (req.reason || '-'), 200)]]);
   try { DriveApp.getFileById(inv.slip).setTrashed(true); } catch (e) { console.warn('ย้ายสลิปที่ไม่ผ่านไปถังขยะไม่สำเร็จ: ' + e); } // กู้คืนได้ 30 วัน

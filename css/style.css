@@ -77,6 +77,10 @@
 html { -webkit-text-size-adjust: 100%; touch-action: manipulation; } /* แตะซ้ำเร็วๆ ไม่ซูมหน้าจอ (มือถือ/iPad) — ยังเลื่อนและซูมสองนิ้วได้ (ไม่ใช้ maximum-scale: ทำให้ Android ซูมไม่ได้) */
 /* กดค้างที่รูป/ไอคอนของแอป (รูปโปรไฟล์ เมนู โลโก้): ไม่เปิดเมนูบันทึกรูป/ลากรูป และไม่เลือกข้อความบนเมนู */
 img, svg { -webkit-user-drag: none; }
+/* มือถือ/แท็บเล็ต: ช่องกรอกทุกช่องอย่างน้อย 16px — iPhone ซูมหน้าเองเมื่อแตะช่องที่ตัวอักษรเล็กกว่านี้ (ยังซูมสองนิ้วได้) */
+@media (pointer: coarse) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea { font-size: max(16px, 1em) !important; }
+}
 .avatar, .avatar img, .logo, .brand, .bottomnav, .sidenav, .topbar, .nav-item, .btn, .icon-btn, .chip, .seg, .segmented, .tabs, button, label.btn {
     -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
 }
