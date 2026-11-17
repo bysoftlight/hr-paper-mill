@@ -1903,3 +1903,26 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
 .org-line span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .profile-card .org-line { align-self: center; margin-top: 2px; }
 dd .org-line, dd[data-org-line] { margin: 0; padding: 0; background: none; font-size: inherit; font-weight: 500; justify-content: flex-end; }
+
+/* ===== ประกาศ: แถบด่วนบนหน้าแรก · ป้าย/ปุ่มรับทราบในกล่องแจ้งเตือน ===== */
+.urgent-host { max-width: calc(var(--content) + 2 * var(--gutter)); margin: 12px auto 0; padding: 0 var(--gutter); }
+.urgent-host:empty, .urgent-host[hidden] { display: none; }
+.urgent-banner { position: relative; display: flex; gap: 12px; align-items: flex-start; padding: 14px 44px 14px 14px; border-radius: var(--r-lg);
+    background: var(--bad-soft); color: var(--ink); box-shadow: inset 0 0 0 1px var(--bad-line); }
+.urgent-ic { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--bad); color: var(--on-bad); }
+.urgent-ic .ic { width: 20px; height: 20px; }
+.urgent-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.urgent-main b { font-size: 15px; font-weight: 600; line-height: 1.4; color: var(--bad); overflow-wrap: anywhere; }
+.urgent-main p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--ink-2); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.urgent-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.urgent-acts .btn { width: auto; min-height: 36px; padding: 0 14px; font-size: 13px; white-space: nowrap; }
+.urgent-x { position: absolute; top: 6px; right: 6px; display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 50%; background: none; color: var(--muted); cursor: pointer; }
+@media (hover: hover) { .urgent-x:hover { background: var(--hover); color: var(--ink); } }
+.inbox-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0; }
+.inbox-tag { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; background: var(--container); color: var(--ink-2); }
+.inbox-tag.is-bad { background: var(--bad-soft); color: var(--bad); }
+.inbox-tag.is-warn { background: var(--warn-soft); color: var(--warn); }
+.inbox-ack { display: flex; margin-top: 8px; }
+.inbox-ack .btn { width: auto; min-height: 40px; padding: 0 16px; font-size: 14px; }
+.inbox-acked { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--ok); }
+

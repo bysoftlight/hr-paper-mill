@@ -1537,6 +1537,7 @@ function initInbox() {
         fetch: () => callApi('inbox.list', { userId: CURRENT_USER.id }),
         push: patch => callApi('inbox.read', Object.assign({ userId: CURRENT_USER.id }, patch)),
         pullState: () => callApi('inbox.state', { userId: CURRENT_USER.id }),
+        ack: id => callApi('inbox.ack', { userId: CURRENT_USER.id, id }),
         openSettings: () => openSettings(),
         show: () => switchTab('inbox'),
         local: inboxLocalItems,

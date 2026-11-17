@@ -240,13 +240,14 @@ function activeStaffIds_() {
 // ตั้งเวลาทั้งหมดของระบบ (รันครั้งเดียว — รันซ้ำได้ ไม่สร้างซ้ำ)
 //   07:00 ตรวจสุขภาพระบบ · NOTIFY_REMIND_HOUR (17:00) เตือนผู้ใช้สิทธิ์ · 18:00 สรุปประจำวัน · วันที่ 1 08:00 รายงานประจำเดือน
 function installNotifyTriggers() {
-  const handlers = ['sendDailyReminders', 'sendDailySummary', 'sendMonthlyReport', 'morningHealthCheck', 'surveyTick'];
+  const handlers = ['sendDailyReminders', 'sendDailySummary', 'sendMonthlyReport', 'morningHealthCheck', 'surveyTick', 'newsTick'];
   ScriptApp.getProjectTriggers().filter(t => handlers.indexOf(t.getHandlerFunction()) !== -1).forEach(t => ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger('sendDailyReminders').timeBased().everyDays(1).atHour(remindHour_()).inTimezone(TZ).create();
   ScriptApp.newTrigger('sendDailySummary').timeBased().everyDays(1).atHour(18).inTimezone(TZ).create();
   ScriptApp.newTrigger('sendMonthlyReport').timeBased().onMonthDay(1).atHour(8).inTimezone(TZ).create();
   ScriptApp.newTrigger('morningHealthCheck').timeBased().everyDays(1).atHour(7).inTimezone(TZ).create();
   if (typeof surveyTick === 'function') ScriptApp.newTrigger('surveyTick').timeBased().everyMinutes(15).create(); // แบบสอบถาม (Feedback.gs)
+  if (typeof newsTick === 'function') ScriptApp.newTrigger('newsTick').timeBased().everyMinutes(15).create(); // ประกาศที่ตั้งเวลา (Inbox.gs)
   vapidKeys_();
   notifySheet_();
   Logger.log('ตั้งเวลาแล้ว: ตรวจระบบ 07:00 · เตือนผู้ใช้สิทธิ์ ' + remindHour_() + ':00 · สรุปเจ้าหน้าที่ 18:00 · รายงานประจำเดือน วันที่ 1 เวลา 08:00' + (typeof surveyTick === 'function' ? ' · แบบสอบถาม ทุก 15 นาที' : ''));

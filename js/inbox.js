@@ -7,6 +7,8 @@
 const Inbox = (() => {
     // ประวัติการอัปเดตแอป (ใหม่สุดก่อน) — who: all | user | staff
     const CHANGELOG = [
+        { v: '3.45.0', date: '2026-11-17', who: 'all', important: true, title: 'ประกาศด่วน · กดรับทราบ', body: 'ประกาศสำคัญจะแสดงเป็นแถบด้านบนของแอป และบางประกาศมีปุ่ม "รับทราบ" ให้กดหลังอ่าน' },
+        { v: '3.45.0', vkey: 'staff', date: '2026-11-17', who: 'staff', title: 'ประกาศ: ยอดคนอ่าน · รับทราบ · ตั้งเวลา · ส่งเฉพาะกลุ่ม', body: 'ผู้ดูแล › ประกาศ: ดูว่าใครอ่าน/รับทราบแล้ว บันทึกร่าง ดูตัวอย่าง ตั้งเวลาเผยแพร่ แถบประกาศด่วน และส่งเฉพาะจุดขาย/คนที่ยังไม่ส่งรายงาน/รายคน' },
         { v: '3.44.9', date: '2026-11-10', who: 'staff', title: 'แนบสลิปโอนเงิน · ใบแจ้งหนี้ PDF', body: 'ผู้ดูแลการเงินแนบสลิปได้ที่ บัญชี › แพ็กเกจและการชำระเงิน ผู้ให้บริการตรวจแล้วบันทึกชำระให้ · ดาวน์โหลดใบแจ้งหนี้เป็นไฟล์ PDF ได้ทุกใบ' },
         { v: '3.44.0', date: '2026-11-04', who: 'all', important: true, title: 'English / ภาษาไทย', body: 'เลือกภาษาได้ที่ ตั้งค่า › ภาษา / Language · เจ้าหน้าที่ใช้ภาษาอังกฤษเป็นค่าเริ่มต้น ผู้ใช้สิทธิ์ใช้ภาษาไทยเป็นค่าเริ่มต้น · การตั้งค่าจำแยกตามบัญชีและเครื่อง' },
         { v: '3.44.1', date: '2026-11-04', who: 'staff', title: 'Collapsible sidebar', body: 'แถบเมนูด้านข้างย่อเป็นแถบไอคอนเป็นค่าเริ่มต้น กดไอคอนเปลี่ยนหน้าได้ทันที · กดปุ่มบนสุดของแถบหรือ Ctrl/⌘ + B เพื่อขยาย/ย่อ · การตั้งค่าจำแยกตามบัญชีและเครื่อง' },
@@ -44,7 +46,8 @@ const Inbox = (() => {
         x: '<path d="M18 6 6 18M6 6l12 12"/>',
         external: '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14 21 3"/>',
         plus: '<path d="M12 5v14M5 12h14"/>',
-        check: '<path d="M20 6 9 17l-5-5"/>'
+        check: '<path d="M20 6 9 17l-5-5"/>',
+        checkCircle: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/>'
     };
     const svg = (n, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[n] || ICONS.bell}</svg>`;
     const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -102,6 +105,7 @@ const Inbox = (() => {
         document.querySelectorAll('[data-inbox-badge]').forEach(b => { b.hidden = !n; b.textContent = n > 9 ? '9+' : String(n); });
         document.querySelectorAll('[data-inbox]').forEach(b => b.setAttribute('aria-label', n ? `การแจ้งเตือน (${n} รายการใหม่)` : 'การแจ้งเตือน'));
         if (shown()) render();
+        urgent();
     }
 
     // ---------- หน้าการแจ้งเตือน (แท็บ "แจ้งเตือน" ก่อนแท็บบัญชี แบบ Facebook) ----------
@@ -133,13 +137,16 @@ const Inbox = (() => {
         const neu = shown.filter(it => isUnread(it, s)), old = shown.filter(it => !isUnread(it, s));
         const card = it => {
             const un = isUnread(it, s), long = String(it.body || '').length > 140, open = expanded.has(it.id);
+            const ni = /^news-/.test(it.id) ? ' data-no-i18n' : ''; // ข้อความที่ผู้ดูแลพิมพ์เอง ไม่แปล
             return `<article class="inbox-item ${un ? 'is-unread' : ''} ${it.pin ? 'is-pin' : ''}" data-id="${esc(it.id)}" tabindex="0">
               <span class="inbox-ic tone-${esc(it.tone || it.cat)}">${svg(it.icon || (it.cat === 'news' ? 'megaphone' : it.cat === 'update' ? 'sparkle' : 'bell'))}</span>
               <div class="inbox-main">
-                <div class="inbox-top"><b>${esc(it.title)}</b><time datetime="${new Date(it.ts).toISOString()}">${relTime(it.ts)}</time></div>
-                ${it.body ? `<p class="${long && !open ? 'is-clamped' : ''}">${esc(it.body)}</p>` : ''}
+                <div class="inbox-top"><b${ni}>${esc(it.title)}</b><time datetime="${new Date(it.ts).toISOString()}">${relTime(it.ts)}</time></div>
+                ${it.banner || (it.ack && !it.ackAt) ? `<div class="inbox-tags">${it.banner ? '<span class="inbox-tag is-bad">ด่วน</span>' : ''}${it.ack && !it.ackAt ? '<span class="inbox-tag is-warn">ต้องกดรับทราบ</span>' : ''}</div>` : ''}
+                ${it.body ? `<p class="${long && !open ? 'is-clamped' : ''}"${ni}>${esc(it.body)}</p>` : ''}
                 ${it.image ? `<img class="inbox-img" src="${esc(it.image)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : ''}
                 ${long ? `<button type="button" class="btn-text inbox-more" data-ia="more">${open ? 'ย่อ' : 'อ่านต่อ'}</button>` : ''}
+                ${it.ack ? `<div class="inbox-ack">${it.ackAt ? `<span class="inbox-acked">${svg('checkCircle', 'ic-16')}รับทราบแล้ว · ${relTime(it.ackAt)}</span>` : `<button type="button" class="btn btn-primary btn-sm" data-ia="ack">${svg('check', 'ic-16')}รับทราบ</button>`}</div>` : ''}
                 ${it.action || it.link || it.ver ? `<div class="inbox-actions">
                     ${it.action ? `<button type="button" class="btn-chip" data-ia="act">${esc(it.action.label || 'เปิด')}</button>` : ''}
                     ${it.link ? `<a class="btn-chip" data-ia="link" href="${esc(it.link)}" target="_blank" rel="noopener">เปิดลิงก์ ${svg('external', 'ic-16')}</a>` : ''}
@@ -200,10 +207,52 @@ const Inbox = (() => {
         const it = items().find(x => x.id === art.dataset.id); if (!it) return;
         const a = e.target.closest('[data-ia]');
         if (a && a.dataset.ia === 'more') { expanded.has(it.id) ? expanded.delete(it.id) : expanded.add(it.id); markRead(it.id); render(); badge(); return; }
+        if (a && a.dataset.ia === 'ack') { ack(it, a); return; }
         markRead(it.id);
         if (a && a.dataset.ia === 'link') { setTimeout(() => { render(); badge(); }, 0); return; } // ให้ลิงก์เปิดตามปกติ
         if ((a && a.dataset.ia === 'act') || (!a && it.action)) { badge(); if (O.onAction) O.onAction(it); return; }
         render(); badge();
+    }
+
+    // รับทราบ (ประกาศที่ผู้ดูแลกำหนดให้กดรับทราบ) — บันทึกที่ระบบพร้อมเวลา
+    async function ack(it, btn) {
+        if (!O.ack || it.ackAt) return;
+        if (btn) btn.disabled = true;
+        let r = null;
+        try { r = await O.ack(it.id); } catch (e) { r = null; }
+        if (r && r.success) {
+            server.forEach(x => { if (x.id === it.id) x.ackAt = r.ackAt || Date.now(); });
+            markRead(it.id);
+            if (typeof haptic === 'function') haptic();
+        } else if (typeof showMessage === 'function') showMessage({ title: 'บันทึกการรับทราบไม่สำเร็จ', text: (r && r.message) || 'ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่', tone: 'bad' });
+        if (btn) btn.disabled = false;
+        render(); badge();
+    }
+
+    // ---------- แถบประกาศด่วน (ด้านบนของแอป จนถึงเวลา "แสดงถึง") ----------
+    // ปิดได้ทีละวัน: วันถัดไปแสดงอีกจนกว่าประกาศหมดเวลา · ประกาศที่ต้องรับทราบ กดรับทราบจากแถบได้เลย
+    const dayKey = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+    function dismissed() { try { return JSON.parse(ls.get(storeKey() + '_urgent') || '{}') || {}; } catch (e) { return {}; } }
+    function urgent() {
+        const hosts = document.querySelectorAll('[data-urgent-host]');
+        if (!hosts.length || !O) return;
+        const now = Date.now(), d = dismissed(), today = dayKey();
+        const list = O.uid() ? server.filter(it => it.banner && (!it.until || it.until > now) && d[it.id] !== today).sort((a, b) => b.ts - a.ts) : [];
+        const it = list[0];
+        const html = it ? `<div class="urgent-banner" role="alert" data-id="${esc(it.id)}">
+            <span class="urgent-ic">${svg('alert')}</span>
+            <div class="urgent-main"><b data-no-i18n>${esc(it.title)}</b>${it.body ? `<p data-no-i18n>${esc(it.body)}</p>` : ''}
+              <div class="urgent-acts">${it.ack && !it.ackAt ? `<button type="button" class="btn btn-primary btn-sm" data-ub="ack">${svg('check', 'ic-16')}รับทราบ</button>` : ''}<button type="button" class="btn btn-outline btn-sm" data-ub="open">อ่านทั้งหมด${list.length > 1 ? ` (+${list.length - 1})` : ''}</button></div></div>
+            <button type="button" class="urgent-x" data-ub="hide" aria-label="ซ่อนวันนี้" title="ซ่อนวันนี้">${svg('x')}</button>
+          </div>` : '';
+        hosts.forEach(h => { if (h.dataset.ubFor !== (it ? it.id + ':' + !!it.ackAt : '')) { h.innerHTML = html; h.dataset.ubFor = it ? it.id + ':' + !!it.ackAt : ''; } h.hidden = !it; });
+    }
+    function onUrgent(e) {
+        const b = e.target.closest('[data-ub]'); if (!b) return;
+        const id = b.closest('[data-id]').dataset.id, it = server.find(x => x.id === id); if (!it) return;
+        if (b.dataset.ub === 'hide') { const d = dismissed(); d[id] = dayKey(); try { ls.set(storeKey() + '_urgent', JSON.stringify(d)); } catch (err) {} urgent(); return; }
+        if (b.dataset.ub === 'ack') { ack(it, b); return; }
+        expanded.add(id); markRead(id); open('all');
     }
 
     // เปิดแท็บแจ้งเตือน (ปุ่ม/ลิงก์อื่นที่ต้องการพาไปหน้านี้)
@@ -243,6 +292,7 @@ const Inbox = (() => {
         O = opts;
         bind();
         document.addEventListener('click', e => { if (e.target.closest('[data-inbox]')) { if (typeof haptic === 'function') haptic(); open(); } });
+        document.querySelectorAll('[data-urgent-host]').forEach(h => h.addEventListener('click', onUrgent));
         // กลับมาที่แอป: ดึงสถานะ + รายการใหม่ · เปิดค้าง: สถานะอ่านแล้วทุก 20 วิ รายการใหม่ทุก 2 นาที · ปิดแอป: ส่งที่ค้างทันที
         document.addEventListener('visibilitychange', () => { if (!document.hidden) { badge(); pullState(); refresh(false); } else flushPush(); });
         setInterval(pullState, O.stateEvery || 20000);
