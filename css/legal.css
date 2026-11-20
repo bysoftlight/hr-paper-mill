@@ -109,6 +109,9 @@ body { background: var(--ground); color: var(--ink); }
 .faq-help .row { display: flex; flex-wrap: wrap; gap: 10px; }
 .faq-help .btn { width: auto; min-height: 44px; border-radius: 999px; padding: 0 18px; font-size: 15px; }
 .faq-help .btn-outline { background: var(--surface); border-color: transparent; color: var(--ink); }
+.faq-help .btn .tel, .faq-help .btn .who { white-space: nowrap; }
+.faq-help .btn .who { color: var(--ink-2); font-size: 13px; font-weight: 500; }
+@media (max-width: 399px) { .faq-help .btn { flex: 1 1 100%; justify-content: center; padding: 0 14px; } }
 mark { background: var(--warn-soft); color: inherit; border-radius: 3px; padding: 0 1px; }
 
 .doc-foot { border-top: 1px solid var(--line-soft); padding: 24px 20px calc(28px + env(safe-area-inset-bottom)); }

@@ -8,6 +8,7 @@ const PREF_DEFAULTS = {
     motion: false,     // true = ลดภาพเคลื่อนไหว
     snap: true,        // เลื่อนหน้าแล้วหยุดพอดีทีละส่วน
     analytics: true,   // ส่งสถิติการใช้งาน (js/analytics.js)
+    lang: 'th',        // th | en (ค่าเริ่มต้นตามแอป — ดู PREF_APP_DEFAULTS)
     haptic: true,      // สั่นเบาๆ เมื่อแตะเมนู
     header: 'classic', // classic = โลโก้+ชื่อแอป · glass = ปุ่มโลโก้กลมลอย + ชื่อหน้าตรงกลาง (มือถือ)
     navLabels: false,  // แสดงชื่อใต้ไอคอนเมนูล่าง (มือถือ)
@@ -18,22 +19,56 @@ const PREF_DEFAULTS = {
     startTab: 'auto',
     live: 20,          // วินาที, 0 = ปิด
     pageSize: 'auto',  // auto | 20 | 50 | 100
-    thumbs: true
+    thumbs: true,
+    sidebar: 'hidden'  // hidden = ซ่อนแถบเมนูด้านข้าง (ชี้/กดค้างขอบซ้ายเพื่อดู) · pinned = แสดงตลอด (หน้า Staff บนจอกว้าง)
 };
 
+// ค่าเริ่มต้นตามแอป: ผู้ใช้สิทธิ์ (ใช้ครั้งแรกต้องง่าย) = ภาษาไทย · หัวแอปแบบเดิม · ชื่อใต้ไอคอนเมนู
+// เจ้าหน้าที่ = ภาษาอังกฤษ · ซ่อนแถบเมนูด้านข้าง
+const PREF_APP = /staff(\.html)?$/.test(location.pathname.replace(/\/$/, '')) || /staff\.html/.test(location.pathname) ? 'staff' : 'user';
+const PREF_APP_DEFAULTS = {
+    user: { lang: 'th', header: 'classic', navLabels: true },
+    staff: { lang: 'en', sidebar: 'hidden' }
+};
+// จำการตั้งค่าแยกตามบัญชี (และแยกตามเครื่องโดยธรรมชาติ เพราะเก็บในเครื่อง)
+//   HRPM_PREFS@<แอป>:<บัญชี> = ของบัญชีนั้นบนเครื่องนี้ · HRPM_PREFS = ของเครื่อง (ก่อนเข้าสู่ระบบ / รุ่นเก่า)
+//   HRPM_PREFS_ACTIVE:<แอป> = บัญชีล่าสุด — ใช้ตอนเปิดหน้า (ก่อนเข้าสู่ระบบเสร็จ) ไม่ให้ธีมกะพริบ
+const PREFS_ACTIVE_KEY = 'HRPM_PREFS_ACTIVE:' + PREF_APP;
+const PREF_CARRY = ['theme', 'text', 'motion', 'lang']; // บัญชีใหม่บนเครื่องนี้: ใช้ธีม ขนาดตัวอักษร และภาษาที่เลือกไว้ก่อนเข้าสู่ระบบต่อ
+const prefsLs = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }, del(k) { try { localStorage.removeItem(k); } catch (e) {} } };
 const Prefs = {
+    account: prefsLs.get(PREFS_ACTIVE_KEY) || '',
+    key() { return this.account ? PREFS_KEY + '@' + PREF_APP + ':' + this.account : PREFS_KEY; },
+    defaults() { return Object.assign({}, PREF_DEFAULTS, PREF_APP_DEFAULTS[PREF_APP] || {}); },
     all() {
         let saved = {};
-        try { saved = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') || {}; } catch (e) {}
-        return Object.assign({}, PREF_DEFAULTS, saved);
+        try { saved = JSON.parse(prefsLs.get(this.key()) || '{}') || {}; } catch (e) {}
+        return Object.assign(this.defaults(), saved);
     },
     get(key) { return this.all()[key]; },
     set(key, value) {
-        const p = this.all();
-        p[key] = value;
-        try { localStorage.setItem(PREFS_KEY, JSON.stringify(p)); } catch (e) {}
+        let saved = {};
+        try { saved = JSON.parse(prefsLs.get(this.key()) || '{}') || {}; } catch (e) {}
+        saved[key] = value; // เก็บเฉพาะที่เปลี่ยนเอง — ค่าที่ไม่ได้แตะยังตามค่าเริ่มต้น
+        prefsLs.set(this.key(), JSON.stringify(saved));
         applyPrefs();
         document.dispatchEvent(new CustomEvent('prefchange', { detail: { key, value } }));
+    },
+    // เข้าสู่ระบบ/ออกจากระบบ: สลับไปใช้การตั้งค่าของบัญชีนั้น (null = ของเครื่อง)
+    useAccount(id) {
+        id = id ? String(id).toLowerCase().replace(/[^\w@.\-]/g, '').slice(0, 80) : '';
+        if (id === this.account) return;
+        if (id && !prefsLs.get(PREFS_KEY + '@' + PREF_APP + ':' + id)) {
+            let dev = {};
+            try { dev = JSON.parse(prefsLs.get(PREFS_KEY) || '{}') || {}; } catch (e) {}
+            const seed = {};
+            PREF_CARRY.forEach(k => { if (dev[k] !== undefined) seed[k] = dev[k]; });
+            prefsLs.set(PREFS_KEY + '@' + PREF_APP + ':' + id, JSON.stringify(seed));
+        }
+        this.account = id;
+        if (id) prefsLs.set(PREFS_ACTIVE_KEY, id); else prefsLs.del(PREFS_ACTIVE_KEY);
+        applyPrefs();
+        document.dispatchEvent(new CustomEvent('prefchange', { detail: { key: null } }));
     }
 };
 
@@ -45,18 +80,38 @@ function applyPrefs() {
     root.dataset.snap = p.snap ? 'on' : 'off';
     root.dataset.header = p.header === 'glass' ? 'glass' : 'classic';
     root.dataset.navlabels = p.navLabels ? 'on' : 'off';
+    root.dataset.side = p.sidebar === 'pinned' ? 'pinned' : 'hidden';
+    const en = p.lang === 'en' && !root.hasAttribute('data-i18n-off');
+    root.lang = en ? 'en' : 'th';
+    root.dataset.lang = en ? 'en' : 'th';
     const dark = p.theme === 'dark' || (p.theme === 'system' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.content = dark ? '#131314' : '#FFFFFF';
 }
 applyPrefs();
+// ภาษาอังกฤษ: โหลดตัวแปล (js/i18n.js) เฉพาะเมื่อเลือก English — ผู้ใช้ภาษาไทยไม่ต้องโหลดเพิ่ม · เปลี่ยนภาษา = โหลดหน้าใหม่
+const PREF_VER = (document.currentScript && (document.currentScript.src.match(/\?v=[^&]+/) || [''])[0]) || '';
+let LANG_NOW = Prefs.get('lang') === 'en' ? 'en' : 'th';
+const NO_I18N = document.documentElement.hasAttribute('data-i18n-off');
+function loadI18n() {
+    // หน้าเอกสาร (คำถามที่พบบ่อย ข้อกำหนด ความเป็นส่วนตัว) ใช้ภาษาไทยฉบับเดียว — ไม่แปลอัตโนมัติ กันความหมายทางกฎหมายคลาดเคลื่อน
+    if (LANG_NOW !== 'en' || NO_I18N || window.I18N || document.getElementById('i18nJs')) return;
+    const sc = document.createElement('script');
+    sc.id = 'i18nJs'; sc.src = 'js/i18n.js' + PREF_VER;
+    (document.head || document.documentElement).appendChild(sc);
+}
+loadI18n();
+document.addEventListener('prefchange', () => {
+    const l = Prefs.get('lang') === 'en' ? 'en' : 'th';
+    if (l !== LANG_NOW) { LANG_NOW = l; setTimeout(() => location.reload(), 150); }
+});
 if (window.matchMedia) {
     const mq = matchMedia('(prefers-color-scheme: dark)');
     (mq.addEventListener ? mq.addEventListener.bind(mq, 'change') : mq.addListener.bind(mq))(applyPrefs);
 }
 // เปลี่ยนการตั้งค่าในอีกแท็บ → แท็บนี้เปลี่ยนตาม
 window.addEventListener('storage', e => {
-    if (e.key !== PREFS_KEY) return;
+    if (e.key !== Prefs.key()) return;
     applyPrefs();
     document.dispatchEvent(new CustomEvent('prefchange', { detail: { key: null } }));
 });
@@ -130,6 +185,7 @@ function displaySettings() {
     return {
         title: 'การแสดงผล',
         rows: [
+            { icon: 'type', tone: 'indigo', label: 'ภาษา / Language', desc: 'สลับภาษาของเมนูและข้อความในแอป (ข้อมูลที่กรอกไม่เปลี่ยน)', control: { type: 'seg', key: 'lang', options: [['th', 'ไทย'], ['en', 'English']] } },
             { icon: 'contrast', tone: 'gray', label: 'ธีม', desc: 'โหมดมืดช่วยถนอมสายตาเวลากลางคืน', control: { type: 'seg', key: 'theme', options: [['system', 'ตามเครื่อง'], ['light', 'สว่าง'], ['dark', 'มืด']] } },
             { icon: 'type', tone: 'purple', label: 'ขนาดตัวอักษร', desc: 'ขยายตัวอักษรและปุ่มให้อ่านและกดง่ายขึ้น', control: { type: 'seg', key: 'text', options: [['m', 'ปกติ'], ['l', 'ใหญ่'], ['xl', 'ใหญ่มาก']] } },
             { icon: 'home', tone: 'blue', label: 'หัวแอป', desc: 'แบบเดิม = โลโก้และชื่อแอป · แบบกระจก = ปุ่มโลโก้กลมลอยและชื่อหน้าอยู่ตรงกลาง (มือถือ)', control: { type: 'seg', key: 'header', options: [['classic', 'แบบเดิม'], ['glass', 'แบบกระจก']] } },

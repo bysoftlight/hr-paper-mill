@@ -123,7 +123,7 @@ VIEWS.analytics = {
             labels, height: 220, active: n - 1, ariaLabel: `กราฟ${names[m]}รายวัน`,
             xLabels: [0, Math.floor((n - 1) / 2), n - 1],
             series: [{ label: names[m], values: rows.map(x => x[m]), color: Charts.color('--accent') }],
-            tooltip: i => `<small>${thDate(rows[i].date, { weekday: 'short', day: 'numeric', month: 'short' })}</small><b>${fmtNum(rows[i][m])} ${names[m]}</b><div class="tip-row">ผู้ใช้ ${fmtNum(rows[i].users)} · เซสชัน ${fmtNum(rows[i].sessions)} · ดูหน้า ${fmtNum(rows[i].views)}</div>`
+            tooltip: i => `<small>${thDate(rows[i].date, { weekday: 'short', day: 'numeric', month: 'short' })}</small><b>${fmtNum(rows[i][m])} ${names[m]}</b><div class="tip-row tip-stats"><span>ผู้ใช้ ${fmtNum(rows[i].users)}</span><span>เซสชัน ${fmtNum(rows[i].sessions)}</span><span>การดูหน้า ${fmtNum(rows[i].views)}</span></div>`
         });
         const sum = rows.reduce((a, x) => a + x[m], 0), peak = rows.reduce((a, x) => (x[m] > a[m] ? x : a), rows[0]);
         $('anTrendLegend').innerHTML = `<span class="muted-text">รวม ${fmtNum(sum)} · เฉลี่ย ${fmtNum(Math.round(sum / n * 10) / 10)}/วัน · สูงสุด ${fmtNum(peak[m])} (${thDate(peak.date, { day: 'numeric', month: 'short' })})</span>`;

@@ -355,12 +355,51 @@ const DateField = (() => {
         input.addEventListener('click', () => { try { if (input.showPicker) input.showPicker(); } catch (e) { /* บางเบราว์เซอร์ไม่อนุญาต: ใช้ตัวเลือกปกติ */ } });
         sync();
     }
+    const SEL = 'input[type="date"], input[type="datetime-local"], input[type="month"]';
     function enhanceAll(root) {
-        (root || document).querySelectorAll('input[type="date"].input, input[type="datetime-local"].input, input[type="month"].input').forEach(enhance);
+        root = root || document;
+        if (root.matches && root.matches(SEL)) enhance(root);
+        if (root.querySelectorAll) root.querySelectorAll(SEL).forEach(enhance);
     }
-    return { enhance, enhanceAll, format };
+    // ทุกช่องวันที่ที่เกิดขึ้นภายหลัง (ฟอร์มที่สร้างด้วยโค้ด เช่น Dev Console) ถูกห่ออัตโนมัติ
+    // — กันไม่ให้ช่องวันที่แบบของ iPhone (ตัวหนังสือชิดบน/รูปแบบอังกฤษ) หลุดมาอีก
+    function watch() {
+        enhanceAll(document);
+        new MutationObserver(list => list.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType === 1 && !n.classList.contains('datefield')) enhanceAll(n); })))
+            .observe(document.body, { childList: true, subtree: true });
+    }
+    return { enhance, enhanceAll, format, watch };
 })();
-document.addEventListener('DOMContentLoaded', () => DateField.enhanceAll());
+if (document.body) DateField.watch(); else document.addEventListener('DOMContentLoaded', () => DateField.watch());
+
+// ---------- ส่งไฟล์ให้ผู้ใช้ (PDF, Excel, CSV, รูป) ----------
+// แอปบนหน้าจอโฮมของ iPhone/iPad ดาวน์โหลดผ่านลิงก์/pdf.save ไม่ได้ → มือถือ/แท็บเล็ต = แผ่นแชร์ของระบบ (บันทึกลงไฟล์/ส่งต่อได้) · คอมพิวเตอร์ = ดาวน์โหลดทันที
+const FileOffer = (() => {
+    const touch = () => window.matchMedia && matchMedia('(pointer: coarse)').matches;
+    function download(blob, name) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = name; a.rel = 'noopener';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }
+    async function share(blob, name, title) {
+        const file = new File([blob], name, { type: String(blob.type || '').split(';')[0].trim() || 'application/octet-stream' }); // iOS ไม่รับชนิดไฟล์ที่มีพารามิเตอร์
+        if (navigator.canShare && navigator.share && navigator.canShare({ files: [file] })) {
+            try { await navigator.share({ files: [file], title }); return true; }
+            catch (e) { if (e && e.name === 'AbortError') return true; }
+        }
+        download(blob, name);
+        return true;
+    }
+    // ไฟล์พร้อมแล้ว → ถามก่อนบนมือถือ (ได้การแตะใหม่ให้ใช้แผ่นแชร์) · คอมพิวเตอร์ดาวน์โหลดเลย
+    async function offer(blob, name, title) {
+        if (!touch()) { download(blob, name); if (typeof toast === 'function') toast('ดาวน์โหลด ' + name + ' แล้ว'); return; }
+        const go = await showMessage({ title: 'ไฟล์พร้อมแล้ว', text: name, tone: 'ok', okText: 'บันทึก / แชร์', cancelText: 'ปิด' });
+        if (go) await share(blob, name, title);
+    }
+    return { offer, download, share };
+})();
 
 // ---------- ขอบจางของแถบที่เลื่อนแนวนอนได้ ([data-scrollfade]) ----------
 // ซ้าย/ขวาที่ยังมีเนื้อหาซ่อนอยู่ = จางลง (บอกว่าเลื่อนได้) · เลื่อนสุดแล้วขอบนั้นคมตามปกติ
@@ -399,22 +438,47 @@ document.addEventListener('DOMContentLoaded', () => { tidyFootLinks(); if (windo
 window.addEventListener('load', tidyFootLinks);
 
 // ---------- องค์กรของผู้ใช้ (Dev Console › องค์กร) ----------
-// คอมพิวเตอร์/แท็บเล็ต: การ์ดใต้ชื่อแอปในเมนูด้านข้าง · มือถือ: ไม่ใส่ในแถบบน (แน่นเกิน) แสดงในการ์ดโปรไฟล์/หน้าบัญชีแทน ([data-org-line])
+// คอมพิวเตอร์/แท็บเล็ต: การ์ด "Organizations" เหนือบัญชีผู้ใช้ท้ายเมนูด้านข้าง (โลโก้วงกลม · ชื่อ · แพลน • จำนวนคน)
+// มือถือ: ไม่มีเมนูด้านข้าง แสดงในการ์ดโปรไฟล์/หน้าบัญชีแทน ([data-org-line])
+// opts: { meta: 'Pro', count: 46, open: () => {} } — open = แตะการ์ดแล้วไปไหน
 const OrgMark = {
-    set(org) {
+    org: null, opts: {},
+    set(org, opts) {
+        this.org = org && (org.logo || org.name) ? org : null;
+        this.opts = Object.assign({}, opts || {});
+        this.render();
+    },
+    count(n) { if (this.opts.count === n) return; this.opts.count = n; this.render(); }, // จำนวนผู้ใช้สิทธิ์ (จากหน้าภาพรวม)
+    render() {
         const e = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-        const has = org && (org.logo || org.name);
+        const org = this.org, has = !!org, o = this.opts;
         const html = has ? (org.logo ? `<img src="${e(org.logo)}" alt="" referrerpolicy="no-referrer" loading="lazy">` : '') + `<span>${e(org.name)}</span>` : '';
-        const guard = root => root.querySelectorAll('img').forEach(img => img.addEventListener('error', () => { img.remove(); root.classList.remove('has-logo'); }, { once: true }));
-        document.querySelectorAll('.topbar > .org-mark').forEach(m => m.remove()); // รุ่นก่อนใส่ไว้ในแถบบน
-        document.querySelectorAll('.sidenav > .brand').forEach(b => {
-            let m = b.nextElementSibling && b.nextElementSibling.classList.contains('org-mark') ? b.nextElementSibling : null;
-            if (!has) { if (m) m.remove(); return; }
-            if (!m) { m = document.createElement('span'); m.className = 'org-mark'; b.after(m); }
-            m.classList.toggle('has-logo', !!org.logo); m.title = org.name || ''; m.innerHTML = html; guard(m);
+        const guard = (root, onFail) => root.querySelectorAll('img').forEach(img => img.addEventListener('error', () => { img.remove(); onFail(); }, { once: true }));
+        document.querySelectorAll('.topbar > .org-mark, .sidenav > .org-mark').forEach(m => m.remove()); // รุ่นก่อน: แถบบน / ใต้ชื่อแอป
+        const initial = has ? (String(org.name || '?').replace(/^(บริษัท|บจก\.?|หจก\.?)\s*/, '').trim().charAt(0) || '?') : '';
+        const meta = [o.meta ? e(o.meta) : '', o.count != null ? `<span class="org-count"><svg class="ic ic-14" aria-hidden="true"><use href="#i-user"/></svg>${Number(o.count).toLocaleString('th-TH')}</span>` : ''].filter(Boolean).join('<span class="org-sep" aria-hidden="true">•</span>');
+        document.querySelectorAll('.sidenav').forEach(nav => {
+            let sec = nav.querySelector(':scope > .org-sec');
+            if (!has) { if (sec) sec.remove(); return; }
+            if (!sec) {
+                sec = document.createElement('div'); sec.className = 'org-sec';
+                const user = nav.querySelector(':scope > .nav-user');
+                nav.insertBefore(sec, user || null);
+                sec.addEventListener('click', ev => { if (ev.target.closest('.org-card') && typeof this.opts.open === 'function') this.opts.open(); });
+                sec.addEventListener('keydown', ev => { if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.closest('.org-card') && typeof this.opts.open === 'function') { ev.preventDefault(); this.opts.open(); } });
+            }
+            const link = typeof o.open === 'function';
+            sec.innerHTML = `<span class="org-sec-label">Organizations</span>
+              <div class="org-card"${link ? ' role="link" tabindex="0"' : ''} title="${e(org.name)}" aria-label="องค์กร ${e(org.name)}">
+                <span class="org-ava">${org.logo ? `<img src="${e(org.logo)}" alt="" referrerpolicy="no-referrer" loading="lazy">` : ''}<i aria-hidden="true">${e(initial)}</i></span>
+                <span class="org-txt"><b>${e(org.name)}</b>${meta ? `<small>${meta}</small>` : ''}</span>
+                ${link ? '<svg class="ic ic-16 org-go" aria-hidden="true"><use href="#i-chevron-right"/></svg>' : ''}
+              </div>`;
+            const ava = sec.querySelector('.org-ava'); ava.classList.toggle('has-logo', !!org.logo);
+            guard(ava, () => ava.classList.remove('has-logo'));
         });
         document.querySelectorAll('[data-org-line]').forEach(el => {
-            el.innerHTML = html; el.classList.toggle('has-logo', !!(has && org.logo)); guard(el);
+            el.innerHTML = html; el.classList.toggle('has-logo', !!(has && org.logo)); guard(el, () => el.classList.remove('has-logo'));
             el.hidden = !has;
             const row = el.closest('[data-org-row]'); if (row) row.hidden = !has;
         });

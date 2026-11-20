@@ -10,13 +10,66 @@ const SELF_TYPE = 'ทำการขายด้วยตัวเอง';
 const AGENT_TYPE = 'ทำการขายโดยตัวแทน';
 const MONTHS = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
 const MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-const ROLE_LABELS = { pending: 'รออนุมัติ', viewer: 'ผู้ดูข้อมูล', editor: 'ผู้แก้ไข', admin: 'ผู้ดูแลระบบ', dev: 'Dev (ผู้พัฒนาระบบ)' };
+const ROLE_LABELS = { pending: 'รออนุมัติ', viewer: 'ผู้ดูข้อมูล', billing: 'ผู้ดูแลการเงิน', editor: 'ผู้แก้ไข', admin: 'ผู้ดูแลระบบ', dev: 'Dev (ผู้พัฒนาระบบ)' };
 const STATUS_LABELS = { pending: 'รออนุมัติ', active: 'ใช้งาน', suspended: 'ระงับ', rejected: 'ปฏิเสธ' };
 const PERM_LABELS = {
-    'records.view': 'ดูรายงานการส่ง', 'records.edit': 'เพิ่ม / แก้ไข / ลบรายงาน', 'participants.view': 'ดูข้อมูลผู้ใช้สิทธิ์',
-    'participants.edit': 'เพิ่ม / แก้ไขผู้ใช้สิทธิ์', 'export': 'ส่งออกข้อมูล (Excel, PDF, Google Sheets)', 'admin': 'จัดการบัญชีเจ้าหน้าที่และดู Log',
+    'records.view': 'ดูรายงานการส่ง', 'records.edit': 'เพิ่ม / แก้ไขรายงาน', 'records.delete': 'ลบ / กู้คืนรายงาน', 'participants.view': 'ดูข้อมูลผู้ใช้สิทธิ์',
+    'participants.edit': 'เพิ่ม / แก้ไขผู้ใช้สิทธิ์', 'participants.delete': 'ลบ / กู้คืนผู้ใช้สิทธิ์ (ถังขยะ)', 'export': 'ส่งออกข้อมูล (Excel, PDF, Google Sheets)', 'admin': 'จัดการบัญชีเจ้าหน้าที่และดู Log',
+    'billing': 'แพ็กเกจ ใบแจ้งหนี้ และการชำระเงินขององค์กร',
     'dev': 'Dev Console: องค์กร แพลน การชำระเงิน ทุกองค์กร'
 };
+// คำอธิบายสั้นๆ ของแต่ละสิทธิ์ (หน้าบัญชี › สิทธิ์ของคุณ)
+const PERM_DESC = {
+    'records.view': 'เปิดดูภาพรวม รายการรายงาน แผนที่ และรูปหลักฐาน',
+    'records.edit': 'เพิ่มรายงานแทนผู้ใช้สิทธิ์ และแก้ไขประเภทการขาย เวลา หรือหมายเหตุ',
+    'records.delete': 'ลบรายงานที่ผิด/ซ้ำ (ไม่นับเป็นการส่ง) และกู้คืนได้ภายหลัง',
+    'participants.view': 'ดูรายชื่อ เบอร์โทร จุดขาย ปฏิทินการส่ง และบันทึกการโทรติดตาม',
+    'participants.edit': 'เพิ่มผู้ใช้สิทธิ์ใหม่ แก้ชื่อ จุดขาย พิกัด รูป หรือปิดใช้งาน',
+    'participants.delete': 'ย้ายผู้ใช้สิทธิ์ไปถังขยะ และกู้คืนได้ภายใน 30 วัน',
+    'export': 'ส่งออก Excel / Google Sheets / PDF และรายงานมาตรา 35',
+    'billing': 'ดูแพลน สถานะ ใบแจ้งหนี้ และช่องทางชำระเงิน (ไม่เห็นข้อมูลผู้ใช้สิทธิ์ถ้าไม่มีสิทธิ์ดู)',
+    'admin': 'อนุมัติ/ระงับบัญชีเจ้าหน้าที่ ตั้งสิทธิ์ ประกาศ แบบสอบถาม เรื่องที่แจ้ง สถิติ Log และประวัติการแก้ไข',
+    'dev': 'จัดการองค์กร แพลน ใบแจ้งหนี้ และความปลอดภัยของทั้งระบบ (เฉพาะผู้ให้บริการ)'
+};
+// ---------- ประวัติการแก้ไข (ผู้ดูแลระบบ): ใคร ทำอะไร เมื่อไร เปลี่ยนจากอะไรเป็นอะไร — จาก Log ขององค์กร ----------
+const EditHistory = {
+    KEYS: { name: 'ชื่อ', status: 'การใช้สิทธิ์', site: 'จุดขาย', phone: 'เบอร์โทร', active: 'ใช้งาน', siteLat: 'ละติจูดจุดขาย', siteLng: 'ลองจิจูดจุดขาย', pic: 'รูปโปรไฟล์',
+        id: 'รหัส', recordsMoved: 'ย้ายรายงาน', reason: 'เหตุผล', type: 'ประเภทการขาย', time: 'เวลา', note: 'หมายเหตุ', date: 'วันที่', lat: 'ละติจูด', lng: 'ลองจิจูด',
+        records: 'จำนวนรายงาน', trashDays: 'เก็บในถังขยะ (วัน)', result: 'ผลการติดต่อ', deletedAt: 'ลบเมื่อ', deletedBy: 'ลบโดย', photoTrashed: 'ย้ายรูปไปถังขยะ', force: 'บันทึกซ้ำวันเดิม' },
+    val(v) { return v === true ? 'ใช่' : v === false ? 'ไม่' : v === null || v === undefined || v === '' ? '-' : typeof v === 'object' ? JSON.stringify(v) : String(v); },
+    details(raw) {
+        if (!raw) return '';
+        let o; try { o = JSON.parse(raw); } catch (e) { return `<li>${esc(raw)}</li>`; }
+        return Object.keys(o || {}).filter(k => o[k] !== undefined && o[k] !== '').map(k => {
+            const v = o[k], label = esc(this.KEYS[k] || k);
+            return Array.isArray(v) && v.length === 2 ? `<li><b>${label}</b> <s>${esc(this.val(v[0]))}</s> → ${esc(this.val(v[1]))}</li>` : `<li><b>${label}</b> ${esc(this.val(v))}</li>`;
+        }).join('');
+    },
+    // ปุ่ม "ประวัติการแก้ไข" ในแผ่นรายละเอียด — โหลดเมื่อแตะ (ไม่ดึง Log ทุกครั้งที่เปิด)
+    mount(el, params) {
+        el.hidden = !can('admin');
+        if (el.hidden) return;
+        el.innerHTML = `<button type="button" class="hist-toggle" aria-expanded="false">${icon('activity', 'ic-16')}<span>ประวัติการแก้ไข</span>${icon('chevron-down', 'ic-16')}</button><div class="hist-body" hidden></div>`;
+        const btn = el.querySelector('.hist-toggle'), body = el.querySelector('.hist-body');
+        btn.onclick = async () => {
+            const open = btn.getAttribute('aria-expanded') !== 'true';
+            btn.setAttribute('aria-expanded', String(open)); body.hidden = !open;
+            if (!open || body.dataset.loaded) return;
+            body.innerHTML = '<div class="skel" style="height:60px;border-radius:12px"></div>';
+            const r = await api('admin.history', params);
+            if (!r.success) { body.innerHTML = `<p class="muted-text">${esc(r.message || 'โหลดไม่สำเร็จ')}</p>`; return; }
+            body.dataset.loaded = '1';
+            body.innerHTML = r.items.length ? `<ol class="hist-list">${r.items.map(h => `<li class="hist-item">
+                <span class="hist-dot ${((typeof ACTION_TONE !== 'undefined' && ACTION_TONE[h.action.split('.')[1] || '']) || '')}"></span>
+                <div><b>${esc((typeof ACTION_LABELS !== 'undefined' && ACTION_LABELS[h.action]) || h.action)}</b>
+                <small>${esc(h.actorName || '-')}${h.actorRole ? ' · ' + esc(ROLE_LABELS[h.actorRole] || h.actorRole) : ''} · ${thDateTime(h.ts)}</small>
+                ${this.details(h.details) ? `<ul class="hist-changes">${this.details(h.details)}</ul>` : ''}</div></li>`).join('')}</ol>${r.total > r.items.length ? `<p class="hint">แสดง ${r.items.length} จาก ${fmtNum(r.total)} รายการล่าสุด · ดูทั้งหมดได้ที่ ผู้ดูแลระบบ › Logs</p>` : ''}`
+                : '<p class="muted-text">ยังไม่มีการแก้ไขโดยเจ้าหน้าที่</p>';
+        };
+    }
+};
+
+const thb = n => '฿' + Number(n || 0).toLocaleString('th-TH', { maximumFractionDigits: 2 });
 const VIEWS = {};      // โมดูลแต่ละหน้า: { show(), onLive?(count) }
 const $ = (id) => document.getElementById(id);
 
@@ -145,6 +198,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     Object.values(VIEWS).forEach(v => v.init && v.init());
 
     const params = new URLSearchParams(location.search);
+    if (params.has('openExternalBrowser')) { params.delete('openExternalBrowser'); setUrl(location.pathname + (params.toString() ? '?' + params : '') + location.hash); }
     if (params.get('code') && params.get('state')) return finishLineLogin(params);
     if (params.get('error')) {
         setUrl(location.pathname + location.hash);
@@ -210,8 +264,40 @@ function setAuthHint(text, isError) {
     h.classList.toggle('is-error', !!isError);
 }
 
+// เบราว์เซอร์ในแอป (LINE, Facebook, Instagram…): Google ไม่อนุญาตให้เข้าสู่ระบบในนี้ (disallowed_useragent → "มีข้อผิดพลาดเกิดขึ้น")
+// จึงพาไปเปิดหน้าเดิมใน Safari/Chrome ก่อน แล้วค่อยกดเข้าสู่ระบบด้วย Google ที่นั่น
+const GOOGLE_BTN = '<button type="button" class="btn btn-google" id="googleSignIn"><svg class="g-logo" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.6 12.23c0-.71-.06-1.4-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.5h3.24c1.9-1.75 2.98-4.32 2.98-7.35Z"/><path fill="currentColor" d="M12 22c2.7 0 4.97-.9 6.62-2.42l-3.24-2.5c-.9.6-2.04.96-3.38.96-2.6 0-4.8-1.76-5.59-4.12H3.07v2.58A10 10 0 0 0 12 22Z"/><path fill="currentColor" d="M6.41 13.92a6 6 0 0 1 0-3.84V7.5H3.07a10 10 0 0 0 0 9z"/><path fill="currentColor" d="M12 5.96c1.47 0 2.79.5 3.83 1.5l2.87-2.87A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.93 5.5l3.34 2.58C7.2 7.72 9.4 5.96 12 5.96Z"/></svg>เข้าสู่ระบบด้วย Google</button>';
+const IN_APP = (() => {
+    const ua = navigator.userAgent || '';
+    if (/\bLine\//i.test(ua)) return 'LINE';
+    if (/FBAN|FBAV|FB_IAB|FBIOS|Messenger/i.test(ua)) return 'Facebook';
+    if (/Instagram/i.test(ua)) return 'Instagram';
+    if (/musical_ly|BytedanceWebview|TikTok/i.test(ua)) return 'TikTok';
+    if (/MicroMessenger/i.test(ua)) return 'WeChat';
+    if (/Android/i.test(ua) && /; wv\)/.test(ua)) return 'แอปนี้';
+    return '';
+})();
+const IS_IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+async function openOutside() {
+    const url = new URL(location.href);
+    url.hash = '';
+    if (IN_APP === 'LINE') { url.searchParams.set('openExternalBrowser', '1'); location.href = url.toString(); return; } // LINE เปิดลิงก์นี้ใน Safari/Chrome ให้เอง
+    if (!IS_IOS && /Android/i.test(navigator.userAgent)) { location.href = 'intent://' + url.host + url.pathname + url.search + '#Intent;scheme=https;S.browser_fallback_url=' + encodeURIComponent(url.toString()) + ';end'; return; }
+    const copy = await showMessage({ title: `เปิดใน ${IS_IOS ? 'Safari' : 'เบราว์เซอร์'} เพื่อใช้ Google`, tone: 'info',
+        text: `Google ไม่อนุญาตให้เข้าสู่ระบบในเบราว์เซอร์ของ ${IN_APP} · แตะ ⋯ แล้วเลือก "เปิดในเบราว์เซอร์" หรือคัดลอกลิงก์ไปวางใน ${IS_IOS ? 'Safari' : 'Chrome'}`,
+        okText: 'คัดลอกลิงก์', cancelText: 'ปิด' });
+    if (!copy) return;
+    try { await navigator.clipboard.writeText(url.toString()); toast('คัดลอกลิงก์แล้ว'); } catch (e) { setAuthHint(url.toString()); }
+}
+
 function setupGoogle(config) {
     const slot = $('googleBtn');
+    if (IN_APP && config.googleClientId) {
+        slot.innerHTML = GOOGLE_BTN;
+        $('googleSignIn').addEventListener('click', () => { setAuthHint(''); openOutside(); });
+        setAuthHint(IN_APP === 'LINE' ? 'เปิดอยู่ในแอป LINE: ใช้ปุ่ม LINE ได้ทันที · ปุ่ม Google จะเปิดหน้านี้ใน Safari/Chrome ก่อน' : `เปิดอยู่ในแอป ${IN_APP}: ปุ่ม Google จะพาไปเปิดในเบราว์เซอร์ก่อน (Google ไม่ให้เข้าสู่ระบบในแอป)`);
+        return;
+    }
     if (!config.googleClientId) {
         slot.innerHTML = '<button type="button" class="btn btn-outline" disabled>เข้าสู่ระบบด้วย Google (ยังไม่ได้ตั้งค่า)</button>';
         return;
@@ -225,7 +311,7 @@ function setupGoogle(config) {
                 callback: r => { if (r && r.access_token) handleGoogleAccess(r.access_token); else if (r && r.error) setAuthHint('เข้าสู่ระบบด้วย Google ไม่สำเร็จ (' + r.error + ')', true); },
                 error_callback: e => { if (e && e.type !== 'popup_closed') setAuthHint('เปิดหน้าต่าง Google ไม่ได้ — อนุญาต pop-up แล้วลองใหม่', true); }
             });
-            slot.innerHTML = '<button type="button" class="btn btn-google" id="googleSignIn"><svg class="g-logo" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.6 12.23c0-.71-.06-1.4-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.5h3.24c1.9-1.75 2.98-4.32 2.98-7.35Z"/><path fill="currentColor" d="M12 22c2.7 0 4.97-.9 6.62-2.42l-3.24-2.5c-.9.6-2.04.96-3.38.96-2.6 0-4.8-1.76-5.59-4.12H3.07v2.58A10 10 0 0 0 12 22Z"/><path fill="currentColor" d="M6.41 13.92a6 6 0 0 1 0-3.84V7.5H3.07a10 10 0 0 0 0 9z"/><path fill="currentColor" d="M12 5.96c1.47 0 2.79.5 3.83 1.5l2.87-2.87A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.93 5.5l3.34 2.58C7.2 7.72 9.4 5.96 12 5.96Z"/></svg>เข้าสู่ระบบด้วย Google</button>';
+            slot.innerHTML = GOOGLE_BTN;
             $('googleSignIn').addEventListener('click', () => { setAuthHint(''); client.requestAccessToken(); });
             return;
         }
@@ -306,6 +392,7 @@ async function logout() {
 // (ไม่พึ่ง location.replace() เพราะบางเบราว์เซอร์/แอปบนหน้าจอหลักไม่โหลดหน้าใหม่ให้ จนต้องกด F5)
 function endSession(message) {
     store.remove(TOKEN_KEY);
+    if (typeof Prefs !== 'undefined' && Prefs.useAccount) Prefs.useAccount(null);
     Object.assign(ST, { token: null, me: null, perms: new Set(), participants: null, participantsReq: null, participantMeta: null, prefetch: null, lastSeen: 0, view: null });
     Analytics.setUser('');
     clearInterval(liveTimer); clearInterval(liveTextTimer); clearInterval(pendingTimer);
@@ -329,24 +416,38 @@ function endSession(message) {
 // องค์กรหมดช่วงทดลอง/ค้างชำระเกินกำหนด/ถูกระงับ (Dev ใช้งานได้เสมอ)
 // หน้าแพ็กเกจและราคา (เว็บไซต์ softlight) — เห็นเฉพาะผู้ดูแลระบบ/Dev
 const PRODUCT_URL = 'https://bysoftlight.github.io/software/hr-paper-mill.html';
-const isOrgAdmin = me => !!me && (me.role === 'admin' || me.role === 'dev');
+// ผู้ที่เห็นเรื่องแพลน/การชำระเงินขององค์กร: ผู้ดูแลระบบ · ผู้ดูแลการเงิน · Dev
+const isOrgAdmin = me => !!me && (me.role === 'admin' || me.role === 'dev' || me.role === 'billing');
 function subLocked(sub, me) { return !!(sub && sub.ok === false && !(me && me.role === 'dev')); }
 const SUB_STATE_TH = { trial: 'ทดลองใช้ฟรี', active: 'ใช้งาน', past_due: 'ค้างชำระ', trial_expired: 'หมดช่วงทดลองใช้', expired: 'หมดอายุ', suspended: 'ถูกระงับ', cancelled: 'ยกเลิกแล้ว' };
 // แถบแจ้งสถานะการสมัครสมาชิกขององค์กร: ทดลองใช้ (เหลือกี่วัน) · ใกล้หมดรอบ · ค้างชำระ
-// แสดงเฉพาะผู้ดูแลระบบขององค์กร — เจ้าหน้าที่ทั่วไปใช้งานตามที่องค์กรจ่ายให้ ไม่ต้องเห็นเรื่องการชำระเงิน
+// ผู้ดูแลระบบเห็นทุกช่วง · ผู้แก้ไขเห็นเฉพาะตอนใกล้หมดอายุ/ค้างชำระ (ไม่มีปุ่มแพ็กเกจ ให้แจ้งผู้ดูแล) · ผู้ดูข้อมูลไม่เห็น
 function renderSubBanner() {
     const el = $('subBanner'), s = ST.sub;
-    if (typeof OrgMark !== 'undefined') OrgMark.set(s && s.org ? s.org : null); // โลโก้องค์กรคู่กับชื่อแอป
+    if (typeof OrgMark !== 'undefined') OrgMark.set(s && s.org ? s.org : null, { // การ์ดองค์กรในเมนูด้านข้าง
+        meta: s && s.plan ? s.plan.name : '', count: OrgMark.opts && OrgMark.org && s && s.org && OrgMark.org.id === s.org.id ? OrgMark.opts.count : null,
+        open: () => { haptic(); if (can('dev') && VIEWS.dev) { VIEWS.dev.sec = 'orgs'; switchTab('dev'); } else switchTab(can('participants.view') ? 'participants' : 'account'); }
+    });
     if (!el) return;
-    const show = s && s.ok && (s.state === 'trial' || s.warn) && isOrgAdmin(ST.me) && ST.me.role !== 'dev'; // Dev = ผู้ให้บริการ ไม่ใช่ลูกค้า
+    // ผู้ดูแลระบบ: ช่วงทดลองใช้ทั้งหมด + ใกล้หมดรอบ/ค้างชำระ · ผู้แก้ไข: เฉพาะใกล้หมดอายุ (≤ 7 วัน) หรือค้างชำระ · Dev = ผู้ให้บริการ ไม่ใช่ลูกค้า
+    const role = ST.me ? ST.me.role : '', admin = isOrgAdmin(ST.me) && role !== 'dev', editor = role === 'editor';
+    const show = !!(s && s.ok && ((admin && (s.state === 'trial' || s.warn)) || (editor && s.warn)));
     el.hidden = !show;
     if (!show) return;
     const tone = s.state === 'past_due' ? 'is-bad' : s.warn ? 'is-warn' : 'is-accent';
     const left = s.daysLeft === null || s.daysLeft === undefined ? '' : s.daysLeft <= 0 ? 'วันนี้วันสุดท้าย' : `เหลือ ${fmtNum(s.daysLeft)} วัน`;
-    el.innerHTML = `<div class="sub-card ${tone}">${icon(s.state === 'past_due' ? 'alert' : 'calendar')}<span class="sub-text"><b>${esc(SUB_STATE_TH[s.state] || s.state)}${s.plan ? ' · แพลน ' + esc(s.plan.name) : ''}${left ? ' — ' + left : ''}</b><small>${esc(s.org ? s.org.name : '')}${s.endsAt ? ' · ถึง ' + thDate(s.endsAt, { day: 'numeric', month: 'short', year: 'numeric' }) : ''} · ${esc(s.message || '')}</small></span><a class="btn btn-sm ${s.state === 'past_due' ? 'btn-primary' : 'btn-tonal'}" href="${PRODUCT_URL}#packages" target="_blank" rel="noopener">ดูแพ็กเกจ</a></div>`;
+    // หัวเรื่อง + วันที่เหลือ (ป้าย) · องค์กร/วันสิ้นสุด · ข้อความเพิ่มเติมเฉพาะค้างชำระ/ใกล้หมดรอบ (ไม่ซ้ำกับหัวเรื่อง) · ปุ่มแพ็กเกจขึ้นบรรทัดใหม่บนมือถือ
+    const extra = s.state !== 'trial' && s.message && s.state !== 'active' ? s.message : '';
+    el.innerHTML = `<div class="sub-card ${tone}">
+      <span class="sub-ic">${icon(s.state === 'past_due' ? 'alert' : 'calendar')}</span>
+      <span class="sub-text"><span class="sub-title"><b>${esc(SUB_STATE_TH[s.state] || s.state)}${s.plan ? ' · แพลน ' + esc(s.plan.name) : ''}</b>${left ? `<span class="sub-left">${left}</span>` : ''}</span>
+        <small>${esc(s.org ? s.org.name : '')}${s.endsAt ? ' · ถึง ' + thDate(s.endsAt, { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</small>${extra ? `<small>${esc(extra)}</small>` : ''}${admin ? '' : '<small class="sub-note">โปรดแจ้งผู้ดูแลระบบขององค์กรเพื่อต่ออายุการใช้งาน</small>'}</span>
+      ${admin ? `<a class="btn btn-sm sub-btn ${s.state === 'past_due' ? 'btn-primary' : 'btn-tonal'}" href="${PRODUCT_URL}#packages" target="_blank" rel="noopener">ดูแพ็กเกจ ${icon('arrow-right', 'ic-16')}</a>` : ''}
+    </div>`;
 }
 
 function enter(me, sub) {
+    if (typeof Prefs !== 'undefined' && Prefs.useAccount) Prefs.useAccount(me.id); // การตั้งค่าของบัญชีนี้บนเครื่องนี้
     ST.me = me;
     ST.sub = sub || null;
     ST.perms = new Set(me.permissions || []);
@@ -418,6 +519,9 @@ function renderMeAvatars() {
 
 function applyPerms() {
     document.querySelectorAll('[data-perm]').forEach(el => { el.hidden = !can(el.dataset.perm); });
+    // ความปลอดภัยของระบบใช้ร่วมกันทุกองค์กร: เฉพาะ Dev และบัญชีที่ไม่ได้ผูกองค์กร
+    const sys = !(ST.me && ST.me.org && ST.me.role !== 'dev');
+    document.querySelectorAll('[data-sys]').forEach(el => { el.hidden = !sys; });
     const n = document.querySelectorAll('.bottomnav .nav-item:not([hidden])').length;
     document.querySelector('.bottomnav').style.setProperty('--nav-n', n);
 }
@@ -431,10 +535,13 @@ function tabFromHash() {
     if (TAB_ORDER.includes(t) && tabAllowed(t)) return t;
     const start = Prefs.get('startTab');
     if (TAB_ORDER.includes(start) && tabAllowed(start)) return start;
+    if (!can('records.view') && can('billing')) return 'account'; // ผู้ดูแลการเงิน: เปิดที่หน้าบัญชี (แพ็กเกจและการชำระเงิน)
     return TAB_ORDER.find(tabAllowed);
 }
 
 function switchTab(tab, push = true) {
+    // ยังโหลดบัญชีไม่เสร็จ (แตะเมนูระหว่างหน้าโครงกำลังโหลด): จำหน้าไว้ใน hash แล้วเปิดให้เมื่อเข้าสู่ระบบเสร็จ (showApp อ่าน hash)
+    if (!ST.me) { if (push && tab && location.hash !== '#' + tab) setUrl('#' + tab, true); return; }
     if (!tabAllowed(tab)) tab = TAB_ORDER.find(tabAllowed);
     ST.view = tab;
     TAB_ORDER.forEach(t => { $(t + 'View').hidden = t !== tab; });
@@ -645,8 +752,30 @@ VIEWS.account = {
     init() {
         // รูปโปรไฟล์ของตัวเอง: บัญชี Google/LINE ที่ไม่ได้ตั้งรูปไว้ อัปโหลดเองได้ (ใช้แทนรูปจากผู้ให้บริการ)
         // กดที่รูป (หรือ "แก้ไขรูปโปรไฟล์") → แผ่นตัวเลือก: เลือกจากคลังภาพ · ถ่ายรูป · ลบรูปปัจจุบัน
-        const open = () => { haptic(); $('accPhotoResetRow').hidden = !ST.me.customPicture; showModal('photoSheet'); };
+        const open = () => { if (!ST.me) return; haptic(); $('accPhotoResetRow').hidden = !ST.me.customPicture; showModal('photoSheet'); };
         $('accAvaBtn').addEventListener('click', open);
+        // การ์ดพับได้ (แพ็กเกจ / สิทธิ์): แตะหัวการ์ดเพื่อเปิด — เปิดอันหนึ่ง อันอื่นพับ
+        const folds = [...document.querySelectorAll('#accountView .acc-fold')];
+        const setFold = (card, on) => {
+            const head = card.querySelector('.fold-head'), body = card.querySelector('.fold-body');
+            head.setAttribute('aria-expanded', String(on)); body.hidden = !on; card.classList.toggle('is-open', on);
+        };
+        folds.forEach(card => {
+            const head = card.querySelector('.fold-head');
+            const flip = () => {
+                haptic(); const on = head.getAttribute('aria-expanded') !== 'true';
+                folds.forEach(c => setFold(c, c === card ? on : false));
+                // เปิดแล้วเลื่อนให้หัวการ์ดอยู่บนสุด — อ่านรายการจากบนลงล่าง (การ์ดอื่นที่พับลงทำให้หน้ากระโดด)
+                if (on) requestAnimationFrame(() => {
+                    const bar = document.querySelector('.topbar'), bs = bar && getComputedStyle(bar);
+                    const off = bar && bs.display !== 'none' && /sticky|fixed/.test(bs.position) ? Math.max(0, bar.getBoundingClientRect().bottom) : 0;
+                    const top = card.getBoundingClientRect().top - off - 12;
+                    if (Math.abs(top) > 4) window.scrollTo({ top: window.scrollY + top, behavior: document.documentElement.dataset.motion === 'reduce' || matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+                });
+            };
+            head.addEventListener('click', e => { if (e.target.closest('a, button:not(.fold-head)')) return; flip(); });
+            head.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } });
+        });
         $('accAvaLink').addEventListener('click', open);
         const pick = async e => {
             const f = e.target.files[0]; e.target.value = ''; if (!f) return;
@@ -668,6 +797,7 @@ VIEWS.account = {
     },
     show() {
         const me = ST.me;
+        if (!me) return; // ยังไม่ได้เข้าสู่ระบบ / กำลังตรวจ session (เปิดลิงก์ #account ตรง ๆ) — แสดงเมื่อรู้ตัวตนแล้ว
         $('accPhotoResetRow').hidden = !me.customPicture;
         document.querySelectorAll('[data-me="roleChip"]').forEach(el => {
             el.textContent = ROLE_LABELS[me.role] || me.role;
@@ -682,8 +812,106 @@ VIEWS.account = {
             ['เข้าใช้ล่าสุด', me.lastLoginAt ? thDateTime(me.lastLoginAt) : '-'],
             ['จำการเข้าสู่ระบบถึง', exp + ' (ต่ออายุอัตโนมัติเมื่อเปิดใช้งาน)']
         ].map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('');
-        $('accPerms').innerHTML = Object.keys(PERM_LABELS).map(p =>
-            `<li class="${can(p) ? '' : 'is-off'}">${icon(can(p) ? 'check-circle' : 'x-circle')}<span>${PERM_LABELS[p]}</span></li>`).join('');
+        // สิทธิ์ที่มีก่อน แล้วตามด้วยที่ไม่มี (จาง) — แต่ละข้อมีคำอธิบายว่าทำอะไรได้ · Dev แสดงเฉพาะบัญชี Dev
+        const perms = Object.keys(PERM_LABELS).filter(p => p !== 'dev' || can('dev'));
+        $('accPerms').innerHTML = perms.filter(can).concat(perms.filter(p => !can(p))).map(p =>
+            `<li class="${can(p) ? '' : 'is-off'}">${icon(can(p) ? 'check-circle' : 'x-circle')}<span class="perm-txt"><b>${PERM_LABELS[p]}</b>${PERM_DESC[p] ? `<small>${PERM_DESC[p]}</small>` : ''}</span></li>`).join('');
+        $('accPermCount').textContent = `${perms.filter(can).length}/${perms.length}`;
+        $('accPermsNote').textContent = can('admin') ? 'ผู้ดูแลระบบได้ทุกสิทธิ์ขององค์กร' : 'ต้องการสิทธิ์เพิ่ม ติดต่อผู้ดูแลระบบขององค์กร';
+        this.billing();
+    },
+
+    // ---------- แพ็กเกจและการชำระเงินขององค์กร (ผู้ดูแลระบบ / ผู้ดูแลการเงิน) ----------
+    async billing() {
+        const box = $('accBilling');
+        const show = can('billing') && !!(ST.me && ST.me.org);
+        box.hidden = !show;
+        // ไม่มีการ์ดแพ็กเกจ: ย้ายปุ่มท้ายหน้าไปคอลัมน์ขวา (ใต้สิทธิ์) ให้สองคอลัมน์สูงใกล้กัน · มือถือเรียงตาม order เหมือนเดิม
+        const place = withBill => { const cols = $('accountView').querySelectorAll('.acc-col'); if (cols.length === 2) cols[withBill ? 0 : 1].append($('accountView').querySelector('.acc-btns'), $('accountView').querySelector('.acc-o7')); };
+        place(false); // การ์ดพับอยู่ → คอลัมน์ขวาสั้น: ปุ่มท้ายหน้าอยู่ขวาเสมอ
+        if (!show) return;
+        if (!this.bill) $('accBillBody').innerHTML = '<div class="skel" style="height:120px;border-radius:16px"></div>';
+        const r = await api('staff.billing.info');
+        if (!r.success) { $('accBillBody').innerHTML = emptyState(r.message || 'โหลดไม่สำเร็จ', 'wifi-off'); return; }
+        this.bill = r;
+        if (!r.org) { box.hidden = true; return; }
+        const a = r.access || {}, st = SUB_STATE_TH[a.state] || a.state || '-';
+        const tone = a.state === 'past_due' || a.ok === false ? 'is-bad' : a.warn ? 'is-warn' : a.state === 'trial' ? 'is-info' : 'is-ok';
+        const meter = (label, n, max) => {
+            const pct = max ? Math.min(100, Math.round(n / max * 100)) : 0, cls = !max ? '' : pct >= 100 ? 'is-bad' : pct >= 80 ? 'is-warn' : '';
+            return `<div class="bill-meter ${cls}"><div class="bill-meter-top"><small>${label}</small><b>${fmtNum(n)}<span>${max ? ' / ' + fmtNum(max) : ' · ไม่จำกัด'}</span></b></div>${max ? `<span class="bill-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="${label} ${pct}%"><i style="width:${pct}%"></i></span>` : ''}</div>`;
+        };
+        const price = r.plan ? (r.org.cycle === 'yearly' ? `${thb(r.plan.priceYearly)} <small>/ ปี</small>` : `${thb(r.plan.priceMonthly)} <small>/ เดือน</small>`) : '';
+        const INV = { pending: ['รอชำระ', 'is-warn'], paid: ['ชำระแล้ว', 'is-ok'] };
+        const inv = (r.invoices || []).map(i => {
+            const [t, c] = INV[i.status] || [i.status, ''], late = i.status === 'pending' && i.due && i.due < Date.now();
+            const review = i.status === 'pending' && i.hasSlip;
+            // รอชำระ: แนบสลิปให้ผู้ให้บริการตรวจ · แนบแล้ว = รอตรวจสอบ (ดู/ส่งใหม่ได้) · สลิปไม่ผ่าน = แสดงเหตุผล
+            const slip = i.status !== 'pending' ? '' : review
+                ? `<p class="bill-slip is-info">${icon('check-circle', 'ic-16')}<span>ส่งสลิปแล้ว ${thDateTime(i.slipAt)} · รอผู้ให้บริการตรวจสอบ</span></p>`
+                : i.slipNote ? `<p class="bill-slip is-bad">${icon('alert', 'ic-16')}<span>${esc(i.slipNote)} · กรุณาแนบสลิปใหม่</span></p>` : '';
+            const acts = `<span class="bill-acts">
+                ${i.status === 'pending' ? `<label class="btn ${review ? 'btn-tonal' : 'btn-primary'} btn-sm bill-slip-btn">${icon('image', 'ic-16')}${review ? 'ส่งสลิปใหม่' : 'แนบสลิป'}<input type="file" accept="image/*" class="sr-only" data-slip="${esc(i.id)}"></label>` : ''}
+                ${review ? `<button type="button" class="btn btn-ghost btn-sm" data-slip-view="${esc(i.id)}">ดูสลิป</button>` : ''}
+                <button type="button" class="btn btn-ghost btn-sm" data-inv-pdf="${esc(i.id)}">${icon('download', 'ic-16')}PDF</button></span>`;
+            return `<li class="bill-row bill-inv"><span class="bill-row-main"><b class="mono">${esc(i.id)}</b><small>${i.periodStart ? thDate(i.periodStart) : ''}${i.periodEnd ? ' – ' + thDate(i.periodEnd) : ''}</small><small>${i.status === 'paid' && i.paidAt ? 'ชำระ ' + thDate(i.paidAt) : i.due ? 'ครบกำหนด ' + thDate(i.due) : ''}</small></span>
+              <span class="bill-amt"><b>${thb(i.amount)}</b><span class="badge ${review ? 'is-info' : late ? 'is-bad' : c}">${review ? 'รอตรวจสอบ' : late ? 'เลยกำหนด' : t}</span></span>${slip}${acts}</li>`;
+        }).join('');
+        const acc = (r.accounts || []).map(x => `<li class="bill-row"><span class="icon-box">${icon(x.type === 'promptpay' ? 'phone' : 'database')}</span>
+            <span class="bill-row-main"><b>${esc(x.bank || (x.type === 'promptpay' ? 'พร้อมเพย์' : 'บัญชี'))}${x.isDefault ? ' <span class="badge is-info">หลัก</span>' : ''}</b><small><span class="mono">${esc(x.number)}</span></small><small>${esc(x.name)}${x.branch ? ' · สาขา' + esc(x.branch) : ''}${x.note ? ' · ' + esc(x.note) : ''}</small></span>
+            <button type="button" class="icon-btn" data-copy="${esc(x.number)}" aria-label="คัดลอกเลข ${esc(x.number)}" title="คัดลอก">${icon('copy')}</button></li>`).join('');
+        const until = a.endsAt ? `${a.state === 'trial' ? 'ทดลองใช้ถึง' : 'รอบบิลถึง'} ${thDate(a.endsAt)}${a.daysLeft != null ? ` · เหลือ ${fmtNum(Math.max(0, a.daysLeft))} วัน` : ''}` : '';
+        const alert = a.ok === false || a.state === 'past_due' || (a.warn && a.state !== 'trial') ? `<p class="bill-alert ${tone}">${icon('alert', 'ic-16')}<span>${esc(a.message || '')}</span></p>` : '';
+        $('accBillBody').innerHTML = `
+          <div class="bill-plan">
+            <div><small>แพลนปัจจุบัน</small><b class="bill-plan-name">${esc(r.plan ? r.plan.name : '-')}</b>${price ? `<span class="bill-price">${price}</span>` : ''}</div>
+            <span class="badge bill-state ${tone}">${esc(st)}</span>
+          </div>
+          ${until ? `<p class="bill-until ${a.warn ? 'is-warn' : ''}">${icon('calendar', 'ic-16')}<span>${until}</span></p>` : ''}
+          ${alert}
+          <div class="bill-meters">${meter('ผู้ใช้สิทธิ์', r.usage.users, r.limits.users)}${meter('เจ้าหน้าที่', r.usage.staff, r.limits.staff)}</div>`;
+        const phone = r.salesPhone ? String(r.salesPhone).trim() : '', mail = r.salesEmail ? String(r.salesEmail).replace(/[,\s]+$/, '') : '';
+        $('accBillMore').innerHTML = `
+          <h4 class="bill-sub">ใบแจ้งหนี้</h4>
+          ${inv ? `<ul class="bill-list">${inv}</ul>` : '<p class="bill-empty">ยังไม่มีใบแจ้งหนี้</p>'}
+          ${acc ? `<h4 class="bill-sub">ช่องทางชำระเงิน</h4><ul class="bill-list">${acc}</ul>` : ''}
+          ${acc && (phone || mail) ? `<div class="bill-contact"><p>${icon('info', 'ic-16')}<span>โอนแล้วส่งหลักฐานให้ผู้ให้บริการ</span></p>
+            <div class="bill-contact-links">${phone ? `<a href="tel:${esc(phone.replace(/[^0-9+]/g, ''))}">${icon('phone', 'ic-16')}<span>${esc(phone)}</span></a>` : ''}${mail ? `<a href="mailto:${esc(mail)}">${icon('mail', 'ic-16')}<span>${esc(mail)}</span></a>` : ''}</div></div>` : ''}
+          <a class="btn btn-tonal btn-sm bill-pkg" href="${PRODUCT_URL}#packages" target="_blank" rel="noopener">${icon('external', 'ic-16')} ดูแพ็กเกจทั้งหมด</a>`;
+        $('accBillMore').querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => { navigator.clipboard && navigator.clipboard.writeText(b.dataset.copy).then(() => toast('คัดลอกเลขบัญชีแล้ว')).catch(() => {}); }));
+        const more = $('accBillMore');
+        more.querySelectorAll('[data-slip]').forEach(inp => inp.addEventListener('change', e => this.sendSlip(e.target)));
+        more.querySelectorAll('[data-slip-view]').forEach(b => b.addEventListener('click', () => this.viewSlip(b.dataset.slipView)));
+        more.querySelectorAll('[data-inv-pdf]').forEach(b => b.addEventListener('click', () => {
+            const i = (this.bill.invoices || []).find(x => x.id === b.dataset.invPdf);
+            if (i) Invoice.pdf(i, this.bill.org || {}, this.bill.accounts || []);
+        }));
+    },
+    // แนบสลิปโอนเงิน → ส่งให้ Dev/ผู้ให้บริการตรวจสอบและบันทึกชำระ
+    async sendSlip(input) {
+        const f = input.files && input.files[0], id = input.dataset.slip;
+        input.value = '';
+        if (!f) return;
+        if (!/^image\//.test(f.type || 'image/')) return showMessage({ title: 'ใช้ไฟล์นี้ไม่ได้', text: 'กรุณาเลือกรูปสลิป (ภาพหน้าจอหรือรูปถ่าย)', tone: 'warn' });
+        const inv = (this.bill && this.bill.invoices || []).find(x => x.id === id);
+        const ok = await showMessage({ title: `ส่งสลิปสำหรับ ${id}?`, text: `ยอด ${inv ? thb(inv.amount) : ''} · ผู้ให้บริการจะตรวจสอบแล้วบันทึกการชำระให้`, tone: 'info', okText: 'ส่งสลิป', cancelText: 'ยกเลิก' });
+        if (!ok) return;
+        let img;
+        try { img = await shrinkImage(f, 1800, false); } catch (err) { return showMessage({ title: 'ใช้รูปนี้ไม่ได้', text: err.message, tone: 'bad' }); }
+        showLoading(true, 'กำลังส่งสลิป…');
+        const r = await api('staff.billing.slip', { id, photo: { data: img.data, mimeType: img.mimeType } });
+        showLoading(false);
+        if (!r.success) return showMessage({ title: 'ส่งสลิปไม่สำเร็จ', text: r.message, tone: 'bad' });
+        toast('ส่งสลิปแล้ว · รอผู้ให้บริการตรวจสอบ');
+        this.bill = null;
+        this.billing(true);
+    },
+    async viewSlip(id) {
+        showLoading(true, 'กำลังเปิดสลิป…');
+        const r = await api('staff.billing.slipImage', { id });
+        showLoading(false);
+        if (!r.success) return showMessage({ title: 'เปิดสลิปไม่สำเร็จ', text: r.message, tone: 'bad' });
+        PhotoViewer.open(r.dataUrl, 'สลิป ' + id);
     }
 };
 
@@ -759,3 +987,44 @@ const PhotoViewer = (() => {
     }
     return { open };
 })();
+
+// ---------- แถบเมนูด้านข้าง: ย่อเป็นแถบไอคอน / ขยาย (จอ ≥ 768px) ----------
+// ค่าเริ่มต้น = ย่อ (แถบไอคอน กดเปลี่ยนหน้าได้ทันที) · ปุ่มบนสุดของแถบ / Ctrl(⌘)+B = ขยาย/ย่อ
+// คอมพิวเตอร์ (≥ 1100): จำสถานะไว้ (ขยาย = ดันเนื้อหา) · แท็บเล็ต: ขยายแบบลอยทับชั่วคราว แตะนอกแถบ/เลือกเมนู = ย่อ
+const SideNav = (() => {
+    const root = document.documentElement;
+    const wide = () => window.matchMedia('(min-width: 1100px)').matches;
+    const collapsed = () => root.dataset.side !== 'pinned' && !root.classList.contains('side-peek');
+    const overlay = on => root.classList.toggle('side-peek', !!on && root.dataset.side !== 'pinned');
+    function toggle() {
+        haptic();
+        if (root.classList.contains('side-peek')) { overlay(false); return sync(); }
+        if (wide() || root.dataset.side === 'pinned') { Prefs.set('sidebar', root.dataset.side === 'pinned' ? 'hidden' : 'pinned'); return sync(); }
+        overlay(true); sync(); // แท็บเล็ต: ขยายชั่วคราว
+    }
+    function sync() {
+        const c = collapsed();
+        document.querySelectorAll('.sidenav [data-side-toggle]').forEach(b => { const t = c ? 'ขยายแถบเมนู' : 'ย่อแถบเมนู'; b.setAttribute('aria-label', t); b.title = t + ' (Ctrl/⌘ + B)'; b.setAttribute('aria-expanded', String(!c)); });
+        // แถบไอคอน: ชี้ไอคอนเพื่อดูชื่อเมนู
+        document.querySelectorAll('.sidenav .nav-item').forEach(n => {
+            const label = [...n.children].filter(x => x.tagName === 'SPAN' && !/nav-(bell-ic|ava-wrap|badge)/.test(x.className)).map(x => x.textContent.trim()).join(' ');
+            if (c && label) n.title = label; else n.removeAttribute('title');
+        });
+    }
+    function init() {
+        const nav = $('sideNav');
+        if (!nav) return;
+        if (!nav.parentElement.querySelector('.side-scrim')) { const sc = document.createElement('div'); sc.className = 'side-scrim'; sc.addEventListener('click', () => { overlay(false); sync(); }); nav.after(sc); }
+        document.querySelectorAll('[data-side-toggle]').forEach(b => b.addEventListener('click', toggle));
+        nav.addEventListener('click', e => { if (e.target.closest('[data-tab], [data-goto]') && root.classList.contains('side-peek')) setTimeout(() => { overlay(false); sync(); }, 120); });
+        document.addEventListener('keydown', e => {
+            if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && (e.key === 'b' || e.key === 'B') && !/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '')) { e.preventDefault(); toggle(); }
+            if (e.key === 'Escape' && root.classList.contains('side-peek')) { overlay(false); sync(); }
+        });
+        window.addEventListener('resize', () => { if (wide() && root.classList.contains('side-peek')) { overlay(false); sync(); } });
+        document.addEventListener('prefchange', sync);
+        sync();
+    }
+    return { init, toggle, sync };
+})();
+document.addEventListener('DOMContentLoaded', () => SideNav.init());

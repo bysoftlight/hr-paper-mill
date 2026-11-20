@@ -279,6 +279,7 @@ function endSession() {
     userStore.remove(USER_KEY);
     userStore.remove(CACHE_KEY);
     CURRENT_USER = {};
+    if (typeof Prefs !== 'undefined' && Prefs.useAccount) Prefs.useAccount(null);
     AVA_SRC = null; try { localStorage.removeItem(AVA_KEY); } catch (e) {}
     document.querySelectorAll('[data-user="avatar"]').forEach(el => { el.textContent = ''; delete el.dataset.pic; });
     if (typeof OrgMark !== 'undefined') OrgMark.set(null);
@@ -327,7 +328,8 @@ function setupApp(history, cachedAt) {
 }
 
 function renderUser() {
-    if (typeof OrgMark !== 'undefined') OrgMark.set(CURRENT_USER.orgInfo || null); // โลโก้องค์กรคู่กับชื่อแอป
+    if (typeof Prefs !== 'undefined' && Prefs.useAccount && CURRENT_USER.id) Prefs.useAccount('u' + CURRENT_USER.id); // การตั้งค่าของผู้ใช้สิทธิ์คนนี้บนเครื่องนี้
+    if (typeof OrgMark !== 'undefined') OrgMark.set(CURRENT_USER.orgInfo || null, { open: () => { haptic(); switchTab('account'); } }); // การ์ดองค์กรในเมนูด้านข้าง
     document.querySelectorAll('[data-user="name"]').forEach(el => el.textContent = CURRENT_USER.name || '-');
     document.querySelectorAll('[data-user="id"]').forEach(el => el.textContent = CURRENT_USER.id || '-');
     document.querySelectorAll('[data-user="status"]').forEach(el => el.textContent = CURRENT_USER.status || '-');
@@ -375,9 +377,12 @@ function renderAvatar(el) {
     const shown = el.querySelector('img');
     if (!pic) { el.textContent = initial; delete el.dataset.pic; return; }
     if (shown && el.dataset.pic === pic) return; // รูปเดิมแสดงอยู่แล้ว
-    if (!shown) el.textContent = initial;
     const img = document.createElement('img');
     img.alt = '';
+    // มีรูปที่จำไว้ในเครื่อง: ใส่รูปทันที ไม่แสดงตัวอักษรแวบก่อน (เปิดแอปใหม่/โหลดหน้าใหม่)
+    const cached = AVA_SRC && AVA_SRC.pic === pic;
+    if (!shown && cached) { img.decoding = 'sync'; el.textContent = ''; el.appendChild(img); el.dataset.pic = pic; }
+    else if (!shown) el.textContent = initial;
     img.onload = () => {
         el.textContent = ''; el.appendChild(img); el.dataset.pic = pic;
         if (CURRENT_USER.pic === pic && !(AVA_SRC && AVA_SRC.pic === pic && AVA_SRC.src === img.src)) rememberAvatar(pic, img.src);
@@ -389,7 +394,8 @@ function renderAvatar(el) {
         if (!triedDirect) { triedDirect = true; img.src = direct; return; } // ที่จำไว้ใช้ไม่ได้แล้ว
         img.onerror = null;
         const m = pic.match(/[?&]id=([\w-]{20,})/);
-        if (m) callApi('image', { userId: CURRENT_USER.id, fileId: m[1], thumb: true }).then(r => { if (r.success && r.dataUrl) img.src = r.dataUrl; }).catch(() => {});
+        const fail = () => { if (img.parentNode === el) { el.textContent = initial; delete el.dataset.pic; } }; // รูปที่จำไว้ใช้ไม่ได้ = กลับเป็นตัวอักษร
+        if (m) callApi('image', { userId: CURRENT_USER.id, fileId: m[1], thumb: true }).then(r => { if (r.success && r.dataUrl) img.src = r.dataUrl; else fail(); }).catch(fail); else fail();
     };
     img.src = AVA_SRC && AVA_SRC.pic === pic ? AVA_SRC.src : direct;
 }
@@ -1266,13 +1272,7 @@ async function downloadPhoto() {
         const name = `${CURRENT_USER.id}_${new Date(item.timestamp).toISOString().slice(0, 10)}_${String(item.time).replace(':', '')}.jpg`;
         if (dataUrl) {
             const blob = await (await fetch(dataUrl)).blob();
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = name;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+            await FileOffer.offer(blob, name, 'รูปหลักฐาน');
         } else if (item.image) {
             // ดึงไฟล์ผ่าน API ไม่ได้: เปิดรูปในแท็บใหม่ให้บันทึกเอง
             window.open(item.image, '_blank', 'noopener');
@@ -1454,7 +1454,7 @@ function openProblemReport() {
     Analytics.track('problem_open', { p: page });
     Feedback.openProblem({
         who: guest ? 'guest' : 'participant', page: page, userId: guest ? $('loginId').value : '',
-        urgent: 'เรื่องด่วน เช่น ส่งรายงานวันนี้ไม่ได้ โทร <a href="tel:0858354911">085-835-4911</a> (คุณศิวดลย์) หรือ <a href="tel:0858353663">085-835-3663</a> (คุณศักดิพัฒน์)',
+        urgent: 'เรื่องด่วน เช่น ส่งรายงานวันนี้ไม่ได้ โทร <a href="tel:0858354911">085-835-4911</a> <span data-no-i18n>(คุณศิวดลย์)</span> หรือ <a href="tel:0858353663">085-835-3663</a> <span data-no-i18n>(คุณศักดิพัฒน์)</span>',
         send: payload => callApi('problem.report', guest ? payload : Object.assign(payload, { userId: CURRENT_USER.id }))
     });
 }
@@ -1537,6 +1537,7 @@ function initInbox() {
         fetch: () => callApi('inbox.list', { userId: CURRENT_USER.id }),
         push: patch => callApi('inbox.read', Object.assign({ userId: CURRENT_USER.id }, patch)),
         pullState: () => callApi('inbox.state', { userId: CURRENT_USER.id }),
+        ack: id => callApi('inbox.ack', { userId: CURRENT_USER.id, id }),
         openSettings: () => openSettings(),
         show: () => switchTab('inbox'),
         local: inboxLocalItems,

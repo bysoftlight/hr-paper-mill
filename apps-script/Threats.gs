@@ -6,7 +6,7 @@
 // บล็อกเครื่อง = เครื่องนั้นใช้หน้าผู้ใช้สิทธิ์ไม่ได้ (เก็บใน Script Properties: GUARD_BLOCKS)
 
 const THREAT_SHEET = 'Threats';
-const T_HEADERS = ['เวลา', 'ระดับ', 'ประเภท', 'รายละเอียด', 'เครื่อง', 'รหัสผู้ใช้สิทธิ์', 'อุปกรณ์', 'สถานะ', 'จัดการโดย', 'รหัสประเภท'];
+const T_HEADERS = ['timestamp', 'level', 'label', 'details', 'device', 'user_id', 'client', 'status', 'handled_by', 'type'];
 const TC = { TS: 0, LEVEL: 1, LABEL: 2, DETAIL: 3, DEVICE: 4, USER: 5, CLIENT: 6, STATUS: 7, BY: 8, TYPE: 9 };
 const THREAT_LEVELS = { critical: 'วิกฤต', high: 'สูง', medium: 'ปานกลาง' };
 const THREAT_TYPES = {
@@ -128,12 +128,19 @@ function threatOnAnalytics_(ctx, events, throttled) {
   const dev = ctx.did || vid;
   if (throttled) return threat_('analytics_flood', vid, { device: dev, client, detail: 'ส่งข้อมูลสถิติเกินขีดจำกัด (แอป ' + ctx.app + ')' });
   const bump = (k, n, ttl) => { const v = Number(c.get(k) || 0) + n; c.put(k, String(v), ttl); return v; };
-  const total = bump('th:ev:' + vid + ':' + Math.floor(now / 300000), events.length, 400);
-  if (total > 150) threat_('bot_activity', vid, { device: dev, client, detail: total + ' เหตุการณ์ใน 5 นาที (แอป ' + ctx.app + ')' });
-  const je = events.filter(e => e.e === 'js_error').length;
-  if (je && bump('th:je:' + vid, je, 600) >= 10) threat_('error_burst', vid, { device: dev, client, detail: 'ข้อผิดพลาดในหน้าเว็บ ≥10 ครั้งใน 10 นาที: ' + (events.find(e => e.e === 'js_error').l || '') });
-  const sf = events.filter(e => e.e === 'submit_fail').length;
-  if (sf && bump('th:sf:' + vid, sf, 1800) >= 5) threat_('submit_fail_burst', vid, { device: dev, client, detail: 'ส่งรายงานไม่สำเร็จ ≥5 ครั้งใน 30 นาที: ' + (events.filter(e => e.e === 'submit_fail').map(e => e.l).filter(Boolean)[0] || '') });
+  // นับตามเวลาที่เกิดจริงในเครื่อง ไม่ใช่เวลาที่มาถึง — คิวที่ค้างตอนออฟไลน์/ก่อนกดยอมรับคุกกี้ (สูงสุด 300) ถูกส่งรวดเดียว
+  // จะไม่ถูกนับเป็นบอท · เหตุการณ์เก่ากว่า 15 นาทีไม่นับในกฎนี้ (การส่งรัวจริงยังติดกฎ analytics_flood 600/ชั่วโมง)
+  const fresh = events.filter(e => { const t = Number(e && e.t); return t >= now - 900000 && t <= now + 60000; }), recent = {};
+  fresh.forEach(e => { const t = Number(e.t); const k = Math.floor(Math.min(t, now) / 300000); recent[k] = (recent[k] || 0) + 1; });
+  Object.keys(recent).forEach(k => {
+    const total = bump('th:ev:' + vid + ':' + k, recent[k], 1300);
+    if (total > 150) threat_('bot_activity', vid, { device: dev, client, detail: total + ' เหตุการณ์ใน 5 นาที (แอป ' + ctx.app + ')' });
+  });
+  // ผิดพลาดซ้ำ: นับเฉพาะที่เพิ่งเกิด (ของค้างในคิวหลายวันไม่ใช่ "ซ้ำในช่วงสั้น")
+  const je = fresh.filter(e => e.e === 'js_error').length;
+  if (je && bump('th:je:' + vid, je, 600) >= 10) threat_('error_burst', vid, { device: dev, client, detail: 'ข้อผิดพลาดในหน้าเว็บ ≥10 ครั้งใน 10 นาที: ' + (fresh.find(e => e.e === 'js_error').l || '') });
+  const sf = fresh.filter(e => e.e === 'submit_fail').length;
+  if (sf && bump('th:sf:' + vid, sf, 1800) >= 5) threat_('submit_fail_burst', vid, { device: dev, client, detail: 'ส่งรายงานไม่สำเร็จ ≥5 ครั้งใน 30 นาที: ' + (fresh.filter(e => e.e === 'submit_fail').map(e => e.l).filter(Boolean)[0] || '') });
 }
 
 // ---------- บล็อกเครื่อง ----------

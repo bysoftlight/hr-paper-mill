@@ -412,7 +412,7 @@ function findUser_(userId, includeInactive) {
       const flag = data[i][8];
       const active = !(flag === false || String(flag).toUpperCase() === 'FALSE' || String(flag) === '0');
       if (!active && !includeInactive) return null;
-      return { id: String(data[i][0]).trim(), name: String(data[i][1]), status: String(data[i][2]), pic: toImageUrl_(data[i][3]), active: active, org: String(data[i][UCOL.ORG] || '').trim() };
+      return { id: String(data[i][0]).trim(), name: String(data[i][1]), status: String(data[i][2]), pic: toImageUrl_(data[i][3]), active: active, org: String(data[i][UCOL.ORG] || '').trim(), site: String(data[i][UCOL.SITE] || '').trim() };
     }
   }
   return null;

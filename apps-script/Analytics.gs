@@ -8,10 +8,7 @@
 
 const ANALYTICS_SHEET = 'Analytics';
 // คอลัมน์ใหม่ต่อท้ายเสมอ (แถวเก่ายังตรงคอลัมน์เดิม)
-const A_HEADERS = ['เวลา', 'วันที่', 'ชั่วโมง', 'แอป', 'กลุ่ม', 'ผู้เยี่ยมชม', 'เซสชัน', 'เหตุการณ์', 'หน้า', 'ป้าย', 'ค่า',
-  'อุปกรณ์', 'ระบบ', 'เบราว์เซอร์', 'แอปบนหน้าจอ', 'ความกว้างจอ', 'ที่มา', 'ผู้ใช้ใหม่',
-  'รหัสผู้ใช้', 'ชื่อ', 'รหัสเครื่อง', 'รุ่นอุปกรณ์', 'เวอร์ชันระบบ', 'เวอร์ชันเบราว์เซอร์', 'ภาษา', 'เขตเวลา',
-  'ละติจูด', 'ลองจิจูด', 'ความแม่นยำ (ม.)', 'พื้นที่', 'รายละเอียด'];
+const A_HEADERS = ['timestamp', 'date', 'hour', 'app', 'role', 'visitor_id', 'session_id', 'event', 'page', 'label', 'value', 'device', 'os', 'browser', 'standalone', 'screen_width', 'referrer', 'is_new', 'user_id', 'user_name', 'device_id', 'device_model', 'os_version', 'browser_version', 'language', 'timezone', 'lat', 'lng', 'accuracy_m', 'area', 'details'];
 const AC = { TS: 0, DATE: 1, HOUR: 2, APP: 3, ROLE: 4, VID: 5, SID: 6, EVENT: 7, PAGE: 8, LABEL: 9, VALUE: 10,
   DEVICE: 11, OS: 12, BROWSER: 13, PWA: 14, SCREEN: 15, REF: 16, NEW: 17,
   UID: 18, NAME: 19, DID: 20, MODEL: 21, OS_VER: 22, BR_VER: 23, LANG: 24, TZ: 25, LAT: 26, LNG: 27, ACC: 28, AREA: 29, DETAIL: 30 };
@@ -148,6 +145,16 @@ function analyticsDetail_(d) {
     .map(k => String(k).replace(/[^\w]/g, '').slice(0, 20) + '=' + String(o[k]).slice(0, 60)).join(' · '), 200);
 }
 
+// ---------- ขอบเขตองค์กร: ผู้ดูแลองค์กรเห็นเฉพาะการใช้งานของคนในองค์กร (ผู้ใช้สิทธิ์ตามรหัส · เจ้าหน้าที่ตามอีเมล) ----------
+// ผู้เยี่ยมชมที่ยังไม่เข้าสู่ระบบ และเว็บใบเสนอราคา ไม่นับรวม (ไม่รู้ว่าเป็นขององค์กรไหน) · Dev / ระบบที่ไม่แบ่งองค์กร = เห็นทั้งหมด
+function analyticsScope_() {
+  if (!SCOPE_ORG_) return null;
+  const ids = {};
+  readParticipants_().forEach(p => { ids[String(p.id).toUpperCase()] = true; });
+  readStaff_().forEach(s => { if (s.org === SCOPE_ORG_) { if (s.email) ids[String(s.email).toUpperCase()] = true; ids[String(s.id).toUpperCase()] = true; } });
+  return r => !!ids[String(r[AC.UID] || '').trim().toUpperCase()];
+}
+
 // ---------- อ่านข้อมูลตามช่วงวัน (ข้อมูลเรียงตามเวลา → หาแถวแรกด้วยคอลัมน์วันที่อย่างเดียว เร็วกว่าอ่านทั้งชีต) ----------
 function analyticsRows_(fromDate) {
   const sh = analyticsSheet_(), last = sh.getLastRow();
@@ -164,7 +171,8 @@ function analyticsRows_(fromDate) {
 // เรียลไทม์อย่างเดียว: อ่านเฉพาะแถวท้ายชีต (30 นาทีล่าสุด) — เร็ว ใช้รีเฟรชถี่ๆ ขณะเปิดหน้าสถิติ
 function analyticsLive_(req) {
   const app = ANALYTICS_APPS.indexOf(req.app) === -1 ? 'all' : req.app;
-  const cache = CacheService.getScriptCache(), key = 'an:live:' + app;
+  const scope = analyticsScope_();
+  const cache = CacheService.getScriptCache(), key = 'an:live:' + app + ':' + (SCOPE_ORG_ || '*');
   const hit = cache.get(key);
   if (hit) return JSON.parse(hit);
   const sh = analyticsSheet_(), last = sh.getLastRow();
@@ -178,7 +186,7 @@ function analyticsLive_(req) {
       n = Math.min(last - 1, n * 3);
     }
   }
-  const out = { success: true, generatedAt: Date.now(), realtime: realtime_(rows.filter(r => app === 'all' || r[AC.APP] === app)) };
+  const out = { success: true, generatedAt: Date.now(), realtime: realtime_(rows.filter(r => (app === 'all' || r[AC.APP] === app) && (!scope || scope(r)))) };
   try { cache.put(key, JSON.stringify(out), 10); } catch (e) {}
   return out;
 }
@@ -199,11 +207,12 @@ function analyticsReport_(req) {
   const prevFrom = addDays_(from, -span), prevTo = addDays_(from, -1);
   const app = ANALYTICS_APPS.indexOf(req.app) === -1 ? 'all' : req.app;
 
-  const key = 'an:r:' + [from, to, app].join(':');
+  const key = 'an:r:' + [from, to, app, SCOPE_ORG_ || '*'].join(':');
   const cache = CacheService.getScriptCache();
   if (!req.fresh) { const hit = cache.get(key); if (hit) return JSON.parse(hit); }
 
-  const all = analyticsRows_(prevFrom);
+  const scope = analyticsScope_();
+  const all = scope ? analyticsRows_(prevFrom).filter(scope) : analyticsRows_(prevFrom);
   const pick = r => app === 'all' || r[AC.APP] === app;
   const cur = [], prev = [];
   all.forEach(r => { if (!pick(r)) return; const d = String(r[AC.DATE]); if (d >= from && d <= to) cur.push(r); else if (d >= prevFrom && d <= prevTo) prev.push(r); });

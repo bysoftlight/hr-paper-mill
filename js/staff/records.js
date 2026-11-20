@@ -413,6 +413,7 @@ VIEWS.records = {
         ];
         if (rec.updatedBy) rows.push(['แก้ไขล่าสุด', `${esc(rec.updatedBy)} · ${rec.updatedAt ? thDateTime(rec.updatedAt) : ''}`]);
         $('recKv').innerHTML = rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+        EditHistory.mount($('recHist'), { kind: 'record', userId: rec.userId, date: rec.date });
         // รูปซ้ำ: แตะเพื่อเปิดรายการที่ใช้รูปเดียวกัน
         $('recKv').querySelectorAll('[data-dup-row]').forEach(b => b.addEventListener('click', async () => {
             const d = rec.dupWith.find(x => String(x.row) === b.dataset.dupRow);
@@ -422,11 +423,12 @@ VIEWS.records = {
 
         const acts = [];
         if (rec.fileId) acts.push(`<button type="button" class="btn btn-outline" id="recDownload">${icon('download')} ดาวน์โหลดรูป</button>`);
-        if (can('records.edit')) {
+        // ลบ/กู้คืน แยกสิทธิ์จากแก้ไข (records.delete)
+        if (can('records.delete')) {
             if (rec.status === 'deleted') acts.push(`<button type="button" class="btn btn-outline" id="recRestore">${icon('restore')} กู้คืน</button>`);
             else acts.push(`<button type="button" class="btn btn-danger" id="recDelete">${icon('trash')} ลบ</button>`);
-            acts.push(`<button type="button" class="btn btn-primary" id="recEdit">${icon('edit')} แก้ไข</button>`);
         }
+        if (can('records.edit')) acts.push(`<button type="button" class="btn btn-primary" id="recEdit">${icon('edit')} แก้ไข</button>`);
         if (!acts.length) acts.push('<button type="button" class="btn btn-outline" data-close>ปิด</button>');
         $('recActions').innerHTML = acts.join('');
         const on = (id, fn) => { const b = $(id); if (b) b.addEventListener('click', fn); };
@@ -441,11 +443,7 @@ VIEWS.records = {
         const url = await imageData(rec.fileId);
         if (!url) return showMessage({ title: 'ดาวน์โหลดไม่สำเร็จ', text: 'ไม่พบไฟล์รูปของรายการนี้', tone: 'bad' });
         const blob = await (await fetch(url)).blob();
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `${rec.userId}_${rec.date}_${rec.time.replace(':', '')}.jpg`;
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+        await FileOffer.offer(blob, `${rec.userId}_${rec.date}_${rec.time.replace(':', '')}.jpg`, 'รูปหลักฐาน');
     },
 
     askReason({ title, text, okText }) {

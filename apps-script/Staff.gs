@@ -1,6 +1,12 @@
 // Staff.gs — API สำหรับหน้า Dashboard ของเจ้าหน้าที่ (staff.html)
 // ทุกคำสั่ง (ยกเว้น config / auth) ต้องมี token และสิทธิ์ตามที่กำหนด
 
+// ระบบป้องกัน (โหมดป้องกัน การบล็อกเครื่อง เหตุการณ์เสี่ยง) ใช้ร่วมกันทั้งระบบทุกองค์กร
+// → เฉพาะ Dev และบัญชีที่ไม่ได้ผูกองค์กร (ระบบที่ยังไม่แบ่งองค์กร) · ผู้ดูแลขององค์กรลูกค้าจัดการไม่ได้
+function requireSystemAdmin_(staff) {
+  if (SCOPE_ORG_) fail_('FORBIDDEN', 'ระบบความปลอดภัยดูแลโดยผู้ให้บริการ หากพบความผิดปกติกรุณาแจ้งปัญหาการใช้งาน');
+}
+
 function handleStaffRequest_(req) {
   const ua = String(req.userAgent || '').slice(0, 200);
   switch (req.action) {
@@ -25,7 +31,8 @@ function handleStaffRequest_(req) {
   SCOPE_ORG_ = isDev_(staff) ? null : (staff.org || null);
   const sub = staff.org && typeof orgAccess_ === 'function' ? orgAccess_(staff.org) : null;
   // หมดช่วงทดลอง / ค้างชำระเกินกำหนด / ถูกระงับ: ใช้งานไม่ได้ (ยกเว้นดูบัญชีตัวเอง ออกจากระบบ และ Dev)
-  if (sub && !sub.ok && !isDev_(staff) && !/^staff\.(me|logout|inbox\.)/.test(req.action)) fail_('SUBSCRIPTION', sub.message);
+  // ผู้ดูแลการเงินยังเปิดข้อมูลการชำระเงินได้ (เพื่อชำระแล้วกลับมาใช้งาน)
+  if (sub && !sub.ok && !isDev_(staff) && !/^staff\.(me|logout|inbox\.)/.test(req.action) && !(/^staff\.billing\.(info|slip|slipImage)$/.test(req.action) && can_(staff, 'billing'))) fail_('SUBSCRIPTION', sub.message);
   if (/^dev\./.test(req.action)) {
     if (!isDev_(staff)) fail_('FORBIDDEN', 'เฉพาะบัญชี Dev เท่านั้น');
     if (typeof handleDev_ !== 'function') return { success: false, message: 'ต้องเพิ่มไฟล์ Billing.gs ใน Apps Script ก่อน' };
@@ -33,6 +40,7 @@ function handleStaffRequest_(req) {
   }
   switch (req.action) {
     case 'staff.me':
+      try { migrateHeadersEn_(); } catch (e) { console.warn('migrateHeadersEn_', e); } // ครั้งเดียวหลังอัปเดต
       return { success: true, staff: staffDto_(staff), token: renewedToken_(staff), subscription: sub && typeof orgAccessDto_ === 'function' ? orgAccessDto_(sub) : null };
     case 'staff.profile.photo':
       return staffProfilePhoto_(req, staff, ua);
@@ -60,10 +68,10 @@ function handleStaffRequest_(req) {
       requirePerm_(staff, 'records.edit');
       return staffRecordSave_(req, staff, ua);
     case 'staff.records.delete':
-      requirePerm_(staff, 'records.edit');
+      requirePerm_(staff, 'records.delete');
       return staffRecordSetStatus_(req, staff, 'deleted', ua);
     case 'staff.records.restore':
-      requirePerm_(staff, 'records.edit');
+      requirePerm_(staff, 'records.delete');
       return staffRecordSetStatus_(req, staff, 'active', ua);
     case 'staff.participants.list':
       requirePerm_(staff, 'participants.view');
@@ -72,8 +80,14 @@ function handleStaffRequest_(req) {
       requirePerm_(staff, 'participants.edit');
       return staffParticipantSave_(req, staff, ua);
     case 'staff.participants.delete':
-      requirePerm_(staff, 'participants.edit');
+      requirePerm_(staff, 'participants.delete');
       return staffParticipantDelete_(req, staff, ua);
+    case 'staff.participants.trash':
+      requirePerm_(staff, 'participants.delete');
+      return staffParticipantsTrash_();
+    case 'staff.participants.restore':
+      requirePerm_(staff, 'participants.delete');
+      return staffParticipantRestore_(req, staff, ua);
     case 'staff.contacts.list':
       requirePerm_(staff, 'participants.view');
       return { success: true, contacts: readContacts_(String(req.participantId || '').toUpperCase(), 50) };
@@ -111,16 +125,20 @@ function handleStaffRequest_(req) {
       return { success: true };
     case 'admin.security.status':
       requirePerm_(staff, 'admin');
+      requireSystemAdmin_(staff);
       return guardStatus_();
     case 'admin.security.shield':
       requirePerm_(staff, 'admin');
+      requireSystemAdmin_(staff);
       return guardSetShield_(!!req.on, staff, ua);
     case 'admin.security.block':
       requirePerm_(staff, 'admin');
+      requireSystemAdmin_(staff);
       if (typeof threatBlock_ !== 'function') return { success: false, message: 'ต้องเพิ่มไฟล์ Threats.gs ใน Apps Script ก่อน' };
       return threatBlock_(req.device, !!req.on, req.reason, staff, ua, Number(req.days) || 30);
     case 'admin.security.threat':
       requirePerm_(staff, 'admin');
+      requireSystemAdmin_(staff);
       if (typeof threatSetStatus_ !== 'function') return { success: false, message: 'ต้องเพิ่มไฟล์ Threats.gs ใน Apps Script ก่อน' };
       return threatSetStatus_(req.row, req.status, staff, ua);
     case 'admin.staff.list':
@@ -138,6 +156,19 @@ function handleStaffRequest_(req) {
     case 'admin.logs.list':
       requirePerm_(staff, 'admin');
       return adminLogsList_(req);
+    case 'admin.history':
+      requirePerm_(staff, 'admin');
+      return adminHistory_(req);
+    case 'staff.billing.info':
+      requirePerm_(staff, 'billing');
+      if (typeof orgBillingInfo_ !== 'function') return { success: false, message: 'ต้องเพิ่มไฟล์ Billing.gs ใน Apps Script ก่อน' };
+      return orgBillingInfo_(staff);
+    case 'staff.billing.slip':
+      requirePerm_(staff, 'billing');
+      return orgInvoiceSlip_(req, staff, ua);
+    case 'staff.billing.slipImage':
+      requirePerm_(staff, 'billing');
+      return invoiceSlipImage_(req, staff);
     default:
       // แจ้งปัญหา / แบบสอบถาม (Feedback.gs)
       // กล่องการแจ้งเตือน / ประกาศ (Inbox.gs)
@@ -155,7 +186,8 @@ function handleStaffRequest_(req) {
 
 // ---------- อ่านข้อมูล ----------
 // ผู้ใช้สิทธิ์ (เฉพาะองค์กรของผู้เรียก ถ้ามี SCOPE_ORG_) · unscoped = ทุกองค์กร (ใช้ตรวจรหัสซ้ำ ซึ่งต้องไม่ซ้ำทั้งระบบ)
-function readParticipants_(unscoped) {
+// withDeleted = รวมคนที่อยู่ในถังขยะ (ปกติไม่รวม — เหมือนถูกลบไปแล้ว)
+function readParticipants_(unscoped, withDeleted) {
   const list = readRows_(SHEET.USERS, U_HEADERS.length).map((r, i) => {
     const id = String(r[UCOL.ID] || '').trim().toUpperCase();
     if (!id) return null;
@@ -166,9 +198,11 @@ function readParticipants_(unscoped) {
       siteLat: num_(r[UCOL.SITE_LAT]), siteLng: num_(r[UCOL.SITE_LNG]), phone: String(r[UCOL.PHONE] || ''),
       active: !(active === false || String(active).toUpperCase() === 'FALSE' || active === 0 || String(active) === '0'),
       note: String(r[UCOL.NOTE] || ''), updatedAt: toDate_(r[UCOL.UPDATED_AT]), updatedBy: String(r[UCOL.UPDATED_BY] || ''),
-      org: String(r[UCOL.ORG] || '').trim()
+      org: String(r[UCOL.ORG] || '').trim(),
+      deletedAt: toDate_(r[UCOL.DELETED_AT]), deletedBy: String(r[UCOL.DELETED_BY] || ''), deleteReason: String(r[UCOL.DELETE_REASON] || ''),
+      prevActive: String(r[UCOL.PREV_ACTIVE] || '').toUpperCase() !== 'FALSE'
     };
-  }).filter(Boolean);
+  }).filter(p => p && (withDeleted || !p.deletedAt));
   return unscoped || !SCOPE_ORG_ ? list : list.filter(p => p.org === SCOPE_ORG_);
 }
 // รหัสผู้ใช้สิทธิ์ที่อยู่ในขอบเขตของผู้เรียก (null = ทุกคน)
@@ -612,14 +646,16 @@ function staffParticipantSave_(req, staff, ua) {
   lock.waitLock(15000);
   try {
     const sh = sheet_(SHEET.USERS);
-    const all = readParticipants_(true);
+    const all = readParticipants_(true, true); // รวมถังขยะ: รหัสของคนที่เพิ่งลบยังห้ามใช้ซ้ำ
     const isNew = !req.originalId;
     const oldId = isNew ? id : String(req.originalId).trim().toUpperCase();
-    const existing = isNew ? null : all.filter(x => x.id === oldId && (!SCOPE_ORG_ || x.org === SCOPE_ORG_))[0];
-    if (isNew && SCOPE_ORG_ && typeof orgSeatCheck_ === 'function') orgSeatCheck_(SCOPE_ORG_, 'participants', all);
+    const existing = isNew ? null : all.filter(x => x.id === oldId && !x.deletedAt && (!SCOPE_ORG_ || x.org === SCOPE_ORG_))[0];
+    if (isNew && SCOPE_ORG_ && typeof orgSeatCheck_ === 'function') orgSeatCheck_(SCOPE_ORG_, 'participants', all.filter(x => !x.deletedAt));
     if (!isNew && !existing) fail_('INVALID', 'ไม่พบผู้ใช้สิทธิ์นี้ (อาจถูกลบหรือเปลี่ยนรหัสไปแล้ว) กรุณารีเฟรชข้อมูล');
     // รหัสห้ามซ้ำกับผู้ใช้สิทธิ์คนอื่น
-    if (all.some(x => x.id === id && x !== existing)) fail_('INVALID', 'รหัส ' + id + ' มีผู้ใช้สิทธิ์คนอื่นใช้อยู่แล้ว');
+    const clash = all.filter(x => x.id === id && x !== existing)[0];
+    if (clash && clash.deletedAt) fail_('INVALID', 'รหัส ' + id + ' อยู่ในถังขยะ (ลบเมื่อ ' + fmtDate_(clash.deletedAt) + ') — กู้คืนได้ที่ ผู้ใช้สิทธิ์ › ถังขยะ หรือใช้รหัสอื่น');
+    if (clash) fail_('INVALID', 'รหัส ' + id + ' มีผู้ใช้สิทธิ์คนอื่นใช้อยู่แล้ว');
     const renaming = !isNew && oldId !== id;
     // กันประวัติปนกัน: รหัสใหม่ต้องไม่เคยมีรายงาน (เช่น รหัสของผู้ใช้สิทธิ์ที่ถูกลบไปแล้ว)
     if (renaming && countRecordsOf_(id) > 0) fail_('INVALID', 'รหัส ' + id + ' มีประวัติรายงานของผู้ใช้สิทธิ์เดิมอยู่ กรุณาใช้รหัสอื่น');
@@ -670,7 +706,11 @@ function renameRecordsUser_(oldId, newId) {
   return n;
 }
 
-// ลบบัญชีผู้ใช้สิทธิ์: ลบแถวใน Users (เข้าสู่ระบบไม่ได้อีก) — ประวัติรายงานยังอยู่ครบและแสดงชื่อเดิมในรายงาน
+// ลบบัญชีผู้ใช้สิทธิ์ = ย้ายไปถังขยะ: เข้าสู่ระบบไม่ได้ทันที · กู้คืนได้ภายใน PARTICIPANT_TRASH_DAYS วัน · ครบกำหนดแล้วลบถาวร
+// (ลบแถวใน Users + รูปโปรไฟล์ไปถังขยะ Drive) — ประวัติรายงานยังอยู่ครบเสมอ
+function trashCols_(sh) {
+  if (sh.getLastColumn() < U_HEADERS.length) [UCOL.DELETED_AT, UCOL.DELETED_BY, UCOL.DELETE_REASON, UCOL.PREV_ACTIVE].forEach(c => ensureHeader_(sh, c, U_HEADERS[c]));
+}
 function staffParticipantDelete_(req, staff, ua) {
   const id = String(req.id || '').trim().toUpperCase();
   const reason = clean_(req.reason, 300);
@@ -680,14 +720,61 @@ function staffParticipantDelete_(req, staff, ua) {
   try {
     const p = readParticipants_().filter(x => x.id === id)[0];
     if (!p) fail_('INVALID', 'ไม่พบผู้ใช้สิทธิ์นี้ (อาจถูกลบไปแล้ว)');
-    sheet_(SHEET.USERS).deleteRow(p.row);
-    const photoTrashed = trashProfilePhoto_(p.picRaw, id);
+    const sh = sheet_(SHEET.USERS);
+    trashCols_(sh);
+    sh.getRange(p.row, UCOL.ACTIVE + 1).setValue(false);
+    sh.getRange(p.row, UCOL.DELETED_AT + 1, 1, 4).setValues([[new Date(), staff.email || staff.name, reason, p.active ? 'TRUE' : 'FALSE']]);
     const records = countRecordsOf_(id);
-    log_(staff, 'participants.delete', id + ' ' + p.name, { reason: reason, site: p.site, records: records, photoTrashed: photoTrashed }, ua);
-    return { success: true, records: records };
+    log_(staff, 'participants.delete', id + ' ' + p.name, { reason: reason, site: p.site, records: records, trashDays: PARTICIPANT_TRASH_DAYS }, ua);
+    purgeParticipantTrash_();
+    return { success: true, records: records, trashDays: PARTICIPANT_TRASH_DAYS };
   } finally {
     lock.releaseLock();
   }
+}
+// ถังขยะ (เฉพาะองค์กรของผู้เรียก): ใครถูกลบ เมื่อไร โดยใคร เหตุผล และลบถาวรวันไหน
+function staffParticipantsTrash_() {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try { purgeParticipantTrash_(); } finally { lock.releaseLock(); }
+  const counts = {};
+  readRows_(SHEET.RECORDS, RCOL.USER_ID + 1).forEach(r => { const k = String(r[RCOL.USER_ID]).trim().toUpperCase(); counts[k] = (counts[k] || 0) + 1; });
+  const list = readParticipants_(false, true).filter(p => p.deletedAt).map(p => ({
+    id: p.id, name: p.name, site: p.site, pic: p.pic, phone: p.phone, deletedAt: p.deletedAt.getTime(), deletedBy: p.deletedBy, reason: p.deleteReason,
+    purgeAt: p.deletedAt.getTime() + PARTICIPANT_TRASH_DAYS * 86400000, records: counts[p.id] || 0
+  })).sort((a, b) => b.deletedAt - a.deletedAt);
+  return { success: true, trash: list, days: PARTICIPANT_TRASH_DAYS };
+}
+function staffParticipantRestore_(req, staff, ua) {
+  const id = String(req.id || '').trim().toUpperCase();
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    const p = readParticipants_(false, true).filter(x => x.id === id && x.deletedAt)[0];
+    if (!p) fail_('INVALID', 'ไม่พบรายการนี้ในถังขยะ (อาจถูกกู้คืนหรือลบถาวรไปแล้ว)');
+    if (p.org && typeof orgSeatCheck_ === 'function') orgSeatCheck_(p.org, 'participants'); // กู้คืนแล้วต้องไม่เกินจำนวนตามแพลน
+    const sh = sheet_(SHEET.USERS);
+    sh.getRange(p.row, UCOL.ACTIVE + 1).setValue(p.prevActive);
+    sh.getRange(p.row, UCOL.DELETED_AT + 1, 1, 4).setValues([['', '', '', '']]);
+    sh.getRange(p.row, UCOL.UPDATED_AT + 1, 1, 2).setValues([[new Date(), staff.email || staff.name]]);
+    log_(staff, 'participants.restore', id + ' ' + p.name, { deletedAt: fmtDate_(p.deletedAt), reason: p.deleteReason }, ua);
+    return { success: true, id: id, active: p.prevActive };
+  } finally {
+    lock.releaseLock();
+  }
+}
+// ลบถาวรรายการที่อยู่ในถังขยะครบกำหนดแล้ว (ทุกองค์กร) — เรียกตอนลบ/เปิดถังขยะ (ต้องถือ lock อยู่)
+function purgeParticipantTrash_() {
+  const cut = Date.now() - PARTICIPANT_TRASH_DAYS * 86400000;
+  const old = readParticipants_(true, true).filter(p => p.deletedAt && p.deletedAt.getTime() < cut).sort((a, b) => b.row - a.row);
+  if (!old.length) return 0;
+  const sh = sheet_(SHEET.USERS);
+  old.forEach(p => {
+    sh.deleteRow(p.row);
+    const photoTrashed = trashProfilePhoto_(p.picRaw, p.id);
+    log_({ id: 'system', name: 'ระบบ', role: 'system', org: p.org }, 'participants.purge', p.id + ' ' + p.name, { deletedAt: fmtDate_(p.deletedAt), deletedBy: p.deletedBy, photoTrashed: photoTrashed }, '');
+  });
+  return old.length;
 }
 
 // รูปโปรไฟล์ผู้ใช้สิทธิ์: ไฟล์ชื่อ IMG_<รหัส> ในโฟลเดอร์รูปโปรไฟล์ (เปลี่ยนได้ด้วย Script Property PROFILE_FOLDER_ID)
@@ -709,13 +796,18 @@ function staffProfilePhoto_(req, staff, ua) {
 
 function saveProfilePhoto_(id, photo) { return saveNamedImage_('IMG_' + id, photo); }
 // บันทึกรูปลงโฟลเดอร์รูป (PROFILE_FOLDER_ID) ชื่อ name — ใช้กับรูปโปรไฟล์ · โลโก้องค์กร (LOGO_<รหัส>) · รูปประกาศ (NEWS_<รหัส>)
-function saveNamedImage_(name, photo) {
+// ตรวจรูปที่ส่งมา (base64): ชนิดไฟล์ที่อนุญาต · ไม่ว่าง · ไม่เกินขนาด — ใช้ร่วมกับรูปโปรไฟล์ โลโก้ และสลิปโอนเงิน
+function decodeImage_(photo, maxBytes, emptyMsg) {
   photo = photo || {};
   const mime = /^image\/(jpeg|png|webp)$/.test(String(photo.mimeType)) ? photo.mimeType : 'image/jpeg';
   let bytes;
   try { bytes = Utilities.base64Decode(String(photo.data || '')); } catch (e) { fail_('INVALID', 'ไฟล์รูปไม่ถูกต้อง'); }
-  if (!bytes.length) fail_('INVALID', 'ไฟล์รูปไม่ถูกต้อง');
-  if (bytes.length > MAX_PROFILE_BYTES) fail_('INVALID', 'รูปมีขนาดใหญ่เกิน 2 MB');
+  if (!bytes || !bytes.length) fail_('INVALID', emptyMsg || 'ไฟล์รูปไม่ถูกต้อง');
+  if (bytes.length > maxBytes) fail_('INVALID', 'รูปมีขนาดใหญ่เกิน ' + Math.round(maxBytes / 1048576) + ' MB');
+  return { bytes: bytes, mime: mime };
+}
+function saveNamedImage_(name, photo) {
+  const img = decodeImage_(photo, MAX_PROFILE_BYTES), bytes = img.bytes, mime = img.mime;
   let folder;
   try { folder = DriveApp.getFolderById(prop_('PROFILE_FOLDER_ID') || PROFILE_FOLDER_ID); }
   catch (e) { fail_('ERROR', 'เปิดโฟลเดอร์รูปโปรไฟล์ไม่ได้ กรุณาตรวจสอบสิทธิ์ของบัญชีที่ Deploy'); }
@@ -776,7 +868,7 @@ function staffLogoutEverywhere_(staff, ua) {
 
 // ---------- บันทึกการติดต่อผู้ใช้สิทธิ์ (แผ่น Contacts สร้างอัตโนมัติ) ----------
 const CONTACT_SHEET = 'Contacts';
-const C_HEADERS = ['เวลา', 'รหัสผู้ใช้สิทธิ์', 'ผลการติดต่อ', 'เหตุผล/รายละเอียด', 'เจ้าหน้าที่ (ID)', 'เจ้าหน้าที่'];
+const C_HEADERS = ['timestamp', 'user_id', 'result', 'details', 'staff_id', 'staff_name'];
 const CONTACT_RESULTS = { called: 'โทรแล้ว ติดต่อได้', no_answer: 'โทรแล้ว ไม่รับสาย', reason: 'แจ้งเหตุผล', visit: 'ลงพื้นที่/พบตัว', other: 'อื่นๆ' };
 function contactSheet_() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);

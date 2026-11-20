@@ -11,15 +11,16 @@
 const BILL_SHEET = { ORGS: 'Orgs', PLANS: 'Plans', ACCOUNTS: 'PayAccounts', INVOICES: 'Invoices' };
 const BO = { ID: 0, NAME: 1, CONTACT: 2, EMAIL: 3, PHONE: 4, TAX_ID: 5, ADDRESS: 6, PLAN: 7, STATUS: 8, CYCLE: 9, TRIAL_START: 10, TRIAL_END: 11,
   PERIOD_START: 12, PERIOD_END: 13, MAX_USERS: 14, MAX_STAFF: 15, NOTE: 16, CREATED_AT: 17, UPDATED_AT: 18, UPDATED_BY: 19, LOGO: 20 };
-const BO_HEADERS = ['รหัส', 'ชื่อบริษัท/องค์กร', 'ผู้ติดต่อ', 'อีเมล', 'โทร', 'เลขผู้เสียภาษี', 'ที่อยู่', 'แพลน', 'สถานะ', 'รอบบิล', 'เริ่มทดลอง', 'สิ้นสุดทดลอง',
-  'เริ่มรอบบิล', 'สิ้นสุดรอบบิล', 'ผู้ใช้สิทธิ์สูงสุด (กำหนดเอง)', 'เจ้าหน้าที่สูงสุด (กำหนดเอง)', 'หมายเหตุ', 'สร้างเมื่อ', 'แก้ไขล่าสุด', 'แก้ไขโดย', 'โลโก้'];
+const BO_HEADERS = ['org_id', 'name', 'contact', 'email', 'phone', 'tax_id', 'address', 'plan', 'status', 'billing_cycle', 'trial_start', 'trial_end', 'period_start', 'period_end', 'max_users_override', 'max_staff_override', 'note', 'created_at', 'updated_at', 'updated_by', 'logo'];
 const BP = { ID: 0, NAME: 1, TAGLINE: 2, PRICE_M: 3, PRICE_Y: 4, MAX_USERS: 5, MAX_STAFF: 6, FEATURES: 7, HIGHLIGHT: 8, PUBLIC: 9, ORDER: 10, ACTIVE: 11, TRIAL_DAYS: 12, UPDATED_AT: 13, SETUP: 14, FROM: 15 };
-const BP_HEADERS = ['รหัส', 'ชื่อแพลน', 'คำโปรย', 'ราคา/เดือน (บาท)', 'ราคา/ปี (บาท)', 'ผู้ใช้สิทธิ์สูงสุด (0 = ไม่จำกัด)', 'เจ้าหน้าที่สูงสุด (0 = ไม่จำกัด)',
-  'ฟีเจอร์ (บรรทัดละข้อ)', 'แนะนำ', 'แสดงในหน้าแพ็กเกจ', 'ลำดับ', 'ใช้งาน', 'วันทดลองใช้', 'แก้ไขล่าสุด', 'ค่าติดตั้ง ครั้งเดียว (บาท)', 'แสดงเป็นราคาเริ่มต้น'];
+const BP_HEADERS = ['plan_id', 'name', 'tagline', 'price_monthly_thb', 'price_yearly_thb', 'max_users (0 = unlimited)', 'max_staff (0 = unlimited)', 'features (one per line)', 'highlight', 'public', 'sort_order', 'active', 'trial_days', 'updated_at', 'setup_fee_thb', 'show_as_from_price'];
 const BA = { ID: 0, TYPE: 1, BANK: 2, NAME: 3, NUMBER: 4, BRANCH: 5, DEFAULT: 6, ACTIVE: 7, NOTE: 8, UPDATED_AT: 9 };
-const BA_HEADERS = ['รหัส', 'ประเภท', 'ธนาคาร/ผู้ให้บริการ', 'ชื่อบัญชี', 'เลขบัญชี/พร้อมเพย์', 'สาขา', 'ค่าเริ่มต้น', 'ใช้งาน', 'หมายเหตุ', 'แก้ไขล่าสุด'];
-const BI = { ID: 0, ORG: 1, PLAN: 2, CYCLE: 3, PERIOD_START: 4, PERIOD_END: 5, AMOUNT: 6, STATUS: 7, ISSUED: 8, DUE: 9, PAID_AT: 10, ACCOUNT: 11, METHOD: 12, REF: 13, NOTE: 14, BY: 15 };
-const BI_HEADERS = ['เลขที่', 'องค์กร', 'แพลน', 'รอบบิล', 'เริ่มรอบ', 'สิ้นสุดรอบ', 'จำนวนเงิน (บาท)', 'สถานะ', 'วันที่ออก', 'ครบกำหนด', 'ชำระเมื่อ', 'บัญชีรับเงิน', 'ช่องทาง', 'เลขอ้างอิง', 'หมายเหตุ', 'บันทึกโดย'];
+const BA_HEADERS = ['account_id', 'type', 'bank_provider', 'account_name', 'account_number', 'branch', 'is_default', 'active', 'note', 'updated_at'];
+const BI = { ID: 0, ORG: 1, PLAN: 2, CYCLE: 3, PERIOD_START: 4, PERIOD_END: 5, AMOUNT: 6, STATUS: 7, ISSUED: 8, DUE: 9, PAID_AT: 10, ACCOUNT: 11, METHOD: 12, REF: 13, NOTE: 14, BY: 15,
+  SLIP: 16, SLIP_AT: 17, SLIP_BY: 18, SLIP_NOTE: 19 };
+const BI_HEADERS = ['invoice_id', 'org_id', 'plan', 'billing_cycle', 'period_start', 'period_end', 'amount_thb', 'status', 'issued_at', 'due_at', 'paid_at', 'pay_account', 'method', 'reference', 'note', 'recorded_by',
+  'slip_file', 'slip_uploaded_at', 'slip_uploaded_by', 'slip_note'];
+const MAX_SLIP_BYTES = 4 * 1024 * 1024;
 
 const ORG_STATUSES = ['trial', 'active', 'past_due', 'suspended', 'cancelled'];
 const ORG_STATUS_TH = { trial: 'ทดลองใช้', active: 'ใช้งาน', past_due: 'ค้างชำระ', suspended: 'ระงับ', cancelled: 'ยกเลิก' };
@@ -57,6 +58,7 @@ function billSheet_(name, headers) {
     }
     if (name === BILL_SHEET.PLANS) PropertiesService.getScriptProperties().setProperty('PLANS_V', PLANS_VERSION);
   } else if (name === BILL_SHEET.PLANS) migratePlans_(sh);
+  else if (sh.getLastColumn() < headers.length) sh.getRange(1, 1, 1, headers.length).setValues([headers]); // เพิ่มหัวคอลัมน์ใหม่ (เช่น สลิป) ให้ชีตเดิม
   return sh;
 }
 // แพลนรุ่นแรก (Starter 990 / Pro 2,490 / Enterprise) ที่ยังไม่ได้แก้ → เปลี่ยนเป็นชุดใหม่ (Lite / Pro / Enterprise) ครั้งเดียว
@@ -94,6 +96,7 @@ const money_ = v => { const n = Number(String(v === null || v === undefined ? ''
 const int_ = v => { const n = Math.floor(Number(v)); return isFinite(n) && n > 0 ? n : 0; };
 function billGen_() { try { CacheService.getScriptCache().put('bill:gen', String(Date.now()) + Math.random().toString(36).slice(2, 5), 21600); } catch (e) {} }
 
+const LOGO_INLINE_MAX = 40000; // ตัวอักษร (1 ช่องในชีตเก็บได้ 50,000)
 function orgFromRow_(x) {
   const r = x.r;
   return {
@@ -103,7 +106,8 @@ function orgFromRow_(x) {
     trialStart: ts_(r[BO.TRIAL_START]), trialEnd: ts_(r[BO.TRIAL_END]), periodStart: ts_(r[BO.PERIOD_START]), periodEnd: ts_(r[BO.PERIOD_END]),
     maxUsers: int_(r[BO.MAX_USERS]), maxStaff: int_(r[BO.MAX_STAFF]), note: plain_(r[BO.NOTE]),
     createdAt: ts_(r[BO.CREATED_AT]), updatedAt: ts_(r[BO.UPDATED_AT]), updatedBy: String(r[BO.UPDATED_BY] || ''),
-    logo: r[BO.LOGO] ? toImageUrl_(String(r[BO.LOGO])).replace('sz=w1000', 'sz=w256') : ''
+    // โลโก้เก็บเป็นรูปเล็ก (data URL) ในชีต: รักษาพื้นโปร่งใสของ PNG — รูปย่อของ Drive ทำพื้นโปร่งใสเป็นสีดำ
+    logo: r[BO.LOGO] ? (/^data:image\//.test(String(r[BO.LOGO])) ? String(r[BO.LOGO]) : toImageUrl_(String(r[BO.LOGO])).replace('sz=w1000', 'sz=w256')) : ''
   };
 }
 function planFromRow_(x) {
@@ -127,7 +131,8 @@ function invoiceFromRow_(x) {
   return { row: x.row, id: String(r[BI.ID]).trim(), org: String(r[BI.ORG] || ''), plan: String(r[BI.PLAN] || ''), cycle: String(r[BI.CYCLE] || 'monthly'),
     periodStart: ts_(r[BI.PERIOD_START]), periodEnd: ts_(r[BI.PERIOD_END]), amount: money_(r[BI.AMOUNT]),
     status: INVOICE_STATUSES.indexOf(r[BI.STATUS]) === -1 ? 'pending' : r[BI.STATUS], issued: ts_(r[BI.ISSUED]), due: ts_(r[BI.DUE]), paidAt: ts_(r[BI.PAID_AT]),
-    account: String(r[BI.ACCOUNT] || ''), method: plain_(r[BI.METHOD]), ref: plain_(r[BI.REF]), note: plain_(r[BI.NOTE]), by: String(r[BI.BY] || '') };
+    account: String(r[BI.ACCOUNT] || ''), method: plain_(r[BI.METHOD]), ref: plain_(r[BI.REF]), note: plain_(r[BI.NOTE]), by: String(r[BI.BY] || ''),
+    slip: String(r[BI.SLIP] || ''), slipAt: ts_(r[BI.SLIP_AT]), slipBy: plain_(r[BI.SLIP_BY]), slipNote: plain_(r[BI.SLIP_NOTE]) };
 }
 const readOrgs_ = () => billRows_(BILL_SHEET.ORGS, BO_HEADERS).map(orgFromRow_);
 const readPlans_ = () => billRows_(BILL_SHEET.PLANS, BP_HEADERS).map(planFromRow_).sort((a, b) => a.order - b.order);
@@ -187,6 +192,26 @@ function orgPublic_(orgId) {
   const a = orgAccess_(orgId);
   return a && a.org ? { id: a.org.id, name: a.org.name, logo: a.org.logo || '' } : null;
 }
+// ข้อมูลการเงินขององค์กรตัวเอง (ผู้ดูแลระบบ / ผู้ดูแลการเงิน): แพลน · สถานะ · จำนวนที่ใช้ · ใบแจ้งหนี้ · ช่องทางชำระเงิน
+function orgBillingInfo_(staff) {
+  const o = staff.org ? readOrgs_().filter(x => x.id === staff.org)[0] : null;
+  if (!o) return { success: true, org: null };
+  const plans = readPlans_(), planName = {};
+  plans.forEach(p => { planName[p.id] = p.name; });
+  const plan = plans.filter(p => p.id === o.plan)[0] || null;
+  const counts = orgCounts_(), lim = orgLimits_(o, plan);
+  const invoices = readInvoices_().filter(i => i.org === o.id && i.status !== 'void').sort((a, b) => (b.issued || 0) - (a.issued || 0)).slice(0, 24)
+    .map(i => ({ id: i.id, plan: i.plan, planName: planName[i.plan] || i.plan, cycle: i.cycle, periodStart: i.periodStart, periodEnd: i.periodEnd, amount: i.amount, status: i.status,
+      issued: i.issued, due: i.due, paidAt: i.paidAt, account: i.account, method: i.method, ref: i.ref, note: i.note, hasSlip: !!i.slip, slipAt: i.slipAt, slipNote: i.slipNote }));
+  const accounts = readAccounts_().filter(a => a.active).sort((a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0))
+    .map(a => ({ id: a.id, type: a.type, bank: a.bank, name: a.name, number: a.number, branch: a.branch, isDefault: a.isDefault, note: a.note }));
+  return {
+    success: true, org: { id: o.id, name: o.name, logo: o.logo || '', cycle: o.cycle, status: o.status, contact: o.contact, phone: o.phone, email: o.email, address: o.address, taxId: o.taxId },
+    plan: plan ? { id: plan.id, name: plan.name, priceMonthly: plan.priceMonthly, priceYearly: plan.priceYearly } : null,
+    access: orgAccessDto_(orgAccess_(o.id)), limits: lim, usage: { users: counts.users[o.id] || 0, staff: counts.staff[o.id] || 0 },
+    invoices: invoices, accounts: accounts, salesPhone: prop_('SALES_PHONE'), salesEmail: prop_('SALES_EMAIL')
+  };
+}
 function orgLimits_(o, plan) {
   return { users: o.maxUsers || (plan ? plan.maxUsers : 0), staff: o.maxStaff || (plan ? plan.maxStaff : 0) };
 }
@@ -234,6 +259,8 @@ function handleDev_(req, staff, ua) {
     case 'dev.invoices.create': return devLocked_(() => devInvoiceCreate_(req, staff, ua));
     case 'dev.invoices.pay': return devLocked_(() => devInvoicePay_(req, staff, ua));
     case 'dev.invoices.void': return devLocked_(() => devInvoiceVoid_(req, staff, ua));
+    case 'dev.invoices.slip': return invoiceSlipImage_(req, staff);
+    case 'dev.invoices.slipReject': return devLocked_(() => devInvoiceSlipReject_(req, staff, ua));
     case 'dev.users.list': return devUsersList_();
     case 'dev.users.assign': return devLocked_(() => devUsersAssign_(req, staff, ua));
     case 'dev.staff.role': return devLocked_(() => devStaffRole_(req, staff, ua));
@@ -327,7 +354,11 @@ function devOrgSave_(req, staff, ua) {
   v[BO.MAX_USERS] = int_(o.maxUsers) || ''; v[BO.MAX_STAFF] = int_(o.maxStaff) || ''; v[BO.NOTE] = clean_(o.note, 500);
   v[BO.UPDATED_AT] = now; v[BO.UPDATED_BY] = who_(staff);
   // โลโก้องค์กร (แสดงคู่กับชื่อแอปของผู้ใช้ในองค์กร) — อัปโหลดใหม่ / ลบ
-  if (o.logo && o.logo.data) v[BO.LOGO] = saveNamedImage_('LOGO_' + id, o.logo);
+  if (o.logo && o.logo.data) {
+    const drive = saveNamedImage_('LOGO_' + id, o.logo); // ไฟล์ต้นฉบับเก็บใน Drive
+    const small = String(o.logo.small || '');
+    v[BO.LOGO] = small && small.length <= LOGO_INLINE_MAX && /^[A-Za-z0-9+/=]+$/.test(small) ? 'data:image/png;base64,' + small : drive;
+  }
   else if (o.removeLogo) v[BO.LOGO] = '';
   if (!existing) {
     // องค์กรใหม่: เริ่มทดลองใช้ฟรีทันที (ตามวันทดลองของแพลน) หรือเริ่มใช้งานจริงถ้าเลือก
@@ -474,6 +505,7 @@ function devInvoicePay_(req, staff, ua) {
   const inv = readInvoices_().filter(i => i.id === req.id)[0];
   if (!inv) fail_('INVALID', 'ไม่พบใบแจ้งหนี้');
   if (inv.status !== 'pending') fail_('INVALID', 'ใบแจ้งหนี้นี้' + (inv.status === 'paid' ? 'ชำระแล้ว' : 'ถูกยกเลิกแล้ว'));
+  if (req.fromSlip) { if (!inv.slip) fail_('CONFLICT', 'สลิปถูกถอน/ปัดตกแล้ว กรุณาเปิดใบนี้อีกครั้ง'); slipSeen_(req, inv); } // ยืนยันจากหน้าตรวจสลิป
   const acc = req.account ? readAccounts_().filter(a => a.id === req.account)[0] : null;
   const paidAt = dateArg_(req.paidAt) || new Date();
   const sh = billSheet_(BILL_SHEET.INVOICES, BI_HEADERS);
@@ -500,6 +532,96 @@ function devInvoiceVoid_(req, staff, ua) {
   sh.getRange(inv.row, BI.STATUS + 1).setValue('void');
   if (req.reason) sh.getRange(inv.row, BI.NOTE + 1).setValue(clean_((inv.note ? inv.note + ' · ' : '') + 'ยกเลิก: ' + req.reason, 300));
   log_(staff, 'dev.invoice.void', inv.id, { reason: clean_(req.reason, 200) }, ua);
+  return { success: true };
+}
+
+// ---------- สลิปโอนเงิน: ผู้ดูแลการเงินขององค์กรแนบ → Dev/ผู้ให้บริการตรวจแล้วบันทึกชำระ ----------
+// ไฟล์สลิปเก็บแบบส่วนตัว (ไม่แชร์ลิงก์) — เปิดดูได้ผ่านคำสั่งนี้เท่านั้น
+const SLIP_MAX_PER_HOUR = 6;   // ส่งสลิปต่อใบแจ้งหนี้ได้ไม่เกิน 6 ครั้ง/ชั่วโมง (กันส่งวน)
+const SLIP_MAIL_GAP_S = 600;   // อีเมลแจ้ง Dev ไม่เกิน 1 ฉบับ/ใบ/10 นาที (โควตาอีเมลรายวันใช้ร่วมกับการแจ้งเตือนความปลอดภัย)
+// โฟลเดอร์สลิปแยกต่างหาก (ส่วนตัว ไม่แชร์) — สร้างครั้งแรกที่ใช้ แล้วจำไว้ใน Script Property SLIP_FOLDER_ID
+function slipFolder_() {
+  const id = prop_('SLIP_FOLDER_ID');
+  // มีโฟลเดอร์แล้วแต่เปิดไม่ได้ (Drive ขัดข้องชั่วคราว) → แจ้งให้ลองใหม่ ไม่สร้างโฟลเดอร์ใหม่ (สลิปจะกระจายหลายที่)
+  if (id) {
+    try { return DriveApp.getFolderById(id); }
+    catch (e) { fail_('ERROR', 'เปิดโฟลเดอร์สลิปไม่ได้ชั่วคราว กรุณาลองใหม่ (ถ้าลบโฟลเดอร์ไปแล้ว ให้ลบ Script Property SLIP_FOLDER_ID)'); }
+  }
+  let f;
+  try { f = DriveApp.createFolder('HR Paper Mill — สลิปโอนเงิน (ส่วนตัว)'); }
+  catch (e) { fail_('ERROR', 'สร้างโฟลเดอร์เก็บสลิปไม่ได้ กรุณาตรวจสอบสิทธิ์ Drive ของบัญชีที่ Deploy'); }
+  PropertiesService.getScriptProperties().setProperty('SLIP_FOLDER_ID', f.getId());
+  return f;
+}
+function orgInvoiceSlip_(req, staff, ua) {
+  const img = decodeImage_(req.photo, MAX_SLIP_BYTES, 'กรุณาเลือกรูปสลิป');
+  const cache = CacheService.getScriptCache(), nKey = 'slipn:' + String(req.id || '');
+  let inv, o, now, oldSlip;
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    // นับใน lock: ส่งพร้อมกันหลายคำขอก็นับครบทุกครั้ง
+    const n = Number(cache.get(nKey) || 0);
+    if (n >= SLIP_MAX_PER_HOUR) fail_('RATE', 'ส่งสลิปใบนี้บ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่');
+    try { cache.put(nKey, String(n + 1), 3600); } catch (e) {}
+    inv = readInvoices_().filter(i => i.id === String(req.id || ''))[0];
+    if (!inv || (!isDev_(staff) && inv.org !== staff.org)) fail_('INVALID', 'ไม่พบใบแจ้งหนี้');
+    if (inv.status !== 'pending') fail_('INVALID', 'ใบแจ้งหนี้นี้' + (inv.status === 'paid' ? 'ชำระแล้ว' : 'ถูกยกเลิกแล้ว'));
+    const folder = slipFolder_();
+    now = new Date();
+    const file = folder.createFile(Utilities.newBlob(img.bytes, img.mime, 'SLIP_' + inv.id + '_' + fmtDate_(now, 'yyyyMMdd_HHmmss')));
+    const sh = billSheet_(BILL_SHEET.INVOICES, BI_HEADERS);
+    sh.getRange(inv.row, BI.SLIP + 1, 1, 4).setValues([[file.getId(), now, who_(staff), clean_(req.note, 200)]]);
+    oldSlip = inv.slip;
+    billGen_();
+  } finally { lock.releaseLock(); }
+  // สลิปเดิมที่ยังไม่ได้ตรวจ (ส่งใหม่แทน) → ถังขยะ (กู้คืนได้ 30 วัน) ไม่ให้สะสม
+  if (oldSlip) { try { DriveApp.getFileById(oldSlip).setTrashed(true); } catch (e) { console.warn('ย้ายสลิปเก่าไปถังขยะไม่สำเร็จ: ' + e); } }
+  o = readOrgs_().filter(x => x.id === inv.org)[0];
+  log_(staff, 'billing.slip', inv.id + (o ? ' ' + o.name : ''), { amount: inv.amount, replaced: !!oldSlip }, ua);
+  if (!cache.get('slipmail:' + inv.id) && notifySlip_(inv, o, staff, req.note)) {
+    try { cache.put('slipmail:' + inv.id, '1', SLIP_MAIL_GAP_S); } catch (e) {} // ส่งไม่สำเร็จ (เช่น โควตาหมด) = ไม่พัก ครั้งหน้าลองส่งใหม่
+  }
+  return { success: true, slipAt: now.getTime() };
+}
+// แจ้ง Dev ทางอีเมล (กล่องแจ้งเตือนในแอปแสดงเองจากรายการที่รอตรวจ)
+function notifySlip_(inv, o, staff, note) {
+  try {
+    const to = {};
+    devEmails_().forEach(e => { to[e] = true; });
+    readStaff_().forEach(s => { if (s.role === 'dev' && s.status === 'active' && s.email) to[String(s.email).toLowerCase()] = true; });
+    const list = Object.keys(to);
+    if (!list.length) return false;
+    MailApp.sendEmail(list.join(','), 'HR Paper Mill — สลิปรอตรวจสอบ ' + inv.id,
+      [(o ? o.name : inv.org) + ' แนบสลิปโอนเงินสำหรับใบแจ้งหนี้ ' + inv.id, 'ยอด ' + inv.amount.toLocaleString('th-TH') + ' บาท', 'ผู้แนบ: ' + who_(staff),
+        note ? 'หมายเหตุ: ' + clean_(note, 200) : '', '', 'ตรวจสอบและบันทึกชำระได้ที่ Dev Console → ใบแจ้งหนี้'].filter(x => x !== '').join('\n'));
+    return true;
+  } catch (e) { console.warn('แจ้ง Dev เรื่องสลิปไม่สำเร็จ: ' + e); return false; }
+}
+function invoiceSlipImage_(req, staff) {
+  const inv = readInvoices_().filter(i => i.id === String(req.id || ''))[0];
+  if (!inv || (!isDev_(staff) && inv.org !== staff.org)) fail_('INVALID', 'ไม่พบใบแจ้งหนี้');
+  if (!inv.slip) fail_('INVALID', 'ยังไม่มีสลิป');
+  let blob;
+  try { blob = DriveApp.getFileById(inv.slip).getBlob(); } catch (e) { fail_('ERROR', 'เปิดไฟล์สลิปไม่ได้'); }
+  return { success: true, dataUrl: 'data:' + blob.getContentType() + ';base64,' + Utilities.base64Encode(blob.getBytes()), slipAt: inv.slipAt, slipBy: inv.slipBy, slipNote: inv.slipNote };
+}
+// Dev ต้องตัดสินจากสลิปที่เปิดดูจริง: slipAt ที่ส่งมาต้องตรงกับสลิปปัจจุบัน (แถวเก่าไม่มีเวลา = 0)
+function slipSeen_(req, inv) {
+  if (req.slipAt === undefined || req.slipAt === null || req.slipAt === '') fail_('INVALID', 'หน้านี้เป็นเวอร์ชันเก่า กรุณารีเฟรชหน้าแล้วเปิดสลิปอีกครั้ง');
+  if (Number(req.slipAt) !== Number(inv.slipAt || 0)) fail_('CONFLICT', 'องค์กรส่งสลิปใหม่แล้ว กรุณาเปิดดูสลิปล่าสุดอีกครั้ง');
+}
+// สลิปไม่ถูกต้อง: ล้างสลิป (ไฟล์ไปถังขยะ กู้คืนได้ 30 วัน) แล้วบันทึกเหตุผลให้องค์กรเห็นและแนบใหม่
+function devInvoiceSlipReject_(req, staff, ua) {
+  const inv = readInvoices_().filter(i => i.id === req.id)[0];
+  if (!inv) fail_('INVALID', 'ไม่พบใบแจ้งหนี้');
+  if (inv.status !== 'pending') fail_('INVALID', 'ใบแจ้งหนี้นี้' + (inv.status === 'paid' ? 'ชำระแล้ว' : 'ถูกยกเลิกแล้ว'));
+  if (!inv.slip) fail_('INVALID', 'ใบแจ้งหนี้นี้ยังไม่มีสลิป');
+  slipSeen_(req, inv);
+  const sh = billSheet_(BILL_SHEET.INVOICES, BI_HEADERS);
+  sh.getRange(inv.row, BI.SLIP + 1, 1, 4).setValues([['', '', '', clean_('สลิปไม่ผ่าน: ' + (req.reason || '-'), 200)]]);
+  try { DriveApp.getFileById(inv.slip).setTrashed(true); } catch (e) { console.warn('ย้ายสลิปที่ไม่ผ่านไปถังขยะไม่สำเร็จ: ' + e); } // กู้คืนได้ 30 วัน
+  log_(staff, 'dev.invoice.slip_reject', inv.id, { reason: clean_(req.reason, 200) }, ua);
   return { success: true };
 }
 

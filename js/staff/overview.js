@@ -86,6 +86,8 @@ VIEWS.overview = {
 
     render() {
         const d = this.data, k = d.kpi, W = this.words();
+        // จำนวนผู้ใช้สิทธิ์ในองค์กร → การ์ดองค์กรในเมนูด้านข้าง (Dev เห็นทุกองค์กรรวมกัน จึงไม่ใส่)
+        if (typeof OrgMark !== 'undefined' && !can('dev') && ST.sub && ST.sub.org) OrgMark.count(k.participants || 0);
         // ยังไม่มีผู้ใช้สิทธิ์ (เช่น องค์กรใหม่ที่ยังไม่ได้ย้ายผู้ใช้เข้า): บอกให้ชัด แทนตัวเลข 0 ทั้งหน้า
         const empty = !k.participants && !k.reportedToday && !(d.anomalies || []).length;
         $('overviewView').querySelector('.ov-grid').hidden = empty;
