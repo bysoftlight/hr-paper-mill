@@ -12,3 +12,13 @@
 - Backend: Google Apps Script + Google Sheets — วิธีติดตั้งดู [`apps-script/README.md`](apps-script/README.md)
 - Design system: [`DESIGN.md`](DESIGN.md)
 - ทุกครั้งที่แก้ CSS/JS ให้เปลี่ยนเลข `?v=` ใน `index.html` / `staff.html`
+
+## ทดสอบ (smoke test)
+
+เปิดทุกหน้าของผู้ใช้สิทธิ์และเจ้าหน้าที่บนจอมือถือและจอคอม ถ่ายภาพ และตรวจ error ใน console — ระบบหลังบ้านถูกจำลองทั้งหมด ไม่แตะข้อมูลจริง (ต้องมี [Playwright](https://playwright.dev))
+
+```bash
+node tests/smoke.js
+```
+
+ภาพและ `report.json` อยู่ที่ `tests/output/` · พบปัญหา = exit code 1
