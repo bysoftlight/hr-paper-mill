@@ -1780,10 +1780,11 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
 [data-scrollfade] { -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 var(--fade-l, 0px), #000 calc(100% - var(--fade-r, 0px)), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 var(--fade-l, 0px), #000 calc(100% - var(--fade-r, 0px)), transparent 100%); }
 
 /* =====================================================
-   ท้ายหน้าแบบเดียวกันทุกหน้า (.site-foot): ลิงก์คั่นด้วย · ไม่ขีดเส้นใต้ จัดกลาง · Copyright บรรทัดล่าง
+   ท้ายหน้าแบบเดียวกันทุกหน้า (.site-foot): โลโก้ · ลิงก์คั่นด้วย · · Copyright — จัดกลาง พื้นสีอ่อน
    ===================================================== */
-.site-foot { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; color: var(--muted); font-size: 13px; }
-.foot-links { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; row-gap: 6px; margin: 0; max-width: 560px; }
+.site-foot { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; color: var(--muted); font-size: 13px; background: var(--container); padding: 28px 20px; }
+.foot-logo { display: block; width: 28px; height: 28px; }
+.foot-links { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; row-gap: 6px; margin: 0; max-width: 100%; }
 .foot-links > a, .foot-links > button {
     display: inline-flex; align-items: center; white-space: nowrap;
     padding: 4px 0; border: 0; background: none; font: inherit; font-size: 14px; line-height: 1.5;
@@ -1796,8 +1797,12 @@ dialog.onboard[open] { animation: pop .2s ease-out; }
 .foot-copy { margin: 0; font-size: 13px; color: var(--muted); }
 .foot-copy a.credit { color: inherit; font-weight: 400; text-decoration: none; }
 @media (hover: hover) { .foot-copy a.credit:hover { color: var(--accent); } }
-.login-footer.site-foot { font-size: 13px; padding-top: 24px; }
-.login-footer.site-foot nav { margin-bottom: 0; }
+.login-footer.site-foot { font-size: 13px; padding: 24px 4px; border-radius: var(--r-lg); } /* ด้านข้างแคบ: ลิงก์บนมือถือไม่ตัดแถวมากกว่าเดิม */
+/* จอกว้าง: ท้ายหน้าเข้าสู่ระบบกว้างกว่าการ์ด ให้ลิงก์อยู่แถวเดียว */
+@media (min-width: 768px) { .login-footer.site-foot { max-width: 640px; } }
+/* มือถือ: ลิงก์หน้าเข้าสู่ระบบแถวละ 2 ไม่เหลือลิงก์เดี่ยวแถวสุดท้าย */
+@media (max-width: 767px) { .login-footer.site-foot .foot-links { max-width: 320px; } }
+.login-footer.site-foot nav { margin-bottom: 0; column-gap: 0; row-gap: 6px; } /* ไม่ใช้ gap 16px ของ .login-footer nav เดิม — ระยะซ้าย/ขวาของจุดคั่นเท่ากัน */
 @media (max-width: 359px) { .foot-links > a, .foot-links > button { font-size: 13px; } .foot-links > * + *::before { margin: 0 9px; } }
 .foot-links > .foot-br { flex: 0 0 100%; height: 0; }
 .foot-links > .foot-br::before, .foot-links > .foot-br + *::before { display: none; }

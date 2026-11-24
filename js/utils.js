@@ -158,6 +158,8 @@ function flushErrorQueue() {
 window.addEventListener('error', e => {
     // รูป/สคริปต์โหลดไม่ได้ไม่นับ (เกิดบ่อยตอนสัญญาณแย่) — นับเฉพาะข้อผิดพลาดของโค้ด
     if (!e.message) return;
+    // ResizeObserver ทำงานไม่ทันในเฟรมเดียว (เกิดบ่อยบนมือถือตอนเปิดหน้า) — เบราว์เซอร์แค่เตือน ไม่ใช่ข้อผิดพลาดของโค้ด
+    if (/^ResizeObserver loop/.test(e.message)) return;
     reportClientError('js', e.message, (e.filename || '').split('/').pop() + ':' + (e.lineno || '') + ':' + (e.colno || ''));
 });
 window.addEventListener('unhandledrejection', e => {
